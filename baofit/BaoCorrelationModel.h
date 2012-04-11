@@ -6,11 +6,9 @@
 #include "baofit/AbsCorrelationModel.h"
 
 #include "cosmo/types.h"
-#include "likely/Interpolator.h"
 
 #include <string>
 #include <vector>
-#include <fstream>
 
 namespace baofit {
 	class BaoCorrelationModel : public AbsCorrelationModel {
@@ -32,14 +30,6 @@ namespace baofit {
         // evaluate() with three different values of beta and solve for the multipoles.
         std::vector<double> evaluateMultipoles(double r, std::vector<double> const &params) const;
 	private:
-        likely::InterpolatorPtr load(std::string const &fileName) {
-            std::vector<std::vector<double> > columns(2);
-            std::ifstream in(fileName.c_str());
-            likely::readVectors(in,columns);
-            in.close();
-            likely::InterpolatorPtr iptr(new likely::Interpolator(columns[0],columns[1],"cspline"));
-            return iptr;
-        }
         double _zref;
         cosmo::RsdCorrelationFunctionPtr _fid, _nw, _bbc, _bb1, _bb2;
 	}; // BaoCorrelationModel
