@@ -77,7 +77,8 @@ am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(bindir)" \
 	"$(DESTDIR)$(includedir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
 libbaofit_la_LIBADD =
-am_libbaofit_la_OBJECTS = AbsCorrelationModel.lo LyaBaoModel.lo
+am_libbaofit_la_OBJECTS = AbsCorrelationModel.lo \
+	BaoCorrelationModel.lo
 libbaofit_la_OBJECTS = $(am_libbaofit_la_OBJECTS)
 PROGRAMS = $(bin_PROGRAMS)
 am_baofit_OBJECTS = baofit.$(OBJEXT)
@@ -246,7 +247,7 @@ lib_LTLIBRARIES = libbaofit.la
 # instructions for building the library
 libbaofit_la_SOURCES = \
 	baofit/AbsCorrelationModel.cc \
-	baofit/LyaBaoModel.cc
+	baofit/BaoCorrelationModel.cc
 
 
 # library headers to install (nobase prefix preserves any subdirectories)
@@ -257,7 +258,7 @@ nobase_include_HEADERS = \
 	baofit/types.h \
 	baofit/RuntimeError.h \
 	baofit/AbsCorrelationModel.h \
-	baofit/LyaBaoModel.h
+	baofit/BaoCorrelationModel.h
 
 
 # instructions for building each program
@@ -407,7 +408,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/AbsCorrelationModel.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LyaBaoModel.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/BaoCorrelationModel.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/baofit.Po@am__quote@
 
 .cc.o:
@@ -438,12 +439,12 @@ AbsCorrelationModel.lo: baofit/AbsCorrelationModel.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o AbsCorrelationModel.lo `test -f 'baofit/AbsCorrelationModel.cc' || echo '$(srcdir)/'`baofit/AbsCorrelationModel.cc
 
-LyaBaoModel.lo: baofit/LyaBaoModel.cc
-@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT LyaBaoModel.lo -MD -MP -MF $(DEPDIR)/LyaBaoModel.Tpo -c -o LyaBaoModel.lo `test -f 'baofit/LyaBaoModel.cc' || echo '$(srcdir)/'`baofit/LyaBaoModel.cc
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/LyaBaoModel.Tpo $(DEPDIR)/LyaBaoModel.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='baofit/LyaBaoModel.cc' object='LyaBaoModel.lo' libtool=yes @AMDEPBACKSLASH@
+BaoCorrelationModel.lo: baofit/BaoCorrelationModel.cc
+@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT BaoCorrelationModel.lo -MD -MP -MF $(DEPDIR)/BaoCorrelationModel.Tpo -c -o BaoCorrelationModel.lo `test -f 'baofit/BaoCorrelationModel.cc' || echo '$(srcdir)/'`baofit/BaoCorrelationModel.cc
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/BaoCorrelationModel.Tpo $(DEPDIR)/BaoCorrelationModel.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='baofit/BaoCorrelationModel.cc' object='BaoCorrelationModel.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o LyaBaoModel.lo `test -f 'baofit/LyaBaoModel.cc' || echo '$(srcdir)/'`baofit/LyaBaoModel.cc
+@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o BaoCorrelationModel.lo `test -f 'baofit/BaoCorrelationModel.cc' || echo '$(srcdir)/'`baofit/BaoCorrelationModel.cc
 
 baofit.o: src/baofit.cc
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT baofit.o -MD -MP -MF $(DEPDIR)/baofit.Tpo -c -o baofit.o `test -f 'src/baofit.cc' || echo '$(srcdir)/'`src/baofit.cc
