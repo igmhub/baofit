@@ -9,6 +9,7 @@
 #include "likely/Interpolator.h"
 
 #include <string>
+#include <vector>
 #include <fstream>
 
 namespace baofit {
