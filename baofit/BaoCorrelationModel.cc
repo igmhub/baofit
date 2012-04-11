@@ -2,6 +2,7 @@
 
 #include "baofit/BaoCorrelationModel.h"
 
+#include "cosmo/RsdCorrelationFunction.h"
 #include "cosmo/TransferFunctionPowerSpectrum.h"
 
 #include "boost/format.hpp"

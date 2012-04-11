@@ -5,7 +5,7 @@
 
 #include "baofit/AbsCorrelationModel.h"
 
-#include "cosmo/RsdCorrelationFunction.h"
+#include "cosmo/types.h"
 #include "likely/Interpolator.h"
 
 #include <string>
@@ -40,8 +40,8 @@ namespace baofit {
             likely::InterpolatorPtr iptr(new likely::Interpolator(columns[0],columns[1],"cspline"));
             return iptr;
         }
-        double _zref, _growth;
-        boost::scoped_ptr<cosmo::RsdCorrelationFunction> _fid, _nw, _bbc, _bb1, _bb2;
+        double _zref;
+        cosmo::RsdCorrelationFunctionPtr _fid, _nw, _bbc, _bb1, _bb2;
 	}; // BaoCorrelationModel
 } // baofit
 
