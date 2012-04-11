@@ -3,12 +3,40 @@
 #ifndef BAOFIT_BAO_CORRELATION_MODEL
 #define BAOFIT_BAO_CORRELATION_MODEL
 
+#include "baofit/AbsCorrelationModel.h"
+
+#include "cosmo/RsdCorrelationFunction.h"
+#include "likely/Interpolator.h"
+
+#include <string>
+#include <fstream>
+
 namespace baofit {
-	class BaoCorrelationModel {
+	class BaoCorrelationModel : public AbsCorrelationModel {
+	// Represents a two-point correlation model parameterized for measuring the scale
+	// and significance of a BAO peak.
 	public:
-		BaoCorrelationModel();
+		BaoCorrelationModel(std::string const &fiducialName, std::string const &nowigglesName,
+            std::string const &broadbandName, double zref);
 		virtual ~BaoCorrelationModel();
+		// Returns the correlation function evaluated in redshift space where (r,mu) is
+		// the pair separation and z is their average redshift. The separation r should
+		// be provided in h/Mpc.
+        virtual double evaluate(double r, double mu, double z, std::vector<double> params) const;
+        // Returns the azimuthally averaged monopole correlation function evaluated at
+        // comoving separation r in h/Mpc, with an average redshift z.
+        virtual double evaluate(double r, double z, std::vector<double> params) const;
 	private:
+        likely::InterpolatorPtr load(std::string const &fileName) {
+            std::vector<std::vector<double> > columns(2);
+            std::ifstream in(fileName.c_str());
+            likely::readVectors(in,columns);
+            in.close();
+            likely::InterpolatorPtr iptr(new likely::Interpolator(columns[0],columns[1],"cspline"));
+            return iptr;
+        }
+        double _zref, _growth;
+        boost::scoped_ptr<cosmo::RsdCorrelationFunction> _fid, _nw, _bbc, _bb1, _bb2;
 	}; // BaoCorrelationModel
 } // baofit
 
