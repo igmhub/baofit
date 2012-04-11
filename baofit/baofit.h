@@ -3,3 +3,6 @@
 #include "baofit/types.h"
 
 #include "baofit/RuntimeError.h"
+
+#include "baofit/AbsCorrelationModel.h"
+#include "baofit/BaoCorrelationModel.h"
