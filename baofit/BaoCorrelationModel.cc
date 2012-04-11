@@ -40,7 +40,8 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &fiducialName,
 
 local::BaoCorrelationModel::~BaoCorrelationModel() { }
 
-double local::BaoCorrelationModel::evaluate(double r, double mu, double z, std::vector<double> params) const {
+double local::BaoCorrelationModel::evaluate(double r, double mu, double z,
+std::vector<double> const &params) const {
     double alpha(params[0]), bias(params[1]), beta(params[2]), ampl(params[3]), scale(params[4]);
     double xio(params[5]), a0(params[6]), a1(params[7]), a2(params[8]);
     // Calculate redshift evolution factor.
@@ -61,6 +62,30 @@ double local::BaoCorrelationModel::evaluate(double r, double mu, double z, std::
     return bias*bias*zfactor*(peak + broadband);
 }
 
-double local::BaoCorrelationModel::evaluate(double r, double z, std::vector<double> params) const {
+double local::BaoCorrelationModel::evaluate(double r, double z,
+std::vector<double> const &params) const {
     return 0;
+}
+
+std::vector<double> local::BaoCorrelationModel::evaluateMultipoles(double r,
+std::vector<double> const &params) const {
+    std::vector<double> pcopy(params);
+    pcopy[0] = 0; // alpha = 0 to fix z = zref
+    //pcopy[1] = 1; // fix bias = 1
+
+    pcopy[2] = 0; // mu=0, beta = 0 gives xi = xi0
+    double xia = evaluate(r,0,0,pcopy);
+    
+    pcopy[2] = +1; // mu=0, beta = +1 gives xi = (28/15)xi0 - (20/21)xi2 +(3/35)xi4
+    double xib = evaluate(r,0,0,pcopy);
+
+    pcopy[2] = -1; // mu=0, beta = -1 gives xi = (8/15)xi0 + (8/21)xi2 + (3/35)xi4
+    double xic = evaluate(r,0,0,pcopy);
+    
+    // Solve for xi0,xi2,xi4
+    std::vector<double> xi(3);
+    xi[0] = xia;
+    xi[1] = xia - (3./4.)*(xib - xic);
+    xi[2] = (-32*xia + 10*xib + 25*xic)/3;
+    return xi;
 }
