@@ -25,6 +25,7 @@
 #include "boost/spirit/include/qi.hpp"
 #include "boost/spirit/include/phoenix_core.hpp"
 #include "boost/spirit/include/phoenix_operator.hpp"
+#include "boost/pointer_cast.hpp"
 
 #include <fstream>
 #include <iostream>
@@ -51,93 +52,6 @@ extern "C" {
 
 namespace lk = likely;
 namespace po = boost::program_options;
-
-class LyaBaoModel {
-public:
-    LyaBaoModel(std::string const &fiducialName, std::string const &nowigglesName,
-    std::string const &broadbandName, double zref)
-    : _zref(zref) {
-        boost::format fileName("%s.%d.dat"),bbandName("%s%c.%d.dat");
-        cosmo::CorrelationFunctionPtr
-            fid0 = cosmo::createFunctionPtr(load(boost::str(fileName % fiducialName % 0))),
-            fid2 = cosmo::createFunctionPtr(load(boost::str(fileName % fiducialName % 2))),
-            fid4 = cosmo::createFunctionPtr(load(boost::str(fileName % fiducialName % 4))),
-            nw0 = cosmo::createFunctionPtr(load(boost::str(fileName % nowigglesName % 0))),
-            nw2 = cosmo::createFunctionPtr(load(boost::str(fileName % nowigglesName % 2))),
-            nw4 = cosmo::createFunctionPtr(load(boost::str(fileName % nowigglesName % 4))),
-            bbc0 = cosmo::createFunctionPtr(load(boost::str(bbandName % broadbandName % 'c' % 0))),
-            bbc2 = cosmo::createFunctionPtr(load(boost::str(bbandName % broadbandName % 'c' % 2))),
-            bbc4 = cosmo::createFunctionPtr(load(boost::str(bbandName % broadbandName % 'c' % 4))),
-            bb10 = cosmo::createFunctionPtr(load(boost::str(bbandName % broadbandName % '1' % 0))),
-            bb12 = cosmo::createFunctionPtr(load(boost::str(bbandName % broadbandName % '1' % 2))),
-            bb14 = cosmo::createFunctionPtr(load(boost::str(bbandName % broadbandName % '1' % 4))),
-            bb20 = cosmo::createFunctionPtr(load(boost::str(bbandName % broadbandName % '2' % 0))),
-            bb22 = cosmo::createFunctionPtr(load(boost::str(bbandName % broadbandName % '2' % 2))),
-            bb24 = cosmo::createFunctionPtr(load(boost::str(bbandName % broadbandName % '2' % 4)));
-        _fid.reset(new cosmo::RsdCorrelationFunction(fid0,fid2,fid4));
-        _nw.reset(new cosmo::RsdCorrelationFunction(nw0,nw2,nw4));
-        _bbc.reset(new cosmo::RsdCorrelationFunction(bbc0,bbc2,bbc4));
-        _bb1.reset(new cosmo::RsdCorrelationFunction(bb10,bb12,bb14));
-        _bb2.reset(new cosmo::RsdCorrelationFunction(bb20,bb22,bb24));
-    }
-    // Returns a vector of ell=0,2,4 multipoles for the specified co-moving distance r in Mpc/h
-    // and fit parameters. In order to avoid duplicating the code in evaluate(), we call
-    // evaluate() with three different values of beta and solve for the multipoles.
-    std::vector<double> evaluateMultipoles(double r, lk::Parameters const &p) const {
-        lk::Parameters pcopy(p);
-        pcopy[0] = 0; // alpha = 0 to fix z = zref
-        //pcopy[1] = 1; // fix bias = 1
-
-        pcopy[2] = 0; // mu=0, beta = 0 gives xi = xi0
-        double xia = evaluate(r,0,0,pcopy);
-        
-        pcopy[2] = +1; // mu=0, beta = +1 gives xi = (28/15)xi0 - (20/21)xi2 +(3/35)xi4
-        double xib = evaluate(r,0,0,pcopy);
-
-        pcopy[2] = -1; // mu=0, beta = -1 gives xi = (8/15)xi0 + (8/21)xi2 + (3/35)xi4
-        double xic = evaluate(r,0,0,pcopy);
-        
-        // Solve for xi0,xi2,xi4
-        std::vector<double> xi(3);
-        xi[0] = xia;
-        xi[1] = xia - (3./4.)*(xib - xic);
-        xi[2] = (-32*xia + 10*xib + 25*xic)/3;
-        return xi;
-    }
-    double evaluate(double r, double mu, double z, lk::Parameters const &p) const {
-        double alpha(p[0]), bias(p[1]), beta(p[2]), ampl(p[3]), scale(p[4]);
-        double xio(p[5]), a0(p[6]), a1(p[7]), a2(p[8]);
-        // Calculate redshift evolution factor.
-        double zfactor = std::pow((1+z)/(1+_zref),alpha);
-        // Apply redshift-space distortion to each model component.
-        _fid->setDistortion(beta);
-        _nw->setDistortion(beta);
-        _bbc->setDistortion(beta);
-        _bb1->setDistortion(beta);
-        _bb2->setDistortion(beta);
-        // Calculate the peak contribution with scaled radius.
-        double fid((*_fid)(r*scale,mu)), nw((*_nw)(r*scale,mu)); // scale cancels in mu
-        double peak = ampl*(fid-nw);
-        // Calculate the additional broadband contribution with no radius scaling.
-        double bbc((*_bbc)(r,mu)), bb0((*_nw)(r,mu)), bb1((*_bb1)(r,mu)), bb2((*_bb2)(r,mu));
-        double broadband = xio*bbc + (1+a0)*bb0 + a1*bb1 + a2*bb2;
-        // Combine the peak and broadband components, with bias and redshift evolution.
-        return bias*bias*zfactor*(peak + broadband);
-    }
-private:
-    lk::InterpolatorPtr load(std::string const &fileName) {
-        std::vector<std::vector<double> > columns(2);
-        std::ifstream in(fileName.c_str());
-        lk::readVectors(in,columns);
-        in.close();
-        lk::InterpolatorPtr iptr(new lk::Interpolator(columns[0],columns[1],"cspline"));
-        return iptr;
-    }
-    double _zref, _growth;
-    boost::scoped_ptr<cosmo::RsdCorrelationFunction> _fid, _nw, _bbc, _bb1, _bb2;
-}; // LyaBaoModel
-
-typedef boost::shared_ptr<LyaBaoModel> LyaBaoModelPtr;
 
 class AbsBinning {
 public:
@@ -540,7 +454,7 @@ public:
         }
         return chi2;
     }
-    void applyTheoryOffsets(LyaBaoModelPtr model,
+    void applyTheoryOffsets(baofit::AbsCorrelationModelCPtr model,
     std::vector<double> const &pfit, std::vector<double> const &pnew) {
         assert(model);
         int nData(getNData());
@@ -708,7 +622,7 @@ private:
 
 class LyaBaoLikelihood {
 public:
-    LyaBaoLikelihood(LyaDataPtr data, LyaBaoModelPtr model, double rmin, double rmax,
+    LyaBaoLikelihood(LyaDataPtr data, baofit::AbsCorrelationModelCPtr model, double rmin, double rmax,
     bool fixLinear, bool fixBao, bool fixScale, bool noBBand, double initialAmp, double initialScale)
     : _data(data), _model(model), _rmin(rmin), _rmax(rmax), _errorScale(1) {
         assert(data);
@@ -824,7 +738,7 @@ public:
     }
 private:
     LyaDataPtr _data;
-    LyaBaoModelPtr _model;
+    baofit::AbsCorrelationModelCPtr _model;
     std::vector<Parameter> _params;
     double _rmin, _rmax, _errorScale;
 }; // LyaBaoLikelihood
@@ -954,14 +868,14 @@ int main(int argc, char **argv) {
 
     // Initialize the cosmology calculations we will need.
     cosmo::AbsHomogeneousUniversePtr cosmology;
-    LyaBaoModelPtr model;
+    baofit::AbsCorrelationModelCPtr model;
     try {
         // Build the homogeneous cosmology we will use.
         if(OmegaMatter == 0) OmegaMatter = 1 - OmegaLambda;
         cosmology.reset(new cosmo::LambdaCdmUniverse(OmegaLambda,OmegaMatter));
         
          // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
-         model.reset(new LyaBaoModel(fiducialName,nowigglesName,broadbandName,zref));
+         model.reset(new baofit::BaoCorrelationModel(fiducialName,nowigglesName,broadbandName,zref));
 
         if(verbose) std::cout << "Cosmology initialized." << std::endl;
     }
@@ -1163,12 +1077,16 @@ int main(int argc, char **argv) {
                     accumulators[npar].accumulate(fmin.Fval());
                     // Output curves of the best-fit multipoles if requested.
                     if(curvesOut) {
+                        // A generic correlation model does not know how to calculate multipoles, so
+                        // we must dynamically cast to our more specialized BAO model type.
+                        std::tr1::shared_ptr<const baofit::BaoCorrelationModel>
+                            baoModel(boost::dynamic_pointer_cast<const baofit::BaoCorrelationModel>(model));
                         boost::format fmt(" %.3e %.3e %.3e");
                         double dr(1); // Mpc/h
                         int nr = 1+std::floor((rmax-rmin)/dr);
                         for(int i = 0; i < nr; ++i) {
                             double r = rmin + i*dr;
-                            std::vector<double> xi = model->evaluateMultipoles(r,params);
+                            std::vector<double> xi = baoModel->evaluateMultipoles(r,params);
                             *curvesOut << fmt % xi[0] % xi[1] % xi[2];
                         }
                         *curvesOut << std::endl;
