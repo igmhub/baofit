@@ -28,4 +28,4 @@ nobase_include_HEADERS = \
 
 baofit_SOURCES = src/baofit.cc
 baofit_DEPENDENCIES = $(lib_LIBRARIES)
-baofit_LDADD = -lboost_program_options -L. -lcosmo -lMinuit2 -lblas
+baofit_LDADD = -lboost_program_options -L. -lbaofit -lcosmo -lMinuit2 -lblas
