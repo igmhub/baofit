@@ -1,5 +1,6 @@
 // Created 31-Jan-2012 by David Kirkby (University of California, Irvine) <dkirkby@uci.edu>
 
+#include "baofit/baofit.h"
 #include "cosmo/cosmo.h"
 #include "likely/likely.h"
 // the following are not part of the public API, so not included by likely.h
