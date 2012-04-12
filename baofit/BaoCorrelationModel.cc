@@ -5,6 +5,7 @@
 #include "cosmo/RsdCorrelationFunction.h"
 #include "cosmo/TransferFunctionPowerSpectrum.h"
 #include "likely/Interpolator.h"
+#include "likely/function.h"
 
 #include "boost/format.hpp"
 
