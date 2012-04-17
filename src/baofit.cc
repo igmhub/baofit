@@ -53,120 +53,29 @@ extern "C" {
 namespace lk = likely;
 namespace po = boost::program_options;
 
-class AbsBinning {
-public:
-    AbsBinning() { }
-    virtual ~AbsBinning() { }
-    // Returns the bin index [0,nBins-1] or else -1.
-    virtual int getBinIndex(double value) const = 0;
-    // Returns the total number of bins.
-    virtual int getNBins() const = 0;
-    // Returns the full width of the specified bin.
-    virtual double getBinSize(int index) const = 0;
-    // Returns the lower bound of the specified bin. Use index=nbins for the upper bound of the last bin.
-    virtual double getBinLowEdge(int index) const = 0;
-    // Returns the midpoint value of the specified bin.
-    virtual double getBinCenter(int index) const { return getBinLowEdge(index) + 0.5*getBinSize(index); }
-    // Dumps this binning to the specified output stream in a standard format.
-    void dump(std::ostream &os) const {
-        int nbins(getNBins());
-        os << nbins;
-        for(int bin = 0; bin <= nbins; ++bin) os << ' ' << getBinLowEdge(bin);
-        os << std::endl;
+std::vector<double> twoStepSampling(
+int nBins, double breakpoint,double dlog, double dlin, double eps = 1e-3) {
+    assert(breakpoint > 0 && dlog > 0 && dlin > 0 && eps > 0);
+    std::vector<double> samplePoints;
+    // first sample is at zero.
+    samplePoints.push_back(0);
+    // next samples are uniformly spaced up to the breakpoint.
+    int nUniform = std::floor(breakpoint/dlin);
+    for(int k = 1; k <= nUniform; ++k) {
+        samplePoints.push_back((k-0.5)*dlin);
     }
-}; // AbsBinning
-
-typedef boost::shared_ptr<const AbsBinning> AbsBinningPtr;
-
-class UniformBinning : public AbsBinning {
-public:
-    UniformBinning(int nBins, double lowEdge, double binSize)
-    : _nBins(nBins), _lowEdge(lowEdge), _binSize(binSize) {
-        assert(nBins > 0);
-        assert(binSize > 0);
+    // remaining samples are logarithmically spaced, with log-weighted bin centers.
+    double ratio = std::log((breakpoint+dlog)/breakpoint);
+    for(int k = 1; k < nBins-nUniform; ++k) {
+        samplePoints.push_back(breakpoint*std::exp(ratio*(k-0.5)));
     }
-    virtual ~UniformBinning() { }
-    // Returns the bin index [0,nBins-1] or else -1.
-    virtual int getBinIndex(double value) const {
-        int bin = std::floor((value - _lowEdge)/_binSize);
-        assert(bin >= 0 && bin < _nBins);
-        return bin;
-    }
-    // Returns the total number of bins.
-    virtual int getNBins() const { return _nBins; }
-    // Returns the full width of the specified bin.
-    virtual double getBinSize(int index) const { return _binSize; }
-    // Returns the lower bound of the specified bin. Use index=nbins for the upper bound of the last bin.
-    virtual double getBinLowEdge(int index) const {
-        assert(index >= 0 && index <= _nBins);
-        return _lowEdge + index*_binSize;
-    }
-private:
-    int _nBins;
-    double _lowEdge, _binSize;
-}; // UniformBinning
-
-class VariableBinning : public AbsBinning {
-public:
-    VariableBinning(std::vector<double> &binEdge) :
-    _binEdge(binEdge) {
-        // should check that edges are increasing...
-    }
-    virtual ~VariableBinning() { }
-    virtual int getBinIndex(double value) const {
-        // should use bisection for this, and cache the last bin found...
-        if(value < _binEdge[0]) return -1; // underflow
-        for(int bin = 1; bin < _binEdge.size(); ++bin) if(value < _binEdge[bin]) return bin-1;
-        return -1; // overflow
-    }
-    virtual int getNBins() const { return _binEdge.size()-1; }
-    virtual double getBinSize(int index) const {
-        assert(index >= 0 && index < _binEdge.size()-1);
-        return _binEdge[index+1] - _binEdge[index];
-    }
-    virtual double getBinLowEdge(int index) const {
-        assert(index >= 0 && index < _binEdge.size());
-        return _binEdge[index];
-    }
-protected:
-    VariableBinning() { }
-    std::vector<double> _binEdge;
-}; // VariableBinning
-
-class TwoStepBinning : public VariableBinning {
-public:
-    TwoStepBinning(int nBins, double breakpoint, double dlog, double dlin, double eps = 1e-3) {
-        assert(breakpoint > 0 && dlog > 0 && dlin > 0 && eps > 0);
-        // first bin is centered on zero with almost zero width
-        _binEdge.push_back(-eps*dlin);
-        _binEdge.push_back(+eps*dlin);
-        _binCenter.push_back(0);
-        // next bins are uniformly spaced up to the breakpoint
-        int nUniform = std::floor(breakpoint/dlin);
-        for(int k = 1; k <= nUniform; ++k) {
-            _binEdge.push_back(k*dlin);
-            _binCenter.push_back((k-0.5)*dlin);
-        }
-        // remaining bins are logarithmically spaced, with log-weighted bin centers.
-        double ratio = std::log((breakpoint+dlog)/breakpoint);
-        for(int k = 1; k < nBins-nUniform; ++k) {
-            _binEdge.push_back(breakpoint*std::exp(ratio*k));
-            _binCenter.push_back(breakpoint*std::exp(ratio*(k-0.5)));
-        }
-    }
-    virtual ~TwoStepBinning() { }
-    virtual double getBinCenter(int index) const {
-        assert(index >= 0 && index < _binCenter.size());
-        return _binCenter[index];
-    }
-private:
-    std::vector<double> _binCenter;
-}; // TwoStepBinning
+    return samplePoints;
+}
 
 class LyaData {
 public:
-    LyaData(AbsBinningPtr logLambdaBinning, AbsBinningPtr separationBinning,
-    AbsBinningPtr redshiftBinning, cosmo::AbsHomogeneousUniversePtr cosmology)
+    LyaData(likely::AbsBinningCPtr logLambdaBinning, likely::AbsBinningCPtr separationBinning,
+    likely::AbsBinningCPtr redshiftBinning, cosmo::AbsHomogeneousUniversePtr cosmology)
     : _cosmology(cosmology), _logLambdaBinning(logLambdaBinning),
     _separationBinning(separationBinning), _redshiftBinning(redshiftBinning),
     _dataFinalized(false), _covarianceFinalized(false), _compressed(false)
@@ -198,7 +107,7 @@ public:
         _initialized[index] = true;
         _index.push_back(index);
         // Calculate and save model observables for this bin.
-        double r3d,mu,ds(_separationBinning->getBinSize(separationBin));
+        double r3d,mu,ds(_separationBinning->getBinWidth(separationBin));
         transform(logLambda,separation,redshift,ds,r3d,mu);
         _r3d.push_back(r3d);
         _mu.push_back(mu);
@@ -440,9 +349,9 @@ public:
     double getRadius(int k) const { return _r3d[k]; }
     double getCosAngle(int k) const { return _mu[k]; }
     double getRedshift(int k) const { return _redshiftBinning->getBinCenter(_index[k] % _nz); }
-    AbsBinningPtr getLogLambdaBinning() const { return _logLambdaBinning; }
-    AbsBinningPtr getSeparationBinning() const { return _separationBinning; }
-    AbsBinningPtr getRedshiftBinning() const { return _redshiftBinning; }
+    likely::AbsBinningCPtr getLogLambdaBinning() const { return _logLambdaBinning; }
+    likely::AbsBinningCPtr getSeparationBinning() const { return _separationBinning; }
+    likely::AbsBinningCPtr getRedshiftBinning() const { return _redshiftBinning; }
     double calculateChiSquare(std::vector<double> &delta) {
         assert(delta.size() == getNData());
         // Calculate C^(-1).delta
@@ -581,7 +490,7 @@ public:
         }
     }
 private:
-    AbsBinningPtr _logLambdaBinning, _separationBinning, _redshiftBinning;
+    likely::AbsBinningCPtr _logLambdaBinning, _separationBinning, _redshiftBinning;
     cosmo::AbsHomogeneousUniversePtr _cosmology;
     std::vector<double> _data, _cov, _icov, _icovTilde, _r3d, _mu, _icovDelta, _icovData;
     std::vector<float> _zicov;
@@ -679,7 +588,7 @@ public:
     std::vector<ContourPoints> const &contourData, int modelBins) {
         std::ofstream out(filename.c_str());
         // Dump binning info first
-        AbsBinningPtr llbins(_data->getLogLambdaBinning()), sepbins(_data->getSeparationBinning()),
+        likely::AbsBinningCPtr llbins(_data->getLogLambdaBinning()), sepbins(_data->getSeparationBinning()),
             zbins(_data->getRedshiftBinning());
         llbins->dump(out);
         sepbins->dump(out);
@@ -709,15 +618,15 @@ public:
         // Dump high-resolution uniformly-binned model calculation.
         // Calculate and dump the model binning limits.
         double sepMin = sepbins->getBinLowEdge(0), sepMax = sepbins->getBinLowEdge(sepbins->getNBins());
-        UniformBinning sepModel(modelBins,sepMin,(sepMax-sepMin)/(modelBins-1.));
+        likely::UniformBinning sepModel(sepMin,sepMax,modelBins);
         double llMin = llbins->getBinLowEdge(0), llMax = llbins->getBinLowEdge(llbins->getNBins());
-        UniformBinning llModel(modelBins,llMin,(llMax-llMin)/(modelBins-1.));
+        likely::UniformBinning llModel(llMin,llMax,modelBins);
         double r,mu;
         for(int iz = 0; iz < zbins->getNBins(); ++iz) {
             double z = zbins->getBinCenter(iz);
             for(int isep = 0; isep < modelBins; ++isep) {
                 double sep = sepModel.getBinCenter(isep);
-                double ds = sepModel.getBinSize(isep);
+                double ds = sepModel.getBinWidth(isep);
                 for(int ill = 0; ill < modelBins; ++ill) {
                     double ll = llModel.getBinCenter(ill);
                     _data->transform(ll,sep,z,ds,r,mu);
@@ -893,13 +802,14 @@ int main(int argc, char **argv) {
     std::vector<LyaDataPtr> plateData;
     try {
         // Initialize the (logLambda,separation,redshift) binning from command-line params.
-        AbsBinningPtr llBins,sepBins(new UniformBinning(nsep,minsep,dsep)),
-            zBins(new UniformBinning(nz,minz,dz));
+        likely::AbsBinningCPtr llBins,
+            sepBins(new likely::UniformBinning(minsep,minsep+nsep*dsep,nsep)),
+            zBins(new likely::UniformSampling(minz+0.5*dz,minz+(nz-0.5)*dz,nz));
         if(0 == dll2) {
-            llBins.reset(new UniformBinning(nll,minll,dll));
+            llBins.reset(new likely::UniformBinning(minll,minll+nll*dll,nll));
         }
         else {
-            llBins.reset(new TwoStepBinning(nll,minll,dll,dll2));
+            llBins.reset(new likely::NonUniformSampling(twoStepSampling(nll,minll,dll,dll2)));
         }
         // Initialize the dataset we will fill.
         data.reset(new LyaData(llBins,sepBins,zBins,cosmology));
