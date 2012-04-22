@@ -118,6 +118,8 @@ public:
         _cov.resize(nCov,0);
         _hasCov.resize(nCov,false);
         _dataFinalized = true;
+        
+        _covariance.reset(new lk::CovarianceMatrix(nData));
     }
     void transform(double ll, double sep, double z, double ds, double &r3d, double &mu) const {
         double ratio(std::exp(0.5*ll)),zp1(z+1);
@@ -137,9 +139,13 @@ public:
             << drPerp << ',' << mu << ']' << std::endl;
 **/
     }
-    void addCovariance(int i, int j, double value) {
+    void addCovariance(int i, int j, double value, bool cov_is_icov) {
+        // Check for zero values on the diagonal
+        if(i == j && 0 == value) {
+            value = cov_is_icov ? 1e-30 : 1e+40;
+        }
+        // put into upper-diagonal form col >= row
         int row,col;
-         // put into upper-diagonal form col >= row
         if(i >= j) {
             col = i; row = j;
         }
@@ -152,17 +158,19 @@ public:
         int index(row+(col*(col+1))/2); // see http://www.netlib.org/lapack/lug/node123.html
         assert(_hasCov[index] == false);
         _cov[index] = value;
+
+        if(cov_is_icov) {
+            _covariance->setInverseCovariance(i,j,value);
+        }
+        else {
+            _covariance->setCovariance(i,j,value);
+        }
+
         _hasCov[index] = true;
     }
     void finalizeCovariance(bool cov_is_icov) {
         assert(_dataFinalized);
-        // Check for zero values on the diagonal
         int nData = getNData();
-        for(int k = 0; k < nData; ++k) {
-            if(0 == getVariance(k)) {
-                setVariance(k,cov_is_icov ? 1e-30 : 1e+40);
-            }
-        }
         if(cov_is_icov) {
             // The values we read into cov actually belong in icov.
             std::swap(_cov,_icov);            
@@ -175,6 +183,12 @@ public:
         multiply(_icov,_data,_icovData);
         // All done.
         _covarianceFinalized = true;
+        
+        std::vector<double> icovData = _data;
+        _covariance->multiplyByInverseCovariance(icovData);
+        if(!std::equal(icovData.begin(),icovData.end(),_icovData.begin())) {
+            std::cout << "icovData: not equal!" << std::endl;
+        }
     }
     void reset() {
         _dataFinalized = _covarianceFinalized = false;
@@ -478,7 +492,7 @@ public:
             getDouble(what[3].first,what[3].second,value);
             // Add this covariance to our dataset.
             if(icov) value = -value; // !?! see line #388 of Observed2Point.cpp
-            addCovariance(index1,index2,value);
+            addCovariance(index1,index2,value,icov);
         }
         finalizeCovariance(icov);
         covIn.close();
@@ -499,6 +513,9 @@ private:
     int _ndata,_nsep,_nz,_nBinsTotal;
     double _arcminToRad;
     bool _dataFinalized, _covarianceFinalized, _compressed;
+    
+    boost::shared_ptr<lk::CovarianceMatrix> _covariance;
+    
 }; // LyaData
 
 typedef boost::shared_ptr<LyaData> LyaDataPtr;
