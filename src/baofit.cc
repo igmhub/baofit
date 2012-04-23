@@ -342,13 +342,13 @@ public:
                 }
             }
         }
-        /*
         std::vector<double> data = _icovData;
         _covarianceTilde->multiplyByCovariance(data);
-        if(!std::equal(data.begin(),data.end(),_data.begin())) {
-            std::cout << "data: not equal!" << std::endl;
+        for(int k = 0; k < getNData(); ++k) {
+            if(std::fabs(data[k]-_data[k]) > 1e-4*std::fabs(data[k]+_data[k])/2) {
+                std::cout << "data: " << k << ' ' << data[k] << ' ' << _data[k] << std::endl;
+            }
         }
-        */       
         
         // Do we want to get the covariance right?
         if(fixCovariance) {
