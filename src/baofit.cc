@@ -140,10 +140,6 @@ public:
 **/
     }
     void addCovariance(int i, int j, double value, bool cov_is_icov) {
-        // Check for zero values on the diagonal
-        if(i == j && 0 == value) {
-            value = cov_is_icov ? 1e-30 : 1e+40;
-        }
         // put into upper-diagonal form col >= row
         int row,col;
         if(i >= j) {
@@ -171,6 +167,23 @@ public:
     void finalizeCovariance(bool cov_is_icov) {
         assert(_dataFinalized);
         int nData = getNData();
+
+        // Check for zero values on the diagonal
+        for(int k = 0; k < nData; ++k) {
+            if(0 == getVariance(k)) {
+                if(cov_is_icov) {
+                    double value = 1e-30;
+                    setVariance(k,value);
+                    _covariance->setInverseCovariance(k,k,value);
+                }
+                else {
+                    double value = 1e+40;
+                    setVariance(k,value);
+                    _covariance->setCovariance(k,k,value);
+                }
+            }
+        }
+
         if(cov_is_icov) {
             // The values we read into cov actually belong in icov.
             std::swap(_cov,_icov);            
@@ -183,6 +196,7 @@ public:
         multiply(_icov,_data,_icovData);
         // All done.
         _covarianceFinalized = true;
+
         
         std::vector<double> icovData = _data;
         _covariance->multiplyByInverseCovariance(icovData);
@@ -194,6 +208,9 @@ public:
         _dataFinalized = _covarianceFinalized = false;
         _data.clear();
         _compressed = false;
+        
+        _covariance.reset();
+        _covarianceTilde.reset();
     }
     // A compressed object can only be added to another object.
     void compress() {
@@ -213,6 +230,8 @@ public:
         std::vector<bool>().swap(_hasCov);
         std::vector<bool>().swap(_initialized);
         _compressed = true;
+        
+        _covariance->compress();
     }
     void add(LyaData const &other, int repeat = 1) {
         assert(!_dataFinalized && !_covarianceFinalized && !_compressed);
@@ -230,6 +249,9 @@ public:
             _index = other._index;
             _r3d = other._r3d;
             _mu= other._mu;
+            
+            _covariance.reset(new lk::CovarianceMatrix(nData));
+            _covarianceTilde.reset(new lk::CovarianceMatrix(nData));
         }
         else {
             assert(nData == getNData());
@@ -252,6 +274,9 @@ public:
                 _icov[k] += nk2*other._icov[k];
             }
         }
+        
+        _covariance->addInverse(*(other._covariance),nk2);
+        _covarianceTilde->addInverse(*(other._covariance),nk);
     }
     // Inverts an n by n symmetric matrix in BLAS upper diagonal form
     void invert(std::vector<double> const &original, std::vector<double> &inverse, int n) {
@@ -306,6 +331,25 @@ public:
         invert(_icovTilde,_cov,getNData());
         // Multiply _icovData by this to get final data.
         multiply(_cov,_icovData,_data);
+        
+        int index(0);
+        for(int col = 0; col < getNData(); ++col) {
+            for(int row = 0; row <= col; ++row) {
+                double value = _icovTilde[index++], value2 = _covarianceTilde->getInverseCovariance(row,col);
+                if(std::fabs(value2-value) > 1e-6*std::fabs(value+value2)/2) {
+                    std::cout << "icovTilde: " << row << ' ' << col << ' ' << value
+                        << ' ' << _covarianceTilde->getInverseCovariance(row,col) << std::endl;
+                }
+            }
+        }
+        /*
+        std::vector<double> data = _icovData;
+        _covarianceTilde->multiplyByCovariance(data);
+        if(!std::equal(data.begin(),data.end(),_data.begin())) {
+            std::cout << "data: not equal!" << std::endl;
+        }
+        */       
+        
         // Do we want to get the covariance right?
         if(fixCovariance) {
             // Invert the nk^2 weighted inverse-covariance in _icov and save in _cov
@@ -514,7 +558,7 @@ private:
     double _arcminToRad;
     bool _dataFinalized, _covarianceFinalized, _compressed;
     
-    boost::shared_ptr<lk::CovarianceMatrix> _covariance;
+    boost::shared_ptr<lk::CovarianceMatrix> _covariance, _covarianceTilde;
     
 }; // LyaData
 
