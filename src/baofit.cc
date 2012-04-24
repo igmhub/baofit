@@ -183,7 +183,7 @@ public:
                 }
             }
         }
-
+        /*!*
         if(cov_is_icov) {
             // The values we read into cov actually belong in icov.
             std::swap(_cov,_icov);            
@@ -194,6 +194,8 @@ public:
         }
         // Fill _icovData.
         multiply(_icov,_data,_icovData);
+        *!*/
+
         // All done.
         _covarianceFinalized = true;
         
@@ -210,6 +212,7 @@ public:
     }
     // A compressed object can only be added to another object.
     void compress() {
+        /*!*
         int nData(getNData());
         int nCov = (nData*(nData+1))/2;
         // The following swaps are to force the memory to be free'd.
@@ -225,6 +228,7 @@ public:
         std::vector<double>().swap(_cov);
         std::vector<bool>().swap(_hasCov);
         std::vector<bool>().swap(_initialized);
+        *!*/
         _compressed = true;
         
         _covariance->compress();
