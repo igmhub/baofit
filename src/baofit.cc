@@ -352,6 +352,7 @@ public:
         
         // Do we want to get the covariance right?
         if(fixCovariance) {
+            /*!!
             // Invert the nk^2 weighted inverse-covariance in _icov and save in _cov
             int n(getNData());
             invert(_icov,_cov,n);
@@ -386,30 +387,24 @@ public:
             }
             // Calculate _cov from _icov.
             invert(_icov,_cov,getNData());
+            !!*/
             
             _covariance->replaceWithTripleProduct(*_covarianceTilde);
-            
-            index = 0;
-            for(int col = 0; col < getNData(); ++col) {
-                for(int row = 0; row <= col; ++row) {
-                    double value = _icov[index++], value2 = _covariance->getInverseCovariance(row,col);
-                    if(std::fabs(value2-value) > 1e-2*std::fabs(value+value2)/2 &&
-                    std::fabs(value2-value) > 1e-4) {
-                        std::cout << "fixed icov: " << row << ' ' << col << ' ' << value
-                            << ' ' << value2 << ' ' << std::fabs((value2-value)/(value2+value))*2
-                            << std::endl;
-                    }
-                }
-            }
-            
+
         }
         else {
             // We have already inverted _icovTilde into _cov so we only need to
             // copy _icovTilde into _icov.
+            /*!!
             _icov.swap(_icovTilde);
+            !!*/
+            _covariance = _covarianceTilde;
         }
         // Delete temporary storage
+        /*!!
         std::vector<double>().swap(_icovTilde);
+        !!*/
+        _covarianceTilde.reset();
         // All done.
         _dataFinalized = _covarianceFinalized = true;
     }
