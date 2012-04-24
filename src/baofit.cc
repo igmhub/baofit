@@ -237,13 +237,15 @@ public:
         assert(!_dataFinalized && !_covarianceFinalized && !_compressed);
         assert(other._dataFinalized && other._covarianceFinalized);
         int nData(other.getNData());
-        int nCov = (nData*(nData+1))/2;
+        //!!int nCov = (nData*(nData+1))/2;
         if(0 == _data.size()) {
             // Allocate empty arrays if this is the first data added.
             std::vector<double>(nData,0).swap(_data);
             std::vector<double>(nData,0).swap(_icovData);
+            /*!*
             std::vector<double>(nCov,0).swap(_icov);
             std::vector<double>(nCov,0).swap(_icovTilde);
+            *!*/
             // Copy cached data.
             _nBinsTotal = other._nBinsTotal;
             _index = other._index;
@@ -260,6 +262,7 @@ public:
             _icovData[k] += repeat*other._icovData[k];
         }
         double nk(repeat), nk2(repeat*repeat);
+        /*!*
         if(other._compressed) {
             int nz(other._zicov.size());
             for(int iz = 0; iz < nz; ++iz) {
@@ -274,7 +277,8 @@ public:
                 _icov[k] += nk2*other._icov[k];
             }
         }
-        
+        *!*/
+
         _covariance->addInverse(*(other._covariance),nk2);
         _covarianceTilde->addInverse(*(other._covariance),nk);
     }
