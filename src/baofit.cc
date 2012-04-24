@@ -169,17 +169,17 @@ public:
         int nData = getNData();
 
         // Check for zero values on the diagonal
-        for(int k = 0; k < nData; ++k) {
-            if(0 == getVariance(k)) {
-                if(cov_is_icov) {
-                    double value = 1e-30;
-                    setVariance(k,value);
-                    _covariance->setInverseCovariance(k,k,value);
+        if(cov_is_icov) {
+            for(int k = 0; k < nData; ++k) {
+                if(0 == _covariance->getInverseCovariance(k,k)) {
+                    _covariance->setInverseCovariance(k,k,1e-30);
                 }
-                else {
-                    double value = 1e+40;
-                    setVariance(k,value);
-                    _covariance->setCovariance(k,k,value);
+            }
+        }
+        else {
+            for(int k = 0; k < nData; ++k) {
+                if(0 == _covariance->getCovariance(k,k)) {
+                    _covariance->setCovariance(k,k,1e40);
                 }
             }
         }
