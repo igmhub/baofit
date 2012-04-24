@@ -115,7 +115,7 @@ public:
     void finalizeData() {
         int nData = getNData();
         int nCov = (nData*(nData+1))/2;
-        _cov.resize(nCov,0);
+        //!!_cov.resize(nCov,0);
         _hasCov.resize(nCov,false);
         _dataFinalized = true;
         
@@ -150,10 +150,11 @@ public:
         }
         assert(_dataFinalized);
         assert(row >= 0 && col >= 0 && col < getNData());
-        assert(col > row || value > 0); // diagonal elements must be positive for covariance matrix
+        //!!assert(col > row || value > 0); // diagonal elements must be positive for covariance matrix
         int index(row+(col*(col+1))/2); // see http://www.netlib.org/lapack/lug/node123.html
         assert(_hasCov[index] == false);
-        _cov[index] = value;
+
+        //!!_cov[index] = value;
 
         if(cov_is_icov) {
             _covariance->setInverseCovariance(i,j,value);
