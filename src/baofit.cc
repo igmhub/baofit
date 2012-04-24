@@ -428,6 +428,7 @@ public:
     likely::AbsBinningCPtr getRedshiftBinning() const { return _redshiftBinning; }
     double calculateChiSquare(std::vector<double> &delta) {
         assert(delta.size() == getNData());
+        /*!!
         // Calculate C^(-1).delta
         multiply(_icov,delta,_icovDelta);
         // Calculate chi2 = delta(t).C^(-1).delta
@@ -435,14 +436,8 @@ public:
         for(int k = 0; k < getNData(); ++k) {
             chi2 += delta[k]*_icovDelta[k];
         }
-        
-        double chi2p = _covariance->chiSquare(delta);
-        if(std::fabs(chi2 - chi2p) > 1e-9*(chi2p+chi2)/2) {
-            std::cout << "chi2: " << chi2 << ' ' << chi2p << ' ' <<
-                std::fabs(chi2 - chi2p)/(chi2p+chi2)*2 << std::endl;
-        }
-        
-        return chi2;
+        !!*/
+        return _covariance->chiSquare(delta);
     }
     void applyTheoryOffsets(baofit::AbsCorrelationModelCPtr model,
     std::vector<double> const &pfit, std::vector<double> const &pnew) {
@@ -453,6 +448,7 @@ public:
             double offset = model->evaluate(r,mu,z,pnew) - model->evaluate(r,mu,z,pfit);
             _data[k] += offset;
         }
+        /*!!
         // Uncompress _icov if necessary
         if(_compressed) {
             int nCov = (nData*(nData+1))/2;
@@ -461,13 +457,18 @@ public:
                 int k = _zicovIndex[iz];
                 _icov[k] = _zicov[iz];
             }
-        }     
+        }        
         // Update _icovData = C^(-1).data
-        multiply(_icov,_data,_icovData);
+        multiply(_icov,_data,_icovData);        
         // Remove the uncompressed _icov if necessary.
         if(_compressed) {
             std::vector<double>().swap(_icov);
         }
+        !!*/
+        bool compressed(_covariance->isCompressed());
+        _icovData = _data;
+        _covariance->multiplyByInverseCovariance(_icovData);
+        if(compressed) _covariance->compress();
     }
     void getDouble(std::string::const_iterator const &begin, std::string::const_iterator const &end,
         double &value) const {
