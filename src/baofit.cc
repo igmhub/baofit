@@ -404,8 +404,8 @@ public:
     int getNCov() const { return (int)std::count(_hasCov.begin(),_hasCov.end(),true); }
     int getIndex(int k) const { return _index[k]; }
     double getData(int k) const { return _data[k]; }
-    double getVariance(int k) const { return _cov[(k*(k+3))/2]; }
-    void setVariance(int k, double value) { _cov[(k*(k+3))/2] = value; }
+    double getVariance(int k) const { return _covariance->getCovariance(k,k); }
+    //!!void setVariance(int k, double value) { _cov[(k*(k+3))/2] = value; }
     double getRadius(int k) const { return _r3d[k]; }
     double getCosAngle(int k) const { return _mu[k]; }
     double getRedshift(int k) const { return _redshiftBinning->getBinCenter(_index[k] % _nz); }
@@ -560,7 +560,7 @@ public:
 private:
     likely::AbsBinningCPtr _logLambdaBinning, _separationBinning, _redshiftBinning;
     cosmo::AbsHomogeneousUniversePtr _cosmology;
-    std::vector<double> _data, _cov, _icov, _icovTilde, _r3d, _mu, _icovDelta, _icovData;
+    std::vector<double> _data, /*_cov, _icov, _icovTilde,*/ _r3d, _mu, _icovDelta, _icovData;
     std::vector<double> _zicov;
     std::vector<bool> _initialized, _hasCov;
     std::vector<int> _index, _zicovIndex;
@@ -679,6 +679,7 @@ public:
             double obs = _data->getData(k);
             double pull = 0;
             if(r >= _rmin && r <= _rmax) {
+                // TODO: change 1/sqrt(cov) to sqrt(icov) ?
                 double var = _data->getVariance(k);
                 double pred = _model->evaluate(r,mu,z,params);
                 pull = (obs-pred)/std::sqrt(var);
