@@ -327,18 +327,14 @@ public:
     // and is faster.
     void finalize(bool fixCovariance) {
         assert(!_dataFinalized && !_covarianceFinalized && !_compressed);
+        /*!*
         // Invert _icovTilde into _cov
         invert(_icovTilde,_cov,getNData());
         // Multiply _icovData by this to get final data.
         multiply(_cov,_icovData,_data);
-        
-        std::vector<double> data = _icovData;
-        _covarianceTilde->multiplyByCovariance(data);
-        for(int k = 0; k < getNData(); ++k) {
-            if(std::fabs(data[k]-_data[k]) > 1e-4*std::fabs(data[k]+_data[k])/2) {
-                std::cout << "data: " << k << ' ' << data[k] << ' ' << _data[k] << std::endl;
-            }
-        }
+        *!*/
+        _data = _icovData;
+        _covarianceTilde->multiplyByCovariance(_data);
         
         // Do we want to get the covariance right?
         if(fixCovariance) {
