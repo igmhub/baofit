@@ -196,13 +196,9 @@ public:
         multiply(_icov,_data,_icovData);
         // All done.
         _covarianceFinalized = true;
-
         
-        std::vector<double> icovData = _data;
-        _covariance->multiplyByInverseCovariance(icovData);
-        if(!std::equal(icovData.begin(),icovData.end(),_icovData.begin())) {
-            std::cout << "icovData: not equal!" << std::endl;
-        }
+        _icovData = _data;
+        _covariance->multiplyByInverseCovariance(_icovData);
     }
     void reset() {
         _dataFinalized = _covarianceFinalized = false;
