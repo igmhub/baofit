@@ -393,9 +393,11 @@ public:
             for(int col = 0; col < getNData(); ++col) {
                 for(int row = 0; row <= col; ++row) {
                     double value = _icov[index++], value2 = _covariance->getInverseCovariance(row,col);
-                    if(std::fabs(value2-value) > 1e-3*std::fabs(value+value2)/2) {
+                    if(std::fabs(value2-value) > 1e-2*std::fabs(value+value2)/2 &&
+                    std::fabs(value2-value) > 1e-4) {
                         std::cout << "fixed icov: " << row << ' ' << col << ' ' << value
-                            << ' ' << value2 << std::endl;
+                            << ' ' << value2 << ' ' << std::fabs((value2-value)/(value2+value))*2
+                            << std::endl;
                     }
                 }
             }
@@ -433,6 +435,13 @@ public:
         for(int k = 0; k < getNData(); ++k) {
             chi2 += delta[k]*_icovDelta[k];
         }
+        
+        double chi2p = _covariance->chiSquare(delta);
+        if(std::fabs(chi2 - chi2p) > 1e-9*(chi2p+chi2)/2) {
+            std::cout << "chi2: " << chi2 << ' ' << chi2p << ' ' <<
+                std::fabs(chi2 - chi2p)/(chi2p+chi2)*2 << std::endl;
+        }
+        
         return chi2;
     }
     void applyTheoryOffsets(baofit::AbsCorrelationModelCPtr model,
