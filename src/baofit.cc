@@ -332,16 +332,6 @@ public:
         // Multiply _icovData by this to get final data.
         multiply(_cov,_icovData,_data);
         
-        int index(0);
-        for(int col = 0; col < getNData(); ++col) {
-            for(int row = 0; row <= col; ++row) {
-                double value = _icovTilde[index++], value2 = _covarianceTilde->getInverseCovariance(row,col);
-                if(std::fabs(value2-value) > 1e-6*std::fabs(value+value2)/2) {
-                    std::cout << "icovTilde: " << row << ' ' << col << ' ' << value
-                        << ' ' << value2 << std::endl;
-                }
-            }
-        }
         std::vector<double> data = _icovData;
         _covarianceTilde->multiplyByCovariance(data);
         for(int k = 0; k < getNData(); ++k) {
