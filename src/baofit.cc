@@ -338,7 +338,7 @@ public:
                 double value = _icovTilde[index++], value2 = _covarianceTilde->getInverseCovariance(row,col);
                 if(std::fabs(value2-value) > 1e-6*std::fabs(value+value2)/2) {
                     std::cout << "icovTilde: " << row << ' ' << col << ' ' << value
-                        << ' ' << _covarianceTilde->getInverseCovariance(row,col) << std::endl;
+                        << ' ' << value2 << std::endl;
                 }
             }
         }
@@ -386,6 +386,20 @@ public:
             }
             // Calculate _cov from _icov.
             invert(_icov,_cov,getNData());
+            
+            _covariance->replaceWithTripleProduct(*_covarianceTilde);
+            
+            index = 0;
+            for(int col = 0; col < getNData(); ++col) {
+                for(int row = 0; row <= col; ++row) {
+                    double value = _icov[index++], value2 = _covariance->getInverseCovariance(row,col);
+                    if(std::fabs(value2-value) > 1e-3*std::fabs(value+value2)/2) {
+                        std::cout << "fixed icov: " << row << ' ' << col << ' ' << value
+                            << ' ' << value2 << std::endl;
+                    }
+                }
+            }
+            
         }
         else {
             // We have already inverted _icovTilde into _cov so we only need to
