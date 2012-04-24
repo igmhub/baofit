@@ -217,7 +217,7 @@ public:
         int nData(getNData());
         int nCov = (nData*(nData+1))/2;
         // The following swaps are to force the memory to be free'd.
-        std::vector<float>().swap(_zicov);
+        std::vector<double>().swap(_zicov);
         std::vector<int>().swap(_zicovIndex);
         for(int k = 0; k < nCov; ++k) {
             float value(_icov[k]);
@@ -565,7 +565,7 @@ private:
     likely::AbsBinningCPtr _logLambdaBinning, _separationBinning, _redshiftBinning;
     cosmo::AbsHomogeneousUniversePtr _cosmology;
     std::vector<double> _data, _cov, _icov, _icovTilde, _r3d, _mu, _icovDelta, _icovData;
-    std::vector<float> _zicov;
+    std::vector<double> _zicov;
     std::vector<bool> _initialized, _hasCov;
     std::vector<int> _index, _zicovIndex;
     int _ndata,_nsep,_nz,_nBinsTotal;
