@@ -557,6 +557,7 @@ public:
                 << " covariance values from " << covName << std::endl;
         }
     }
+    //lk::CovarianceMatrixCPtr getCovariance() { return _covariance; }
 private:
     likely::AbsBinningCPtr _logLambdaBinning, _separationBinning, _redshiftBinning;
     cosmo::AbsHomogeneousUniversePtr _cosmology;
@@ -908,6 +909,23 @@ int main(int argc, char **argv) {
                 }
                 LyaDataPtr plate(new LyaData(llBins,sepBins,zBins,cosmology));
                 plate->load(boost::str(platefile % platerootName % plateName),verbose,true,fastLoad);
+                
+                //!!DK
+                /**
+                lk::CovarianceMatrixCPtr cov = plate->getCovariance();
+                for(int col = 0; col < 5; ++col) {
+                    for(int row = 0; row <= col; ++row) {
+                        std::cout << "curCI[" << row << ',' << col << "] = "
+                            << cov->getCovariance(row,col) << ' '
+                            << cov->getInverseCovariance(row,col) << std::endl;
+                    }
+                }
+                for(int k = 0; k < 5; ++k) {
+                    std::cout << "curD[" << k << "] = " << plate->_icovData[k] << std::endl;
+                }
+                **/
+                //!!DK
+                
                 plate->compress();
                 plateData.push_back(plate);
                 data->add(*plate);
@@ -915,6 +933,33 @@ int main(int argc, char **argv) {
             }
             platelist.close();
             data->finalize(false);
+
+            //!!DK
+            /**
+            {
+                lk::CovarianceMatrixCPtr cov = data->getCovariance();
+                for(int col = 0; col < 5; ++col) {
+                    for(int row = 0; row <= col; ++row) {
+                        std::cout << "curCI[" << row << ',' << col << "] = "
+                            << cov->getCovariance(row,col) << ' '
+                            << cov->getInverseCovariance(row,col) << std::endl;
+                    }
+                }
+                for(int k = 0; k < 5; ++k) {
+                    std::cout << "curD[" << k << "] = " << data->_data[k] << std::endl;
+                }
+                for(int k = 0; k < 5; ++k) {
+                    std::cout << "r,mu = " << data->_r3d[k] << ", " << data->_mu[k] << std::endl;
+                }
+            }
+            **/
+            //!!DK
+            
+            //!!DK
+                for(int i = 0; i < 10; ++i) {
+                    //std::cout << "Covariance3D[" << i << "] ll=" << data->
+                }
+            //!!DK
         }
     }
     catch(cosmo::RuntimeError const &e) {
