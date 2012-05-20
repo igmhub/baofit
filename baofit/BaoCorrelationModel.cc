@@ -46,7 +46,8 @@ local::BaoCorrelationModel::~BaoCorrelationModel() { }
 
 double local::BaoCorrelationModel::evaluate(double r, double mu, double z,
 std::vector<double> const &params) const {
-    double alpha(params[0]), bias(params[1]), beta(params[2]), ampl(params[3]), scale(params[4]);
+    double alpha(params[0]), bb(params[1]), beta(params[2]), ampl(params[3]), scale(params[4]);
+    double bias = bb/(1+beta);
     double xio(params[5]), a0(params[6]), a1(params[7]), a2(params[8]);
     // Calculate redshift evolution factor.
     double zfactor = std::pow((1+z)/(1+_zref),alpha);
