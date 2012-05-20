@@ -608,8 +608,8 @@ public:
         assert(data);
         assert(model);
         assert(rmax > rmin);
-        _params.push_back(Parameter("Alpha",3.8,0.3,!fixLinear));
-        _params.push_back(Parameter("Bias",0.17,0.015,!fixLinear && (fixBao || noBBand)));
+        _params.push_back(Parameter("Alpha",3.8,0.3,false)); //!fixLinear));
+        _params.push_back(Parameter("BB",0.34,0.03,!fixLinear && (fixBao || noBBand)));
         _params.push_back(Parameter("Beta",1.0,0.1,!fixLinear && (fixBao || noBBand)));
         _params.push_back(Parameter("BAO Ampl",initialAmp,0.15,!fixBao));
         _params.push_back(Parameter("BAO Scale",initialScale,0.02,!fixBao && !fixScale));
