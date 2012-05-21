@@ -78,7 +78,8 @@ public:
     likely::AbsBinningCPtr redshiftBinning, cosmo::AbsHomogeneousUniversePtr cosmology)
     : _cosmology(cosmology), _logLambdaBinning(logLambdaBinning),
     _separationBinning(separationBinning), _redshiftBinning(redshiftBinning),
-    _dataFinalized(false), _covarianceFinalized(false), _compressed(false)
+    _dataFinalized(false), _covarianceFinalized(false), _compressed(false),
+    _binnedData(logLambdaBinning,separationBinning,redshiftBinning)
     {
         assert(logLambdaBinning);
         assert(separationBinning);
@@ -106,6 +107,14 @@ public:
         _data.push_back(value);
         _initialized[index] = true;
         _index.push_back(index);
+        
+        std::vector<double> axisValues(3);
+        axisValues[0] = logLambda;
+        axisValues[1] = separation;
+        axisValues[2] = redshift;
+        assert(index == _binnedData.getIndex(axisValues));
+        _binnedData.setData(index,value);
+
         // Calculate and save model observables for this bin.
         double r3d,mu,ds(_separationBinning->getBinWidth(separationBin));
         transform(logLambda,separation,redshift,ds,r3d,mu);
@@ -255,9 +264,11 @@ public:
             
             _covariance.reset(new lk::CovarianceMatrix(nData));
             _covarianceTilde.reset(new lk::CovarianceMatrix(nData));
+            _binnedData = other._binnedData;
         }
         else {
             assert(nData == getNData());
+            _binnedData += other._binnedData;
         }
         for(int k = 0; k < nData; ++k) {
             _icovData[k] += repeat*other._icovData[k];
@@ -570,6 +581,8 @@ private:
     bool _dataFinalized, _covarianceFinalized, _compressed;
     
     boost::shared_ptr<lk::CovarianceMatrix> _covariance, _covarianceTilde;
+public:
+    lk::BinnedData _binnedData;
     
 }; // LyaData
 
@@ -956,8 +969,12 @@ int main(int argc, char **argv) {
             //!!DK
             
             //!!DK
+                std::vector<double> coords;
                 for(int i = 0; i < 10; ++i) {
-                    //std::cout << "Covariance3D[" << i << "] ll=" << data->
+                    int index = data->_binnedData.getIndexAtOffset(i);
+                    data->_binnedData.getBinCenters(index,coords);
+                    std::cout << "Covariance3D[" << i << "] idx=" << index << ", ll="
+                        << coords[0] << ", sep=" << coords[1] << ", z=" << coords[2] << std::endl;
                 }
             //!!DK
         }
