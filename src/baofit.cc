@@ -970,11 +970,13 @@ int main(int argc, char **argv) {
             
             //!!DK
                 std::vector<double> coords;
-                for(int i = 0; i < 10; ++i) {
-                    int index = data->_binnedData.getIndexAtOffset(i);
+                for(int offset = 0; offset < 10; ++offset) {
+                    int index = data->_binnedData.getIndexAtOffset(offset);
                     data->_binnedData.getBinCenters(index,coords);
-                    std::cout << "Covariance3D[" << i << "] idx=" << index << ", ll="
-                        << coords[0] << ", sep=" << coords[1] << ", z=" << coords[2] << std::endl;
+                    std::cout << "Covariance3D[" << offset << "] idx=" << index << ", ll="
+                        << coords[0] << ", sep=" << coords[1] << ", z=" << coords[2]
+                        << ", r3d=" << data->getRadius(offset) << ", mu=" << data->getCosAngle(offset)
+                        << ", z=" << data->getRedshift(offset) << std::endl;
                 }
             //!!DK
         }
