@@ -165,11 +165,14 @@ public:
 
         //!!_cov[index] = value;
 
+        int ii = _binnedData.getIndexAtOffset(i), jj = _binnedData.getIndexAtOffset(j);
         if(cov_is_icov) {
             _covariance->setInverseCovariance(i,j,value);
+            _binnedData.setInverseCovariance(ii,jj,value);
         }
         else {
             _covariance->setCovariance(i,j,value);
+            _binnedData.setCovariance(ii,jj,value);
         }
 
         _hasCov[index] = true;
@@ -184,12 +187,20 @@ public:
                 if(0 == _covariance->getInverseCovariance(k,k)) {
                     _covariance->setInverseCovariance(k,k,1e-30);
                 }
+                int index = _binnedData.getIndexAtOffset(k);
+                if(0 == _binnedData.getInverseCovariance(index,index)) {
+                    _binnedData.setInverseCovariance(index,index,1e-30);
+                }
             }
         }
         else {
             for(int k = 0; k < nData; ++k) {
                 if(0 == _covariance->getCovariance(k,k)) {
                     _covariance->setCovariance(k,k,1e40);
+                }
+                int index = _binnedData.getIndexAtOffset(k);
+                if(0 == _binnedData.getCovariance(index,index)) {
+                    _binnedData.setCovariance(index,index,1e40);
                 }
             }
         }
@@ -265,6 +276,7 @@ public:
             _covariance.reset(new lk::CovarianceMatrix(nData));
             _covarianceTilde.reset(new lk::CovarianceMatrix(nData));
             _binnedData = other._binnedData;
+            _binnedData.cloneCovariance();
         }
         else {
             assert(nData == getNData());
@@ -569,7 +581,8 @@ public:
         }
     }
     //lk::CovarianceMatrixCPtr getCovariance() { return _covariance; }
-private:
+//private:
+public:
     likely::AbsBinningCPtr _logLambdaBinning, _separationBinning, _redshiftBinning;
     cosmo::AbsHomogeneousUniversePtr _cosmology;
     std::vector<double> _data, /*_cov, _icov, _icovTilde,*/ _r3d, _mu, _icovDelta, _icovData;
@@ -581,7 +594,6 @@ private:
     bool _dataFinalized, _covarianceFinalized, _compressed;
     
     boost::shared_ptr<lk::CovarianceMatrix> _covariance, _covarianceTilde;
-public:
     lk::BinnedData _binnedData;
     
 }; // LyaData
@@ -976,7 +988,9 @@ int main(int argc, char **argv) {
                     std::cout << "Covariance3D[" << offset << "] idx=" << index << ", ll="
                         << coords[0] << ", sep=" << coords[1] << ", z=" << coords[2]
                         << ", r3d=" << data->getRadius(offset) << ", mu=" << data->getCosAngle(offset)
-                        << ", z=" << data->getRedshift(offset) << std::endl;
+                        << ", z=" << data->getRedshift(offset) << ", value="
+                        << data->_data[offset] << ", "
+                        << data->_binnedData.getData(index) << std::endl;
                 }
             //!!DK
         }
