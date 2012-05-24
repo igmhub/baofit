@@ -33,6 +33,7 @@
 #include <cstdlib>
 #include <cassert>
 #include <vector>
+#include <set>
 #include <algorithm>
 
 // Declare bindings to BLAS,LAPACK routines we need
@@ -307,17 +308,18 @@ public:
         _covarianceTilde->addInverse(*(other._covariance),nk);
     }
     void prune(double rmin, double rmax, double llmin) {
-        std::vector<int> keep;
+        std::set<int> keep;
         std::vector<double> binCenters;
         for(int offset = 0; offset < _binnedData.getNBinsWithData(); ++offset) {
             int index = _binnedData.getIndexAtOffset(offset);
             _binnedData.getBinCenters(index,binCenters);
             if(getRadius(offset) >= rmin && getRadius(offset) < rmax && binCenters[0] > llmin) {
-                keep.push_back(offset);
+                keep.insert(index);
             }
         }
-        std::cout << "Pruned from " << _binnedData.getNBinsWithData() << " to "
+        std::cout << "Pruning from " << _binnedData.getNBinsWithData() << " to "
             << keep.size() << std::endl;
+        _binnedData.prune(keep);
     }
     // Inverts an n by n symmetric matrix in BLAS upper diagonal form
     void invert(std::vector<double> const &original, std::vector<double> &inverse, int n) {
@@ -1008,6 +1010,14 @@ int main(int argc, char **argv) {
             //!!DK
             
                 data->prune(rmin,rmax,0.002);
+
+                for(int offset = 0; offset < 10; ++offset) {
+                    int index = data->_binnedData.getIndexAtOffset(offset);
+                    data->_binnedData.getBinCenters(index,coords);
+                    std::cout << "Covariance3D[" << offset << "] idx=" << index << ", ll="
+                        << coords[0] << ", sep=" << coords[1] << ", z=" << coords[2]
+                        << ", value=" << data->_binnedData.getData(index) << std::endl;
+                }
         }
     }
     catch(cosmo::RuntimeError const &e) {
