@@ -20,10 +20,10 @@ namespace baofit {
 		virtual ~BaoCorrelationModel();
 		// Returns the correlation function evaluated in redshift space where (r,mu) is
 		// the pair separation and z is their average redshift. The separation r should
-		// be provided in h/Mpc.
+		// be provided in Mpc/h.
         virtual double evaluate(double r, double mu, double z, std::vector<double> const &params) const;
         // Returns the azimuthally averaged monopole correlation function evaluated at
-        // comoving separation r in h/Mpc, with an average redshift z.
+        // comoving separation r in Mpc/h, with an average redshift z.
         virtual double evaluate(double r, double z, std::vector<double> const &params) const;
         // Returns a vector of ell=0,2,4 multipoles for the specified co-moving distance r in Mpc/h
         // and fit parameters. In order to avoid duplicating the code in evaluate(), we call
