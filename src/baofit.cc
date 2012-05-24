@@ -313,7 +313,7 @@ public:
         for(int offset = 0; offset < _binnedData.getNBinsWithData(); ++offset) {
             int index = _binnedData.getIndexAtOffset(offset);
             _binnedData.getBinCenters(index,binCenters);
-            if(getRadius(offset) >= rmin && getRadius(offset) < rmax && binCenters[0] > llmin) {
+            if(getRadius(offset) >= rmin && getRadius(offset) < rmax && binCenters[0] >= llmin) {
                 keep.insert(index);
             }
         }
@@ -769,7 +769,7 @@ int main(int argc, char **argv) {
     
     // Configure command-line option processing
     po::options_description cli("BAO fitting");
-    double OmegaLambda,OmegaMatter,zref,minll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax;
+    double OmegaLambda,OmegaMatter,zref,minll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin;
     int nll,nsep,nz,ncontour,modelBins,maxPlates,bootstrapTrials,bootstrapSize,randomSeed;
     std::string fiducialName,nowigglesName,broadbandName,dataName,dumpName;
     double initialAmp,initialScale;
@@ -793,6 +793,8 @@ int main(int argc, char **argv) {
             "Minimum 3D comoving separation (Mpc/h) to use in fit.")
         ("rmax", po::value<double>(&rmax)->default_value(200),
             "Maximum 3D comoving separation (Mpc/h) to use in fit.")
+        ("llmin", po::value<double>(&llmin)->default_value(0),
+            "Minimum value of log(lam2/lam1) to use in fit.")
         ("data", po::value<std::string>(&dataName)->default_value(""),
             "3D covariance data will be read from <data>.params and <data>.cov")
         ("platelist", po::value<std::string>(&platelistName)->default_value(""),
@@ -1009,7 +1011,7 @@ int main(int argc, char **argv) {
                 }
             //!!DK
             
-                data->prune(rmin,rmax,0.002);
+                data->prune(rmin,rmax,llmin);
 
                 for(int offset = 0; offset < 10; ++offset) {
                     int index = data->_binnedData.getIndexAtOffset(offset);
