@@ -306,6 +306,19 @@ public:
         _covariance->addInverse(*(other._covariance),nk2);
         _covarianceTilde->addInverse(*(other._covariance),nk);
     }
+    void prune(double rmin, double rmax, double llmin) {
+        std::vector<int> keep;
+        std::vector<double> binCenters;
+        for(int offset = 0; offset < _binnedData.getNBinsWithData(); ++offset) {
+            int index = _binnedData.getIndexAtOffset(offset);
+            _binnedData.getBinCenters(index,binCenters);
+            if(getRadius(offset) >= rmin && getRadius(offset) < rmax && binCenters[0] > llmin) {
+                keep.push_back(offset);
+            }
+        }
+        std::cout << "Pruned from " << _binnedData.getNBinsWithData() << " to "
+            << keep.size() << std::endl;
+    }
     // Inverts an n by n symmetric matrix in BLAS upper diagonal form
     void invert(std::vector<double> const &original, std::vector<double> &inverse, int n) {
         // Copy original to inverse, element by element.
@@ -993,6 +1006,8 @@ int main(int argc, char **argv) {
                         << data->_binnedData.getData(index) << std::endl;
                 }
             //!!DK
+            
+                data->prune(rmin,rmax,0.002);
         }
     }
     catch(cosmo::RuntimeError const &e) {
