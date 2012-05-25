@@ -12,7 +12,9 @@ bin_PROGRAMS = baofit
 # instructions for building the library
 libbaofit_la_SOURCES = \
 	baofit/AbsCorrelationModel.cc \
-	baofit/BaoCorrelationModel.cc
+	baofit/BaoCorrelationModel.cc \
+	baofit/AbsCorrelationData.cc \
+	baofit/ObservedCorrelationData.cc
 
 # library headers to install (nobase prefix preserves any subdirectories)
 # Anything that includes config.h should *not* be listed here.
@@ -22,7 +24,9 @@ nobase_include_HEADERS = \
 	baofit/types.h \
 	baofit/RuntimeError.h \
 	baofit/AbsCorrelationModel.h \
-	baofit/BaoCorrelationModel.h
+	baofit/BaoCorrelationModel.h \
+	baofit/AbsCorrelationData.h \
+	baofit/ObservedCorrelationData.h
 
 # instructions for building each program
 
