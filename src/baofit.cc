@@ -1166,7 +1166,7 @@ int main(int argc, char **argv) {
                     if(curvesOut) {
                         // A generic correlation model does not know how to calculate multipoles, so
                         // we must dynamically cast to our more specialized BAO model type.
-                        std::tr1::shared_ptr<const baofit::BaoCorrelationModel>
+                        boost::shared_ptr<const baofit::BaoCorrelationModel>
                             baoModel(boost::dynamic_pointer_cast<const baofit::BaoCorrelationModel>(model));
                         boost::format fmt(" %.3e %.3e %.3e");
                         double dr(1); // Mpc/h

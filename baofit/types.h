@@ -3,12 +3,12 @@
 #ifndef BAOFIT_TYPES
 #define BAOFIT_TYPES
 
-#include "boost/tr1/memory.hpp"
+#include "boost/smart_ptr.hpp"
 
 namespace baofit {
     
     class AbsCorrelationModel;
-    typedef std::tr1::shared_ptr<const AbsCorrelationModel> AbsCorrelationModelCPtr;
+    typedef boost::shared_ptr<const AbsCorrelationModel> AbsCorrelationModelCPtr;
     
 } // baofit
 
