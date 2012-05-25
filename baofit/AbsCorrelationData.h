@@ -27,9 +27,17 @@ namespace baofit {
         virtual double getCosAngle(int offset) const = 0;
         // Returns the redshift associated with 0 <= offset < getSize().
         virtual double getRedshift(int offset) const = 0;
+    protected:
+        // Returns our data.
+        likely::BinnedData const &_getData() const;
+        // Throws a RuntimeError unless 0 <= offset < getSize().
+        void _checkOffset(int offset) const;
 	private:
         likely::BinnedDataCPtr _data;
 	}; // AbsCorrelationData
+	
+    inline likely::BinnedData const &AbsCorrelationData::_getData() const { return *_data; }
+
 } // baofit
 
 #endif // BAOFIT_ABS_CORRELATION_DATA

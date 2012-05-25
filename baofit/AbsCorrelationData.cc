@@ -28,3 +28,9 @@ int local::AbsCorrelationData::getSize() const {
 double local::AbsCorrelationData::getData(int offset) const {
     return _data->getData(_data->getIndexAtOffset(offset));
 }
+
+void local::AbsCorrelationData::_checkOffset(int offset) const {
+    if(offset < 0 || offset >= getSize()) {
+        throw RuntimeError("AbsCorrelationData: invalid offset.");
+    }
+}
