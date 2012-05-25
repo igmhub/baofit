@@ -92,12 +92,12 @@ void getInt(std::string::const_iterator const &begin, std::string::const_iterato
 
 // Loads a binned correlation function in cosmolib format and returns a BinnedData object.
 // The fast option disables regexp checks for valid numeric inputs.
-likely::BinnedDataPtr
-loadCosmolib(std::string dataName,
-likely::AbsBinningCPtr llBins, likely::AbsBinningCPtr sepBins, likely::AbsBinningCPtr zBins,
-bool verbose, bool icov = false, bool fast = false) {
+baofit::QuasarCorrelationDataPtr loadCosmolib(std::string dataName,
+    likely::AbsBinningCPtr llBins, likely::AbsBinningCPtr sepBins, likely::AbsBinningCPtr zBins,
+    cosmo::AbsHomogeneousUniversePtr cosmology, bool verbose, bool icov = false, bool fast = false) {
     // Create the new BinnedData.
-    likely::BinnedDataPtr binnedData(new likely::BinnedData(llBins,sepBins,zBins));
+    baofit::QuasarCorrelationDataPtr
+        binnedData(new baofit::QuasarCorrelationData(llBins,sepBins,zBins,cosmology));
     // General stuff we will need for reading both files.
     std::string line;
     int lineNumber(0);
@@ -178,7 +178,7 @@ bool verbose, bool icov = false, bool fast = false) {
         // Add this covariance to our dataset.
         if(icov) value = -value; // !?! see line #388 of Observed2Point.cpp
         //!!addCovariance(offset1,offset2,value,icov);
-        int index1 = binnedData->getIndexAtOffset(offset1), index2 = binnedData->getIndexAtOffset(offset2);
+        int index1 = *(binnedData->begin()+offset1), index2 = *(binnedData->begin()+offset2);
         if(icov) {
             binnedData->setInverseCovariance(index1,index2,value);
         }
@@ -188,8 +188,9 @@ bool verbose, bool icov = false, bool fast = false) {
     }
     //!!finalizeCovariance(icov);
     // Check for zero values on the diagonal
-    for(int offset = 0; offset < binnedData->getNBinsWithData(); ++offset) {
-        int index = binnedData->getIndexAtOffset(offset);
+    for(likely::BinnedData::IndexIterator iter = binnedData->begin();
+    iter != binnedData->end(); ++iter) {
+        int index = *iter;
         if(icov) {
             if(0 == binnedData->getInverseCovariance(index,index)) {
                 binnedData->setInverseCovariance(index,index,1e-30);
@@ -1062,8 +1063,8 @@ int main(int argc, char **argv) {
     // Load the data we will fit.
     LyaDataPtr data;
     std::vector<LyaDataPtr> plateData;
-    likely::BinnedDataPtr binnedData;
-    std::vector<likely::BinnedDataCPtr> plateBinnedData;
+    baofit::QuasarCorrelationDataPtr binnedData;
+    std::vector<baofit::QuasarCorrelationDataCPtr> plateBinnedData;
     try {
         // Initialize the (logLambda,separation,redshift) binning from command-line params.
         likely::AbsBinningCPtr llBins,
@@ -1080,7 +1081,7 @@ int main(int argc, char **argv) {
         if(0 < dataName.length()) {
             // Load a single dataset.
             data->load(dataName,verbose,false,fastLoad);
-            binnedData = loadCosmolib(dataName,llBins,sepBins,zBins,verbose,false,fastLoad);
+            binnedData = loadCosmolib(dataName,llBins,sepBins,zBins,cosmology,verbose,false,fastLoad);
         }
         else {
             // Load individual plate datasets.
@@ -1107,11 +1108,11 @@ int main(int argc, char **argv) {
                 plateData.push_back(plate);
                 data->add(*plate);
 
-                likely::BinnedDataCPtr plateBinned =
-                    loadCosmolib(filename,llBins,sepBins,zBins,verbose,true,fastLoad);
+                baofit::QuasarCorrelationDataCPtr plateBinned =
+                    loadCosmolib(filename,llBins,sepBins,zBins,cosmology,verbose,true,fastLoad);
                 plateBinned->compress();
                 if(plateBinnedData.empty()) {
-                    binnedData.reset(new likely::BinnedData(*plateBinned));
+                    binnedData.reset(new baofit::QuasarCorrelationData(*plateBinned));
                     binnedData->cloneCovariance();
                 }
                 else {
@@ -1127,26 +1128,26 @@ int main(int argc, char **argv) {
         //!!DK
         std::vector<double> coords;
         for(int offset = 0; offset < 10; ++offset) {
-            int index = data->_binnedData.getIndexAtOffset(offset);
-            data->_binnedData.getBinCenters(index,coords);
+            int index = binnedData->getIndexAtOffset(offset);
+            binnedData->getBinCenters(index,coords);
             std::cout << "Covariance3D[" << offset << "] idx=" << index << ", ll="
                 << coords[0] << ", sep=" << coords[1] << ", z=" << coords[2]
-                << ", r3d=" << data->getRadius(offset) << ", mu=" << data->getCosAngle(offset)
-                << ", z=" << data->getRedshift(offset) << ", value="
-                << data->_data[offset] << ", "
-                << data->_binnedData.getData(index) << std::endl;
+                << ", value=" << binnedData->getData(index) << std::endl;
         }
         //!!DK
         
         data->prune(rmin,rmax,llmin);
-        //QuasarCorrelationData(data->_binnedData,cosmology);
+        
+        binnedData->finalize(rmin,rmax,llmin);
 
         for(int offset = 0; offset < 10; ++offset) {
-            int index = data->_binnedData.getIndexAtOffset(offset);
-            data->_binnedData.getBinCenters(index,coords);
+            int index = binnedData->getIndexAtOffset(offset);
+            binnedData->getBinCenters(index,coords);
             std::cout << "Covariance3D[" << offset << "] idx=" << index << ", ll="
                 << coords[0] << ", sep=" << coords[1] << ", z=" << coords[2]
-                << ", value=" << data->_binnedData.getData(index) << std::endl;
+                << ", r=" << binnedData->getRadius(index) << ", mu=" << binnedData->getCosAngle(index)
+                << ", z=" << binnedData->getRedshift(index)
+                << ", value=" << binnedData->getData(index) << std::endl;
         }
     }
     catch(cosmo::RuntimeError const &e) {

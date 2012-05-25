@@ -3,41 +3,26 @@
 #ifndef BAOFIT_ABS_CORRELATION_DATA
 #define BAOFIT_ABS_CORRELATION_DATA
 
+#include "likely/BinnedData.h"
 #include "likely/types.h"
 
 namespace baofit {
-	class AbsCorrelationData {
-	// Represents an abstract mapping from binned data to the (r,mu,z) coordinates
+	class AbsCorrelationData : public likely::BinnedData {
+	// Represents data binned in variables that map to the (r,mu,z) coordinates
 	// used by an AbsCorrelationModel.
 	public:
-		AbsCorrelationData(likely::BinnedDataCPtr data);
+		AbsCorrelationData(likely::AbsBinningCPtr axis1, likely::AbsBinningCPtr axis2,
+		    likely::AbsBinningCPtr axis3);
 		virtual ~AbsCorrelationData();
-		// Replaces our binned data. Throws a RuntimeError unless the new data is
-		// congruent with the original data.
-        void setData(likely::BinnedDataCPtr data);
-        // Returns the number of bins with data.
-        int getSize() const;
-        // Returns the data associated with 0 <= offset < getSize().
-        double getData(int offset) const;
-        // Returns the 3D radius in Mpc/h associated with 0 <= offset < getSize().
-        virtual double getRadius(int offset) const = 0;
+        // Returns the 3D radius in Mpc/h associated with the specified global index.
+        virtual double getRadius(int index) const = 0;
         // Returns the cosine of the angle between the separation vector and
-        // the line of sight (aka mu) associated with 0 <= offset < getSize().
+        // the line of sight (aka mu) associated with the specified global index.
         // Returns zero if the data is azimuthally averaged.
-        virtual double getCosAngle(int offset) const = 0;
-        // Returns the redshift associated with 0 <= offset < getSize().
-        virtual double getRedshift(int offset) const = 0;
-    protected:
-        // Returns our data.
-        likely::BinnedData const &_getData() const;
-        // Throws a RuntimeError unless 0 <= offset < getSize().
-        void _checkOffset(int offset) const;
-	private:
-        likely::BinnedDataCPtr _data;
-	}; // AbsCorrelationData
-	
-    inline likely::BinnedData const &AbsCorrelationData::_getData() const { return *_data; }
-
+        virtual double getCosAngle(int index) const = 0;
+        // Returns the redshift associated with the specified global index.
+        virtual double getRedshift(int index) const = 0;
+	}; // AbsCorrelationData	
 } // baofit
 
 #endif // BAOFIT_ABS_CORRELATION_DATA

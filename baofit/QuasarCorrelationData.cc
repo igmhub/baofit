@@ -10,53 +10,58 @@
 namespace local = baofit;
 
 local::QuasarCorrelationData::QuasarCorrelationData(
-likely::BinnedDataCPtr data, cosmo::AbsHomogeneousUniversePtr cosmology)
-: AbsCorrelationData(data)
+likely::AbsBinningCPtr axis1, likely::AbsBinningCPtr axis2, likely::AbsBinningCPtr axis3,
+cosmo::AbsHomogeneousUniversePtr cosmology)
+: AbsCorrelationData(axis1,axis2,axis3), _cosmology(cosmology)
 {
-    _rLookup.reserve(getSize());
-    _muLookup.reserve(getSize());
-    _zLookup.reserve(getSize());
-    // Loop over bins.
+}
+
+void local::QuasarCorrelationData::finalize(double rmin, double rmax, double llmin) {
+    std::set<int> keep;
     double arcminToRad = 4*std::atan(1)/(60.*180.);
     std::vector<double> binCenter,binWidth;
-    for(int offset = 0; offset < getSize(); ++offset) {
+    // Loop over bins with data.
+    for(IndexIterator iter = begin(); iter != end(); ++iter) {
         // Lookup the value of ll,sep,z at the center of this bin.
-        int index(_getData().getIndexAtOffset(offset));
-        _getData().getBinCenters(index,binCenter);
+        int index(*iter);
+        getBinCenters(index,binCenter);
         double ll(binCenter[0]), sep(binCenter[1]), z(binCenter[2]);
-        _getData().getBinWidths(index,binWidth);
+        getBinWidths(index,binWidth);
         double ds(binWidth[1]);
         // Calculate the corresponding values of r,mu,z.
         double ratio(std::exp(0.5*ll)),zp1(z+1);
         double z1(zp1/ratio-1), z2(zp1*ratio-1);
-        double drLos = cosmology->getLineOfSightComovingDistance(z2) -
-            cosmology->getLineOfSightComovingDistance(z1);
+        double drLos = _cosmology->getLineOfSightComovingDistance(z2) -
+            _cosmology->getLineOfSightComovingDistance(z1);
         // Calculate the geometrically weighted mean separation of this bin as
         // Integral[s^2,{s,smin,smax}]/Integral[s,{s,smin,smax}] = s + ds^2/(12*s)
         double swgt = sep + (ds*ds/12)/sep;
-        double drPerp = cosmology->getTransverseComovingScale(z)*(swgt*arcminToRad);
+        double drPerp = _cosmology->getTransverseComovingScale(z)*(swgt*arcminToRad);
         double rsq = drLos*drLos + drPerp*drPerp;
         double r3d = std::sqrt(rsq);
-        // Remember these values.
-        _rLookup.push_back(r3d);
-        _muLookup.push_back(std::abs(drLos)/r3d);
-        _zLookup.push_back(z);
+        double mu = std::abs(drLos)/r3d;
+        // Keep this bin in our pruned dataset?
+        if(r3d >= rmin && r3d < rmax && ll >= llmin) {
+            keep.insert(index);            
+            // Remember these values.
+            _rLookup.push_back(r3d);
+            _muLookup.push_back(mu);
+            _zLookup.push_back(z);
+        }
     }
+    prune(keep);
 }
 
 local::QuasarCorrelationData::~QuasarCorrelationData() { }
 
-double local::QuasarCorrelationData::getRadius(int offset) const {
-    _checkOffset(offset);
-    return _rLookup[offset];
+double local::QuasarCorrelationData::getRadius(int index) const {
+    return _rLookup[getOffsetForIndex(index)];
 }
 
-double local::QuasarCorrelationData::getCosAngle(int offset) const {
-    _checkOffset(offset);
-    return _muLookup[offset];
+double local::QuasarCorrelationData::getCosAngle(int index) const {
+    return _muLookup[getOffsetForIndex(index)];
 }
 
-double local::QuasarCorrelationData::getRedshift(int offset) const {
-    _checkOffset(offset);
-    return _zLookup[offset];
+double local::QuasarCorrelationData::getRedshift(int index) const {
+    return _zLookup[getOffsetForIndex(index)];
 }
