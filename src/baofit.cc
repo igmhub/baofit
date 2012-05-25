@@ -73,6 +73,145 @@ int nBins, double breakpoint,double dlog, double dlin, double eps = 1e-3) {
     return samplePoints;
 }
 
+void getDouble(std::string::const_iterator const &begin, std::string::const_iterator const &end,
+    double &value) {
+    // Use boost::spirit::parse instead of the easier boost::lexical_cast since this is
+    // a bottleneck when reading many files. For details, see:
+    // http://tinodidriksen.com/2011/05/28/cpp-convert-string-to-double-speed/
+    std::string tokenString(begin,end);
+    char const *tokenPtr = tokenString.c_str();
+    boost::spirit::qi::parse(tokenPtr, &tokenPtr[tokenString.size()],
+        boost::spirit::qi::double_, value);    
+}
+
+void getInt(std::string::const_iterator const &begin, std::string::const_iterator const &end,
+    int &value) {
+    std::string tokenString(begin,end);
+    value = std::atoi(tokenString.c_str());        
+}
+
+// Loads a binned correlation function in cosmolib format and returns a BinnedData object.
+// The fast option disables regexp checks for valid numeric inputs.
+likely::BinnedDataPtr
+loadCosmolib(std::string dataName,
+likely::AbsBinningCPtr llBins, likely::AbsBinningCPtr sepBins, likely::AbsBinningCPtr zBins,
+bool verbose, bool icov = false, bool fast = false) {
+    // Create the new BinnedData.
+    likely::BinnedDataPtr binnedData(new likely::BinnedData(llBins,sepBins,zBins));
+    // General stuff we will need for reading both files.
+    std::string line;
+    int lineNumber(0);
+    // Capturing regexps for positive integer and signed floating-point constants.
+    std::string ipat("(0|(?:[1-9][0-9]*))"),fpat("([-+]?[0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]+)?)");
+    if(fast) {
+        // Replace validation patterns with simple non-whitespace groups.
+        ipat = "(\\S+)";
+        fpat = "(\\S+)";
+    }
+    boost::match_results<std::string::const_iterator> what;
+    // Loop over lines in the parameter file.
+    std::string paramsName(dataName + ".params");
+    std::ifstream paramsIn(paramsName.c_str());
+    if(!paramsIn.good()) throw cosmo::RuntimeError("Unable to open " + paramsName);
+    boost::regex paramPattern(
+        boost::str(boost::format("\\s*%s\\s+%s\\s*\\| Lya covariance 3D \\(%s,%s,%s\\)\\s*")
+        % fpat % fpat % fpat % fpat % fpat));
+    std::vector<double> axisValues(3);
+    while(paramsIn.good() && !paramsIn.eof()) {
+        std::getline(paramsIn,line);
+        if(paramsIn.eof()) break;
+        if(!paramsIn.good()) {
+            throw cosmo::RuntimeError("Unable to read line " +
+                boost::lexical_cast<std::string>(lineNumber));
+        }
+        lineNumber++;
+        // Parse this line with a regexp.
+        if(!boost::regex_match(line,what,paramPattern)) {
+            throw cosmo::RuntimeError("Badly formatted params line " +
+                boost::lexical_cast<std::string>(lineNumber) + ": '" + line + "'");
+        }
+        // Expected tokens are [0] value [1] Cinv*d (ignored) [2] logLambda [3] separation [4] redshift.
+        int nTokens(5);
+        std::vector<double> token(nTokens);
+        for(int tok = 0; tok < nTokens; ++tok) {
+            getDouble(what[tok+1].first,what[tok+1].second,token[tok]);
+        }
+        // Add this bin to our dataset.
+        //!!addData(token[0],token[2],token[3],token[4]);
+        axisValues[0] = token[2];
+        axisValues[1] = token[3];
+        axisValues[2] = token[4];
+        int index = binnedData->getIndex(axisValues);
+        binnedData->setData(index,token[0]);        
+    }
+    //!!finalizeData();
+    paramsIn.close();
+    if(verbose) {
+        std::cout << "Read " << binnedData->getNBinsWithData() << " of "
+            << binnedData->getNBinsTotal() << " data values from " << paramsName << std::endl;
+    }
+    // Loop over lines in the covariance file.
+    std::string covName(dataName + (icov ? ".icov" : ".cov"));
+    std::ifstream covIn(covName.c_str());
+    if(!covIn.good()) throw cosmo::RuntimeError("Unable to open " + covName);
+    boost::regex covPattern(boost::str(boost::format("\\s*%s\\s+%s\\s+%s\\s*")
+        % ipat % ipat % fpat));
+    lineNumber = 0;
+    double value;
+    int offset1,offset2;
+    while(covIn.good() && !covIn.eof()) {
+        std::getline(covIn,line);
+        if(covIn.eof()) break;
+        if(!covIn.good()) {
+            throw cosmo::RuntimeError("Unable to read line " +
+                boost::lexical_cast<std::string>(lineNumber));
+        }
+        lineNumber++;
+        // Parse this line with a regexp.
+        if(!boost::regex_match(line,what,covPattern)) {
+            throw cosmo::RuntimeError("Badly formatted cov line " +
+                boost::lexical_cast<std::string>(lineNumber) + ": '" + line + "'");
+        }
+        getInt(what[1].first,what[1].second,offset1);
+        getInt(what[2].first,what[2].second,offset2);
+        getDouble(what[3].first,what[3].second,value);
+        // Add this covariance to our dataset.
+        if(icov) value = -value; // !?! see line #388 of Observed2Point.cpp
+        //!!addCovariance(offset1,offset2,value,icov);
+        int index1 = binnedData->getIndexAtOffset(offset1), index2 = binnedData->getIndexAtOffset(offset2);
+        if(icov) {
+            binnedData->setInverseCovariance(index1,index2,value);
+        }
+        else {
+            binnedData->setCovariance(index1,index2,value);
+        }
+    }
+    //!!finalizeCovariance(icov);
+    // Check for zero values on the diagonal
+    for(int offset = 0; offset < binnedData->getNBinsWithData(); ++offset) {
+        int index = binnedData->getIndexAtOffset(offset);
+        if(icov) {
+            if(0 == binnedData->getInverseCovariance(index,index)) {
+                binnedData->setInverseCovariance(index,index,1e-30);
+            }
+        }
+        else {
+            if(0 == binnedData->getCovariance(index,index)) {
+                binnedData->setCovariance(index,index,1e40);
+            }                
+        }
+    }
+    covIn.close();
+    if(verbose) {
+        int ndata = binnedData->getNBinsWithData();
+        int ncov = (ndata*(ndata+1))/2;
+        std::cout << "Read " << lineNumber << " of " << ncov
+            << " covariance values from " << covName << std::endl;
+    }
+    return binnedData;
+}
+
+
 class LyaData {
 public:
     LyaData(likely::AbsBinningCPtr logLambdaBinning, likely::AbsBinningCPtr separationBinning,
@@ -669,12 +808,20 @@ public:
         std::vector<double> delta(ndata,0);
         for(int k= 0; k < _data->getNData(); ++k) {
             double r = _data->getRadius(k);
-            if(r < _rmin || r > _rmax) continue;
+            assert(r >= _rmin && r < _rmax);
+            //if(r < _rmin || r > _rmax) continue;
             double mu = _data->getCosAngle(k);
             double z = _data->getRedshift(k);
             double obs = _data->getData(k);
             double pred = _model->evaluate(r,mu,z,params);
             delta[k] = obs - pred;
+
+            //!!DK
+            if(k < 5) {
+                std::cout << "rr,mu,z = " << r << ',' << mu << ',' << z << std::endl;
+            }
+            //!!DK
+
         }
         // UP=0.5 is already hardcoded so we need a factor of 2 here since we are
         // calculating a chi-square. Apply an additional factor of _errorScale to
@@ -915,6 +1062,8 @@ int main(int argc, char **argv) {
     // Load the data we will fit.
     LyaDataPtr data;
     std::vector<LyaDataPtr> plateData;
+    likely::BinnedDataPtr binnedData;
+    std::vector<likely::BinnedDataCPtr> plateBinnedData;
     try {
         // Initialize the (logLambda,separation,redshift) binning from command-line params.
         likely::AbsBinningCPtr llBins,
@@ -931,6 +1080,7 @@ int main(int argc, char **argv) {
         if(0 < dataName.length()) {
             // Load a single dataset.
             data->load(dataName,verbose,false,fastLoad);
+            binnedData = loadCosmolib(dataName,llBins,sepBins,zBins,verbose,false,fastLoad);
         }
         else {
             // Load individual plate datasets.
@@ -949,77 +1099,54 @@ int main(int argc, char **argv) {
                     std::cerr << "Error while reading platelist from " << platelistName << std::endl;
                     return -1;
                 }
+                std::string filename(boost::str(platefile % platerootName % plateName));
+
                 LyaDataPtr plate(new LyaData(llBins,sepBins,zBins,cosmology));
-                plate->load(boost::str(platefile % platerootName % plateName),verbose,true,fastLoad);
-                
-                //!!DK
-                /**
-                lk::CovarianceMatrixCPtr cov = plate->getCovariance();
-                for(int col = 0; col < 5; ++col) {
-                    for(int row = 0; row <= col; ++row) {
-                        std::cout << "curCI[" << row << ',' << col << "] = "
-                            << cov->getCovariance(row,col) << ' '
-                            << cov->getInverseCovariance(row,col) << std::endl;
-                    }
-                }
-                for(int k = 0; k < 5; ++k) {
-                    std::cout << "curD[" << k << "] = " << plate->_icovData[k] << std::endl;
-                }
-                **/
-                //!!DK
-                
+                plate->load(filename,verbose,true,fastLoad);
                 plate->compress();
                 plateData.push_back(plate);
                 data->add(*plate);
+
+                likely::BinnedDataCPtr plateBinned =
+                    loadCosmolib(filename,llBins,sepBins,zBins,verbose,true,fastLoad);
+                plateBinned->compress();
+                if(plateBinnedData.empty()) {
+                    binnedData.reset(new likely::BinnedData(*plateBinned));
+                    binnedData->cloneCovariance();
+                }
+                else {
+                    *binnedData += *plateBinned;
+                }
+                plateBinnedData.push_back(plateBinned);
+
                 if(plateData.size() == maxPlates) break;
             }
             platelist.close();
             data->finalize(false);
+        }
+        //!!DK
+        std::vector<double> coords;
+        for(int offset = 0; offset < 10; ++offset) {
+            int index = data->_binnedData.getIndexAtOffset(offset);
+            data->_binnedData.getBinCenters(index,coords);
+            std::cout << "Covariance3D[" << offset << "] idx=" << index << ", ll="
+                << coords[0] << ", sep=" << coords[1] << ", z=" << coords[2]
+                << ", r3d=" << data->getRadius(offset) << ", mu=" << data->getCosAngle(offset)
+                << ", z=" << data->getRedshift(offset) << ", value="
+                << data->_data[offset] << ", "
+                << data->_binnedData.getData(index) << std::endl;
+        }
+        //!!DK
+        
+        data->prune(rmin,rmax,llmin);
+        //QuasarCorrelationData(data->_binnedData,cosmology);
 
-            //!!DK
-            /**
-            {
-                lk::CovarianceMatrixCPtr cov = data->getCovariance();
-                for(int col = 0; col < 5; ++col) {
-                    for(int row = 0; row <= col; ++row) {
-                        std::cout << "curCI[" << row << ',' << col << "] = "
-                            << cov->getCovariance(row,col) << ' '
-                            << cov->getInverseCovariance(row,col) << std::endl;
-                    }
-                }
-                for(int k = 0; k < 5; ++k) {
-                    std::cout << "curD[" << k << "] = " << data->_data[k] << std::endl;
-                }
-                for(int k = 0; k < 5; ++k) {
-                    std::cout << "r,mu = " << data->_r3d[k] << ", " << data->_mu[k] << std::endl;
-                }
-            }
-            **/
-            //!!DK
-            
-            //!!DK
-                std::vector<double> coords;
-                for(int offset = 0; offset < 10; ++offset) {
-                    int index = data->_binnedData.getIndexAtOffset(offset);
-                    data->_binnedData.getBinCenters(index,coords);
-                    std::cout << "Covariance3D[" << offset << "] idx=" << index << ", ll="
-                        << coords[0] << ", sep=" << coords[1] << ", z=" << coords[2]
-                        << ", r3d=" << data->getRadius(offset) << ", mu=" << data->getCosAngle(offset)
-                        << ", z=" << data->getRedshift(offset) << ", value="
-                        << data->_data[offset] << ", "
-                        << data->_binnedData.getData(index) << std::endl;
-                }
-            //!!DK
-            
-                data->prune(rmin,rmax,llmin);
-
-                for(int offset = 0; offset < 10; ++offset) {
-                    int index = data->_binnedData.getIndexAtOffset(offset);
-                    data->_binnedData.getBinCenters(index,coords);
-                    std::cout << "Covariance3D[" << offset << "] idx=" << index << ", ll="
-                        << coords[0] << ", sep=" << coords[1] << ", z=" << coords[2]
-                        << ", value=" << data->_binnedData.getData(index) << std::endl;
-                }
+        for(int offset = 0; offset < 10; ++offset) {
+            int index = data->_binnedData.getIndexAtOffset(offset);
+            data->_binnedData.getBinCenters(index,coords);
+            std::cout << "Covariance3D[" << offset << "] idx=" << index << ", ll="
+                << coords[0] << ", sep=" << coords[1] << ", z=" << coords[2]
+                << ", value=" << data->_binnedData.getData(index) << std::endl;
         }
     }
     catch(cosmo::RuntimeError const &e) {
