@@ -10,6 +10,13 @@ namespace baofit {
     class AbsCorrelationModel;
     typedef boost::shared_ptr<const AbsCorrelationModel> AbsCorrelationModelCPtr;
     
+    class AbsCorrelationData;
+    typedef boost::shared_ptr<const AbsCorrelationData> AbsCorrelationDataCPtr;    
+
+    class QuasarCorrelationData;
+    typedef boost::shared_ptr<QuasarCorrelationData> QuasarCorrelationDataPtr;
+    typedef boost::shared_ptr<const QuasarCorrelationData> QuasarCorrelationDataCPtr;
+    
 } // baofit
 
 #endif // BAOFIT_TYPES
