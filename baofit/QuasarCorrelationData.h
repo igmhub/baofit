@@ -5,13 +5,15 @@
 
 #include "baofit/AbsCorrelationData.h"
 
+#include "cosmo/types.h"
+
 namespace baofit {
 	class QuasarCorrelationData : public AbsCorrelationData {
 	// Represents a quasar transmission fraction correlation function binned in observed
 	// coordinates log(lambda2/lambda1), angular separation between lines of sight, and
 	// average absorption redshift.
 	public:
-		QuasarCorrelationData(likely::BinnedDataCPtr data);
+		QuasarCorrelationData(likely::BinnedDataCPtr data, cosmo::AbsHomogeneousUniversePtr cosmology);
 		virtual ~QuasarCorrelationData();
         // Returns the 3D radius in Mpc/h associated with 0 <= offset < getSize().
         virtual double getRadius(int offset) const;
@@ -22,6 +24,7 @@ namespace baofit {
         // Returns the redshift associated with 0 <= offset < getSize().
         virtual double getRedshift(int offset) const;
 	private:
+        std::vector<double> _rLookup, _muLookup, _zLookup;
 	}; // QuasarCorrelationData
 } // baofit
 
