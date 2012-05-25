@@ -79,7 +79,7 @@ LTLIBRARIES = $(lib_LTLIBRARIES)
 libbaofit_la_LIBADD =
 am_libbaofit_la_OBJECTS = AbsCorrelationModel.lo \
 	BaoCorrelationModel.lo AbsCorrelationData.lo \
-	ObservedCorrelationData.lo
+	QuasarCorrelationData.lo
 libbaofit_la_OBJECTS = $(am_libbaofit_la_OBJECTS)
 PROGRAMS = $(bin_PROGRAMS)
 am_baofit_OBJECTS = baofit.$(OBJEXT)
@@ -250,7 +250,7 @@ libbaofit_la_SOURCES = \
 	baofit/AbsCorrelationModel.cc \
 	baofit/BaoCorrelationModel.cc \
 	baofit/AbsCorrelationData.cc \
-	baofit/ObservedCorrelationData.cc
+	baofit/QuasarCorrelationData.cc
 
 
 # library headers to install (nobase prefix preserves any subdirectories)
@@ -263,7 +263,7 @@ nobase_include_HEADERS = \
 	baofit/AbsCorrelationModel.h \
 	baofit/BaoCorrelationModel.h \
 	baofit/AbsCorrelationData.h \
-	baofit/ObservedCorrelationData.h
+	baofit/QuasarCorrelationData.h
 
 
 # instructions for building each program
@@ -415,7 +415,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/AbsCorrelationData.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/AbsCorrelationModel.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/BaoCorrelationModel.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ObservedCorrelationData.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/QuasarCorrelationData.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/baofit.Po@am__quote@
 
 .cc.o:
@@ -460,12 +460,12 @@ AbsCorrelationData.lo: baofit/AbsCorrelationData.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o AbsCorrelationData.lo `test -f 'baofit/AbsCorrelationData.cc' || echo '$(srcdir)/'`baofit/AbsCorrelationData.cc
 
-ObservedCorrelationData.lo: baofit/ObservedCorrelationData.cc
-@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ObservedCorrelationData.lo -MD -MP -MF $(DEPDIR)/ObservedCorrelationData.Tpo -c -o ObservedCorrelationData.lo `test -f 'baofit/ObservedCorrelationData.cc' || echo '$(srcdir)/'`baofit/ObservedCorrelationData.cc
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/ObservedCorrelationData.Tpo $(DEPDIR)/ObservedCorrelationData.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='baofit/ObservedCorrelationData.cc' object='ObservedCorrelationData.lo' libtool=yes @AMDEPBACKSLASH@
+QuasarCorrelationData.lo: baofit/QuasarCorrelationData.cc
+@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT QuasarCorrelationData.lo -MD -MP -MF $(DEPDIR)/QuasarCorrelationData.Tpo -c -o QuasarCorrelationData.lo `test -f 'baofit/QuasarCorrelationData.cc' || echo '$(srcdir)/'`baofit/QuasarCorrelationData.cc
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/QuasarCorrelationData.Tpo $(DEPDIR)/QuasarCorrelationData.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='baofit/QuasarCorrelationData.cc' object='QuasarCorrelationData.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ObservedCorrelationData.lo `test -f 'baofit/ObservedCorrelationData.cc' || echo '$(srcdir)/'`baofit/ObservedCorrelationData.cc
+@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o QuasarCorrelationData.lo `test -f 'baofit/QuasarCorrelationData.cc' || echo '$(srcdir)/'`baofit/QuasarCorrelationData.cc
 
 baofit.o: src/baofit.cc
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT baofit.o -MD -MP -MF $(DEPDIR)/baofit.Tpo -c -o baofit.o `test -f 'src/baofit.cc' || echo '$(srcdir)/'`src/baofit.cc

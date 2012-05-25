@@ -8,4 +8,4 @@
 #include "baofit/BaoCorrelationModel.h"
 
 #include "baofit/AbsCorrelationData.h"
-#include "baofit/ObservedCorrelationData.h"
+#include "baofit/QuasarCorrelationData.h"
