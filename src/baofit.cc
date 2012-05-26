@@ -783,9 +783,10 @@ private:
 
 class LyaBaoLikelihood {
 public:
-    LyaBaoLikelihood(LyaDataPtr data, baofit::AbsCorrelationModelCPtr model, double rmin, double rmax,
+    LyaBaoLikelihood(baofit::AbsCorrelationDataCPtr data, baofit::AbsCorrelationModelCPtr model,
+    double rmin, double rmax,
     bool fixLinear, bool fixBao, bool fixScale, bool noBBand, double initialAmp, double initialScale)
-    : _data(data), _model(model), _rmin(rmin), _rmax(rmax), _errorScale(1) {
+    : _data(data), _model(model), _rmin(rmin), _rmax(rmax), _errorScale(1), _ncalls(0) {
         assert(data);
         assert(model);
         assert(rmax > rmin);
@@ -805,29 +806,29 @@ public:
     }
     double operator()(lk::Parameters const &params) {
         // Loop over the dataset bins.
-        int ndata(_data->getNData());
-        std::vector<double> delta(ndata,0);
-        for(int k= 0; k < _data->getNData(); ++k) {
-            double r = _data->getRadius(k);
+        std::vector<double> pred;
+        pred.reserve(_data->getNBinsWithData());
+        int offset(0);
+        for(baofit::AbsCorrelationData::IndexIterator iter = _data->begin(); iter != _data->end(); ++iter) {
+            int index(*iter);
+            double r = _data->getRadius(index);
             assert(r >= _rmin && r < _rmax);
-            //if(r < _rmin || r > _rmax) continue;
-            double mu = _data->getCosAngle(k);
-            double z = _data->getRedshift(k);
-            double obs = _data->getData(k);
-            double pred = _model->evaluate(r,mu,z,params);
-            delta[k] = obs - pred;
-
+            double mu = _data->getCosAngle(index);
+            double z = _data->getRedshift(index);
+            double predicted = _model->evaluate(r,mu,z,params);
+            pred.push_back(predicted);
             //!!DK
-            if(k < 5) {
-                std::cout << "rr,mu,z = " << r << ',' << mu << ',' << z << std::endl;
+            if(0 == _ncalls && offset++ < 5) {
+                std::cout << "rr,mu,z = " << r << ',' << mu << ',' << z
+                    << " obs=" << _data->getData(index) << ", pred=" << predicted << std::endl;
             }
             //!!DK
-
         }
+        _ncalls++;
         // UP=0.5 is already hardcoded so we need a factor of 2 here since we are
         // calculating a chi-square. Apply an additional factor of _errorScale to
         // allow different error contours to be calculated.
-        return 0.5*_data->calculateChiSquare(delta)/_errorScale;
+        return 0.5*_data->chiSquare(pred)/_errorScale;
     }
     int getNPar() const { return _params.size(); }
     void initialize(lk::MinuitEngine::StatePtr initialState) {
@@ -909,10 +910,11 @@ public:
     }
     **/
 private:
-    LyaDataPtr _data;
+    baofit::AbsCorrelationDataCPtr _data;
     baofit::AbsCorrelationModelCPtr _model;
     std::vector<Parameter> _params;
     double _rmin, _rmax, _errorScale;
+    int _ncalls;
 }; // LyaBaoLikelihood
 
 int main(int argc, char **argv) {
@@ -1162,7 +1164,7 @@ int main(int argc, char **argv) {
     // Minimize the -log(Likelihood) function.
     try {
         lk::GradientCalculatorPtr gcptr;
-        LyaBaoLikelihood nll(data,model,rmin,rmax,fixLinear,fixBao,fixScale,noBBand,
+        LyaBaoLikelihood nll(binnedData,model,rmin,rmax,fixLinear,fixBao,fixScale,noBBand,
             initialAmp,initialScale);
         lk::FunctionPtr fptr(new lk::Function(boost::ref(nll)));
 
