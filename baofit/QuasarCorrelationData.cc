@@ -12,8 +12,7 @@ namespace local = baofit;
 local::QuasarCorrelationData::QuasarCorrelationData(
 likely::AbsBinningCPtr axis1, likely::AbsBinningCPtr axis2, likely::AbsBinningCPtr axis3,
 cosmo::AbsHomogeneousUniversePtr cosmology)
-: AbsCorrelationData(axis1,axis2,axis3), _cosmology(cosmology),
-_finalized(false), _lastIndex(-1)
+: AbsCorrelationData(axis1,axis2,axis3), _cosmology(cosmology), _lastIndex(-1)
 {
     _arcminToRad = 4*std::atan(1)/(60.*180.);
 }
@@ -39,7 +38,10 @@ void local::QuasarCorrelationData::finalize(double rmin, double rmax, double llm
         }
     }
     prune(keep);
-    _finalized = true;
+    // The fully qualified base-class name is needed here since our local prune(...)
+    // method hides the one in our base class. For details, see:
+    // http://stackoverflow.com/questions/5636289/overloaded-method-not-seen-in-subclass
+    likely::BinnedData::finalize();
 }
 
 void local::QuasarCorrelationData::transform(double ll, double sep, double dsep, double z,
@@ -67,19 +69,19 @@ void local::QuasarCorrelationData::_setIndex(int index) const {
 }
 
 double local::QuasarCorrelationData::getRadius(int index) const {
-    if(_finalized) return _rLookup[getOffsetForIndex(index)];
+    if(isFinalized()) return _rLookup[getOffsetForIndex(index)];
     _setIndex(index);
     return _rLast;
 }
 
 double local::QuasarCorrelationData::getCosAngle(int index) const {
-    if(_finalized) return _muLookup[getOffsetForIndex(index)];
+    if(isFinalized()) return _muLookup[getOffsetForIndex(index)];
     _setIndex(index);
     return _muLast;
 }
 
 double local::QuasarCorrelationData::getRedshift(int index) const {
-    if(_finalized) return _zLookup[getOffsetForIndex(index)];
+    if(isFinalized()) return _zLookup[getOffsetForIndex(index)];
     _setIndex(index);
     return _zLast;
 }

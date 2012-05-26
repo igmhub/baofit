@@ -28,14 +28,15 @@ namespace baofit {
         // Returns the redshift associated with the specified global index.
         virtual double getRedshift(int offset) const;
         // Finalize a quasar dataset by pruning to the specified co-moving limits and tabulating
-        // the co-moving coordinates at the center of each remaining bin with data.
+        // the co-moving coordinates at the center of each remaining bin with data. No further
+        // changes to our "shape" are possible after finalizing. See the documentation for
+        // BinnedData::finalize() for details.
         void finalize(double rmin, double rmax, double llmin);
         // Transforms the specified values of ll,sep,dsep,z to co-moving r,mu.
         void transform(double ll, double sep, double dsep, double z, double &r, double &mu) const;
 	private:
         cosmo::AbsHomogeneousUniversePtr _cosmology;
         std::vector<double> _rLookup, _muLookup, _zLookup;
-        bool _finalized;
         // Calculates and saves (r,mu,z) for the specified global index.
         void _setIndex(int index) const;
         mutable int _lastIndex;
