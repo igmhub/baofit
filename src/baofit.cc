@@ -844,6 +844,7 @@ public:
             }
         }
     }
+    /**
     void dump(std::string const &filename, lk::Parameters const &params,
     std::vector<ContourPoints> const &contourData, int modelBins) {
         std::ofstream out(filename.c_str());
@@ -906,6 +907,7 @@ public:
         }
         out.close();
     }
+    **/
 private:
     LyaDataPtr _data;
     baofit::AbsCorrelationModelCPtr _model;
@@ -1330,7 +1332,7 @@ int main(int argc, char **argv) {
         
         if(dumpName.length() > 0) {
             if(verbose) std::cout << "Dumping fit results to " << dumpName << std::endl;
-            nll.dump(dumpName,fmin.UserParameters().Params(),contourData,modelBins);
+            //nll.dump(dumpName,fmin.UserParameters().Params(),contourData,modelBins);
         }
     }
     catch(cosmo::RuntimeError const &e) {
