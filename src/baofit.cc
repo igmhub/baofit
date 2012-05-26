@@ -1132,6 +1132,8 @@ int main(int argc, char **argv) {
             binnedData->getBinCenters(index,coords);
             std::cout << "Covariance3D[" << offset << "] idx=" << index << ", ll="
                 << coords[0] << ", sep=" << coords[1] << ", z=" << coords[2]
+                << ", r=" << binnedData->getRadius(index) << ", mu=" << binnedData->getCosAngle(index)
+                << ", z=" << binnedData->getRedshift(index)
                 << ", value=" << binnedData->getData(index) << std::endl;
         }
         //!!DK
