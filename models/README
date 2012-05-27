@@ -1,6 +1,6 @@
 This directory contains tabulated models for BAO fitting.
 
-Fiducial models of the matter power are generated with CAMB then converted to tabulated correlation multipoles with cosmocalc:
+Fiducial models of the matter power are generated with CAMB then converted to tabulated correlation multipoles with cosmocalc. Note that the cosmocalc cosmology parameters (omega-matter, etc) are not used for running transforms like this, so do not need to be set consistently with the fiducial model.
 
 camb <fiducial>.ini
 cosmocalc --verbose --load-power <fiducial>_matterpower.dat --rmin 5 --rmax 215 --nr 211 --save-correlation <fiducial>.0.dat
