@@ -8,3 +8,9 @@ cosmocalc --verbose --load-power <fiducial>_matterpower.dat --rmin 5 --rmax 215 
 cosmocalc --verbose --load-power <fiducial>_matterpower.dat --rmin 5 --rmax 215 --nr 211 --save-correlation <fiducial>.4.dat --hexa
 
 For the BOSS DR9 Lya mocks, <fiducial> is "DR9LyaMocks". See the CAMB ini file for details on the assumed cosmology.
+
+The "no-wiggles" models can be generated several ways. Models ending with "SB" are sideband models where the region below and above the ell=0 correlation function are fit to a smooth model, which is then interpolated under the peak. The DR9LyaMocks SB model fits xi0(r) from [50,82] and [145,190] Mpc/h to a sum of r^p terms with p = -3,-2,-1,0,1.
+
+For quick visual checks on generated models, use gnuplot, e.g. for r^2 weighting:
+
+plot 'DR9LyaMocks.0.dat' using 1:($1*$1*$2), 'DR9LyaMocksSB.0.dat' using 1:($1*$1*$2) with lines
