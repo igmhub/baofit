@@ -1,0 +1,10 @@
+This directory contains tabulated models for BAO fitting.
+
+Fiducial models of the matter power are generated with CAMB then converted to tabulated correlation multipoles with cosmocalc:
+
+camb <fiducial>.ini
+cosmocalc --verbose --load-power <fiducial>_matterpower.dat --rmin 5 --rmax 215 --nr 211 --save-correlation <fiducial>.0.dat
+cosmocalc --verbose --load-power <fiducial>_matterpower.dat --rmin 5 --rmax 215 --nr 211 --save-correlation <fiducial>.2.dat --quad
+cosmocalc --verbose --load-power <fiducial>_matterpower.dat --rmin 5 --rmax 215 --nr 211 --save-correlation <fiducial>.4.dat --hexa
+
+For the BOSS DR9 Lya mocks, <fiducial> is "DR9LyaMocks". See the CAMB ini file for details on the assumed cosmology.
