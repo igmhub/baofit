@@ -921,7 +921,7 @@ int main(int argc, char **argv) {
     
     // Configure command-line option processing
     po::options_description cli("BAO fitting");
-    double OmegaLambda,OmegaMatter,zref,minll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin;
+    double OmegaMatter,hubbleConstant,zref,minll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin;
     int nll,nsep,nz,ncontour,modelBins,maxPlates,bootstrapTrials,bootstrapSize,randomSeed;
     std::string fiducialName,nowigglesName,broadbandName,dataName,dumpName;
     double initialAmp,initialScale;
@@ -929,10 +929,10 @@ int main(int argc, char **argv) {
     cli.add_options()
         ("help,h", "Prints this info and exits.")
         ("verbose", "Prints additional information.")
-        ("omega-lambda", po::value<double>(&OmegaLambda)->default_value(0.734),
-            "Present-day value of OmegaLambda.")
-        ("omega-matter", po::value<double>(&OmegaMatter)->default_value(0.266),
-            "Present-day value of OmegaMatter or zero for 1-OmegaLambda.")
+        ("omega-matter", po::value<double>(&OmegaMatter)->default_value(0.27),
+            "Present-day value of OmegaMatter.")
+        ("hubble-constant", po::value<double>(&hubbleConstant)->default_value(0.7),
+            "Present-day value of the Hubble parameter h = H0/(100 km/s/Mpc).")        
         ("fiducial", po::value<std::string>(&fiducialName)->default_value(""),
             "Fiducial correlation functions will be read from <name>.<ell>.dat with ell=0,2,4.")
         ("nowiggles", po::value<std::string>(&nowigglesName)->default_value(""),
@@ -1047,8 +1047,7 @@ int main(int argc, char **argv) {
     baofit::AbsCorrelationModelCPtr model;
     try {
         // Build the homogeneous cosmology we will use.
-        if(OmegaMatter == 0) OmegaMatter = 1 - OmegaLambda;
-        cosmology.reset(new cosmo::LambdaCdmUniverse(OmegaLambda,OmegaMatter));
+        cosmology.reset(new cosmo::LambdaCdmRadiationUniverse(OmegaMatter,0,hubbleConstant));
         
          // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
          model.reset(new baofit::BaoCorrelationModel(fiducialName,nowigglesName,broadbandName,zref));
