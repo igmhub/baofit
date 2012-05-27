@@ -923,7 +923,7 @@ int main(int argc, char **argv) {
     po::options_description cli("BAO fitting");
     double OmegaMatter,hubbleConstant,zref,minll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin;
     int nll,nsep,nz,ncontour,modelBins,maxPlates,bootstrapTrials,bootstrapSize,randomSeed;
-    std::string fiducialName,nowigglesName,broadbandName,dataName,dumpName;
+    std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,dumpName;
     double initialAmp,initialScale;
     std::string platelistName,platerootName,bootstrapSaveName,bootstrapCurvesName;
     cli.add_options()
@@ -932,7 +932,9 @@ int main(int argc, char **argv) {
         ("omega-matter", po::value<double>(&OmegaMatter)->default_value(0.27),
             "Present-day value of OmegaMatter.")
         ("hubble-constant", po::value<double>(&hubbleConstant)->default_value(0.7),
-            "Present-day value of the Hubble parameter h = H0/(100 km/s/Mpc).")        
+            "Present-day value of the Hubble parameter h = H0/(100 km/s/Mpc).")
+        ("modelroot", po::value<std::string>(&modelrootName)->default_value(""),
+                "Common path to prepend to all model filenames.")
         ("fiducial", po::value<std::string>(&fiducialName)->default_value(""),
             "Fiducial correlation functions will be read from <name>.<ell>.dat with ell=0,2,4.")
         ("nowiggles", po::value<std::string>(&nowigglesName)->default_value(""),
@@ -1050,7 +1052,8 @@ int main(int argc, char **argv) {
         cosmology.reset(new cosmo::LambdaCdmRadiationUniverse(OmegaMatter,0,hubbleConstant));
         
          // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
-         model.reset(new baofit::BaoCorrelationModel(fiducialName,nowigglesName,broadbandName,zref));
+         model.reset(new baofit::BaoCorrelationModel(
+             modelrootName,fiducialName,nowigglesName,broadbandName,zref));
 
         if(verbose) std::cout << "Cosmology initialized." << std::endl;
     }
