@@ -1166,6 +1166,10 @@ int main(int argc, char **argv) {
     
     // Minimize the -log(Likelihood) function.
     try {
+        baofit::CorrelationFit fitEngine(binnedData,model);
+        lk::FunctionMinimumPtr fitResult = fitEngine.fit("mn2::vmetric");
+        fitResult->printToStream(std::cout);
+        
         lk::GradientCalculatorPtr gcptr;
         LyaBaoLikelihood nll(binnedData,model,rmin,rmax,fixLinear,fixBao,fixScale,noBBand,
             initialAmp,initialScale);
