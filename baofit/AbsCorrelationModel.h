@@ -22,6 +22,8 @@ namespace baofit {
         virtual double evaluate(double r, double z, std::vector<double> const &params) const = 0;
         // Returns a reference to our model's fit parameters.
         likely::FitParameters const &getParameters() const;
+        // Returns the number of model parameters (including both floating and fixed).
+        int getNParameters() const;
     protected:
         void defineParameter(std::string const &name, double value, double error, bool fixed);
 	private:

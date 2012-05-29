@@ -16,3 +16,7 @@ double value, double error, bool fixed) {
 likely::FitParameters const &local::AbsCorrelationModel::getParameters() const {
     return _parameters;
 }
+
+int local::AbsCorrelationModel::getNParameters() const {
+    return _parameters.size();
+}
