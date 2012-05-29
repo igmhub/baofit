@@ -1053,7 +1053,8 @@ int main(int argc, char **argv) {
         
          // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
          model.reset(new baofit::BaoCorrelationModel(
-             modelrootName,fiducialName,nowigglesName,broadbandName,zref));
+             modelrootName,fiducialName,nowigglesName,broadbandName,zref,
+             initialAmp,initialScale,fixLinear,fixBao,fixScale,noBBand));
 
         if(verbose) std::cout << "Cosmology initialized." << std::endl;
     }
@@ -1171,7 +1172,7 @@ int main(int argc, char **argv) {
         lk::FunctionPtr fptr(new lk::Function(boost::ref(nll)));
 
         int npar(nll.getNPar());
-        lk::AbsEnginePtr engine = lk::getEngine("mn2::vmetric",fptr,gcptr,npar);
+        lk::AbsEnginePtr engine = lk::getEngine("mn2::vmetric",fptr,gcptr,model->getParameters());
         lk::MinuitEngine &minuit = dynamic_cast<lk::MinuitEngine&>(*engine);        
         lk::MinuitEngine::StatePtr initialState(new ROOT::Minuit2::MnUserParameterState());
         nll.initialize(initialState);
