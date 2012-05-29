@@ -18,7 +18,8 @@ namespace baofit {
 	    // Creates a new model using the specified tabulated correlation functions.
 		BaoCorrelationModel(std::string const &modelrootName,
 		    std::string const &fiducialName, std::string const &nowigglesName,
-            std::string const &broadbandName, double zref);
+            std::string const &broadbandName, double zref, double initialAmp, double initialScale,
+            bool fixLinear, bool fixBao, bool fixScale, bool noBBand);
 		virtual ~BaoCorrelationModel();
 		// Returns the correlation function evaluated in redshift space where (r,mu) is
 		// the pair separation and z is their average redshift. The separation r should

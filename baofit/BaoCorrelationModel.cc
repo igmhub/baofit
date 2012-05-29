@@ -15,29 +15,57 @@ namespace local = baofit;
 
 local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName,
     std::string const &fiducialName, std::string const &nowigglesName,
-    std::string const &broadbandName, double zref)
+    std::string const &broadbandName, double zref, double initialAmp, double initialScale,
+    bool fixLinear, bool fixBao, bool fixScale, bool noBBand)
 : AbsCorrelationModel(), _zref(zref)
 {
+    // Define our parameters.
+    defineParameter("alpha",3.8,0.3, false); //fixLinear
+    defineParameter("(1+beta)*bias",0.34,0.03, fixLinear || (!fixBao && !noBBand));
+    defineParameter("beta",1.0,0.1, fixLinear || (!fixBao && !noBBand));
+    defineParameter("BAO amplitude", initialAmp,0.15,fixBao);
+    defineParameter("BAO scale", initialScale,0.02,fixBao || fixScale);
+    defineParameter("BBand xio",0,0.001, noBBand);
+    defineParameter("BBand a0",0,0.2, noBBand);
+    defineParameter("BBand a1",0,2, noBBand);
+    defineParameter("BBand a2",0,2, noBBand);
+    // Load the interpolation data we will use for each multipole of each model.
     std::string root(modelrootName);
     if(0 < root.size() && root[root.size()-1] != '/') root += '/';
     boost::format fileName("%s%s.%d.dat"),bbandName("%s%s%c.%d.dat");
     std::string method("cspline");
     cosmo::CorrelationFunctionPtr
-        fid0 = likely::createFunctionPtr(likely::createInterpolator(boost::str(fileName % root % fiducialName % 0),method)),
-        fid2 = likely::createFunctionPtr(likely::createInterpolator(boost::str(fileName % root % fiducialName % 2),method)),
-        fid4 = likely::createFunctionPtr(likely::createInterpolator(boost::str(fileName % root % fiducialName % 4),method)),
-        nw0 = likely::createFunctionPtr(likely::createInterpolator(boost::str(fileName % root % nowigglesName % 0),method)),
-        nw2 = likely::createFunctionPtr(likely::createInterpolator(boost::str(fileName % root % nowigglesName % 2),method)),
-        nw4 = likely::createFunctionPtr(likely::createInterpolator(boost::str(fileName % root % nowigglesName % 4),method)),
-        bbc0 = likely::createFunctionPtr(likely::createInterpolator(boost::str(bbandName % root % broadbandName % 'c' % 0),method)),
-        bbc2 = likely::createFunctionPtr(likely::createInterpolator(boost::str(bbandName % root % broadbandName % 'c' % 2),method)),
-        bbc4 = likely::createFunctionPtr(likely::createInterpolator(boost::str(bbandName % root % broadbandName % 'c' % 4),method)),
-        bb10 = likely::createFunctionPtr(likely::createInterpolator(boost::str(bbandName % root % broadbandName % '1' % 0),method)),
-        bb12 = likely::createFunctionPtr(likely::createInterpolator(boost::str(bbandName % root % broadbandName % '1' % 2),method)),
-        bb14 = likely::createFunctionPtr(likely::createInterpolator(boost::str(bbandName % root % broadbandName % '1' % 4),method)),
-        bb20 = likely::createFunctionPtr(likely::createInterpolator(boost::str(bbandName % root % broadbandName % '2' % 0),method)),
-        bb22 = likely::createFunctionPtr(likely::createInterpolator(boost::str(bbandName % root % broadbandName % '2' % 2),method)),
-        bb24 = likely::createFunctionPtr(likely::createInterpolator(boost::str(bbandName % root % broadbandName % '2' % 4),method));
+        fid0 = likely::createFunctionPtr(likely::createInterpolator(
+            boost::str(fileName % root % fiducialName % 0),method)),
+        fid2 = likely::createFunctionPtr(likely::createInterpolator(
+            boost::str(fileName % root % fiducialName % 2),method)),
+        fid4 = likely::createFunctionPtr(likely::createInterpolator(
+            boost::str(fileName % root % fiducialName % 4),method)),
+        nw0 = likely::createFunctionPtr(likely::createInterpolator(
+            boost::str(fileName % root % nowigglesName % 0),method)),
+        nw2 = likely::createFunctionPtr(likely::createInterpolator(
+            boost::str(fileName % root % nowigglesName % 2),method)),
+        nw4 = likely::createFunctionPtr(likely::createInterpolator(
+            boost::str(fileName % root % nowigglesName % 4),method)),
+        bbc0 = likely::createFunctionPtr(likely::createInterpolator(
+            boost::str(bbandName % root % broadbandName % 'c' % 0),method)),
+        bbc2 = likely::createFunctionPtr(likely::createInterpolator(
+            boost::str(bbandName % root % broadbandName % 'c' % 2),method)),
+        bbc4 = likely::createFunctionPtr(likely::createInterpolator(
+            boost::str(bbandName % root % broadbandName % 'c' % 4),method)),
+        bb10 = likely::createFunctionPtr(likely::createInterpolator(
+            boost::str(bbandName % root % broadbandName % '1' % 0),method)),
+        bb12 = likely::createFunctionPtr(likely::createInterpolator(
+            boost::str(bbandName % root % broadbandName % '1' % 2),method)),
+        bb14 = likely::createFunctionPtr(likely::createInterpolator(
+            boost::str(bbandName % root % broadbandName % '1' % 4),method)),
+        bb20 = likely::createFunctionPtr(likely::createInterpolator(
+            boost::str(bbandName % root % broadbandName % '2' % 0),method)),
+        bb22 = likely::createFunctionPtr(likely::createInterpolator(
+            boost::str(bbandName % root % broadbandName % '2' % 2),method)),
+        bb24 = likely::createFunctionPtr(likely::createInterpolator(
+            boost::str(bbandName % root % broadbandName % '2' % 4),method));
+    // Create redshift-space distorted correlation function models from the multipole interpolators.
     _fid.reset(new cosmo::RsdCorrelationFunction(fid0,fid2,fid4));
     _nw.reset(new cosmo::RsdCorrelationFunction(nw0,nw2,nw4));
     _bbc.reset(new cosmo::RsdCorrelationFunction(bbc0,bbc2,bbc4));
