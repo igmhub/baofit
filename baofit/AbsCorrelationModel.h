@@ -3,6 +3,8 @@
 #ifndef BAOFIT_ABS_CORRELATION_MODEL
 #define BAOFIT_ABS_CORRELATION_MODEL
 
+#include "likely/FitParameter.h"
+
 #include <vector>
 
 namespace baofit {
@@ -18,8 +20,14 @@ namespace baofit {
         // Returns the azimuthally averaged monopole correlation function evaluated at
         // comoving separation r in Mpc/h, with an average redshift z.
         virtual double evaluate(double r, double z, std::vector<double> const &params) const = 0;
+        // Returns a reference to our model's fit parameters.
+        likely::FitParameters const &getParameters() const;
+    protected:
+        void defineParameter(std::string const &name, double value, double error, bool fixed);
 	private:
+        likely::FitParameters _parameters;
 	}; // AbsCorrelationModel
+
 } // baofit
 
 #endif // BAOFIT_ABS_CORRELATION_MODEL
