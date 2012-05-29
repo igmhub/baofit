@@ -20,7 +20,7 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
 : AbsCorrelationModel(), _zref(zref)
 {
     // Define our parameters.
-    defineParameter("alpha",3.8,0.3, false); //fixLinear
+    defineParameter("alpha",3.8,0.3, true); //fixLinear
     defineParameter("(1+beta)*bias",0.34,0.03, fixLinear || (!fixBao && !noBBand));
     defineParameter("beta",1.0,0.1, fixLinear || (!fixBao && !noBBand));
     defineParameter("BAO amplitude", initialAmp,0.15,fixBao);
