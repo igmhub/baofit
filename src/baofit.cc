@@ -1169,7 +1169,7 @@ int main(int argc, char **argv) {
         baofit::CorrelationFit fitEngine(binnedData,model);
         lk::FunctionMinimumPtr fitResult = fitEngine.fit("mn2::vmetric");
         fitResult->printToStream(std::cout);
-        
+/**        
         lk::GradientCalculatorPtr gcptr;
         LyaBaoLikelihood nll(binnedData,model,rmin,rmax,fixLinear,fixBao,fixScale,noBBand,
             initialAmp,initialScale);
@@ -1343,6 +1343,7 @@ int main(int argc, char **argv) {
             if(verbose) std::cout << "Dumping fit results to " << dumpName << std::endl;
             //nll.dump(dumpName,fmin.UserParameters().Params(),contourData,modelBins);
         }
+**/
     }
     catch(cosmo::RuntimeError const &e) {
         std::cerr << "ERROR during fit:\n  " << e.what() << std::endl;
