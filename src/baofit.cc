@@ -1100,6 +1100,7 @@ int main(int argc, char **argv) {
                 std::cerr << "Unable to open platelist file " << platelistName << std::endl;
                 return -1;
             }
+            binnedData.reset(new baofit::QuasarCorrelationData(llBins,sepBins,zBins,cosmology));
             while(platelist.good() && !platelist.eof()) {
                 platelist >> plateName;
                 if(platelist.eof()) break;
@@ -1117,16 +1118,9 @@ int main(int argc, char **argv) {
 
                 baofit::QuasarCorrelationDataCPtr plateBinned =
                     loadCosmolib(filename,llBins,sepBins,zBins,cosmology,verbose,true,fastLoad);
-                plateBinned->compress();
-                if(plateBinnedData.empty()) {
-                    binnedData.reset(new baofit::QuasarCorrelationData(*plateBinned));
-                    binnedData->cloneCovariance();
-                }
-                else {
-                    *binnedData += *plateBinned;
-                }
+                plateBinned->compress();                
+                *binnedData += *plateBinned;
                 plateBinnedData.push_back(plateBinned);
-
                 if(plateData.size() == maxPlates) break;
             }
             platelist.close();
