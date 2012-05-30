@@ -1,6 +1,7 @@
 // Created 06-Apr-2012 by David Kirkby (University of California, Irvine) <dkirkby@uci.edu>
 
 #include "baofit/BaoCorrelationModel.h"
+#include "baofit/RuntimeError.h"
 
 #include "cosmo/RsdCorrelationFunction.h"
 #include "cosmo/TransferFunctionPowerSpectrum.h"
@@ -19,10 +20,11 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
     bool fixLinear, bool fixBao, bool fixScale, bool noBBand)
 : AbsCorrelationModel(), _zref(zref)
 {
-    // Define our parameters.
+    // Define our parameters. The order here determines the order of elements in our
+    // parameter vector for our evaluate(...) methods.
     defineParameter("alpha",3.8,0.3, true); //fixLinear
-    defineParameter("(1+beta)*bias",0.34,0.03, fixLinear || (!fixBao && !noBBand));
     defineParameter("beta",1.0,0.1, fixLinear || (!fixBao && !noBBand));
+    defineParameter("(1+beta)*bias",-0.34,0.03, fixLinear || (!fixBao && !noBBand));
     defineParameter("BAO amplitude", initialAmp,0.15,fixBao);
     defineParameter("BAO scale", initialScale,0.02,fixBao || fixScale);
     defineParameter("BBand xio",0,0.001, noBBand);
@@ -77,7 +79,7 @@ local::BaoCorrelationModel::~BaoCorrelationModel() { }
 
 double local::BaoCorrelationModel::evaluate(double r, double mu, double z,
 std::vector<double> const &params) const {
-    double alpha(params[0]), bb(params[1]), beta(params[2]), ampl(params[3]), scale(params[4]);
+    double alpha(params[0]), beta(params[1]), bb(params[2]), ampl(params[3]), scale(params[4]);
     double bias = bb/(1+beta);
     double xio(params[5]), a0(params[6]), a1(params[7]), a2(params[8]);
     // Calculate redshift evolution factor.
@@ -100,7 +102,7 @@ std::vector<double> const &params) const {
 
 double local::BaoCorrelationModel::evaluate(double r, double z,
 std::vector<double> const &params) const {
-    return 0;
+    throw RuntimeError("BaoCorrelationModel::evaluate: monopole only not implemented yet.");
 }
 
 std::vector<double> local::BaoCorrelationModel::evaluateMultipoles(double r,
