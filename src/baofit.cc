@@ -1071,6 +1071,7 @@ int main(int argc, char **argv) {
     LyaDataPtr data;
     std::vector<LyaDataPtr> plateData;
     baofit::QuasarCorrelationDataPtr binnedData;
+    likely::BinnedDataResampler resampler(randomSeed);
     std::vector<baofit::QuasarCorrelationDataCPtr> plateBinnedData;
     try {
         // Initialize the (logLambda,separation,redshift) binning from command-line params.
@@ -1100,7 +1101,7 @@ int main(int argc, char **argv) {
                 std::cerr << "Unable to open platelist file " << platelistName << std::endl;
                 return -1;
             }
-            binnedData.reset(new baofit::QuasarCorrelationData(llBins,sepBins,zBins,cosmology));
+            //!!binnedData.reset(new baofit::QuasarCorrelationData(llBins,sepBins,zBins,cosmology));
             while(platelist.good() && !platelist.eof()) {
                 platelist >> plateName;
                 if(platelist.eof()) break;
@@ -1118,13 +1119,16 @@ int main(int argc, char **argv) {
 
                 baofit::QuasarCorrelationDataCPtr plateBinned =
                     loadCosmolib(filename,llBins,sepBins,zBins,cosmology,verbose,true,fastLoad);
-                plateBinned->compress();                
-                *binnedData += *plateBinned;
+                plateBinned->compress();
+                //!!*binnedData += *plateBinned;
                 plateBinnedData.push_back(plateBinned);
+                resampler.addObservation(
+                    boost::dynamic_pointer_cast<const likely::BinnedData>(plateBinned));
                 if(plateData.size() == maxPlates) break;
             }
             platelist.close();
             data->finalize(false);
+            binnedData = boost::dynamic_pointer_cast<baofit::QuasarCorrelationData>(resampler.combined());
         }
         //!!DK
         std::vector<double> coords;
