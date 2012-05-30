@@ -13,6 +13,7 @@ namespace baofit {
 	public:
 		AbsCorrelationData(likely::AbsBinningCPtr axis1, likely::AbsBinningCPtr axis2,
 		    likely::AbsBinningCPtr axis3);
+        AbsCorrelationData(std::vector<likely::AbsBinningCPtr> axes);
 		virtual ~AbsCorrelationData();
         // Returns the 3D radius in Mpc/h associated with the specified global index.
         virtual double getRadius(int index) const = 0;

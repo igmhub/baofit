@@ -10,4 +10,9 @@ likely::AbsBinningCPtr axis1, likely::AbsBinningCPtr axis2, likely::AbsBinningCP
 {
 }
 
+local::AbsCorrelationData::AbsCorrelationData(std::vector<likely::AbsBinningCPtr> axes)
+: likely::BinnedData(axes)
+{
+}
+
 local::AbsCorrelationData::~AbsCorrelationData() { }
