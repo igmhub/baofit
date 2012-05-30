@@ -12,12 +12,31 @@ namespace local = baofit;
 local::QuasarCorrelationData::QuasarCorrelationData(
 likely::AbsBinningCPtr axis1, likely::AbsBinningCPtr axis2, likely::AbsBinningCPtr axis3,
 cosmo::AbsHomogeneousUniversePtr cosmology)
-: AbsCorrelationData(axis1,axis2,axis3), _cosmology(cosmology), _lastIndex(-1)
+: AbsCorrelationData(axis1,axis2,axis3)
 {
-    _arcminToRad = 4*std::atan(1)/(60.*180.);
+    _initialize(cosmology);
+}
+
+local::QuasarCorrelationData::QuasarCorrelationData(
+std::vector<likely::AbsBinningCPtr> axes, cosmo::AbsHomogeneousUniversePtr cosmology)
+: AbsCorrelationData(axes)
+{
+    _initialize(cosmology);
+}
+
+void local::QuasarCorrelationData::_initialize(cosmo::AbsHomogeneousUniversePtr cosmology) {
+    _cosmology = cosmology;
+    _lastIndex = -1;
+    _arcminToRad = 4*std::atan(1)/(60.*180.);    
 }
 
 local::QuasarCorrelationData::~QuasarCorrelationData() { }
+
+local::QuasarCorrelationData *local::QuasarCorrelationData::clone(bool binningOnly) const {
+    return binningOnly ?
+        new QuasarCorrelationData(getAxisBinning(),_cosmology) :
+        new QuasarCorrelationData(*this);
+}
 
 void local::QuasarCorrelationData::finalize(double rmin, double rmax, double llmin) {
     std::set<int> keep;
