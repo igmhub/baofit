@@ -992,7 +992,7 @@ int main(int argc, char **argv) {
             "Maximum number of redshift bins.")
         ("dump", po::value<std::string>(&dumpName)->default_value(""),
             "Filename for dumping fit results.")
-        ("ncontour",po::value<int>(&ncontour)->default_value(40),
+        ("ncontour",po::value<int>(&ncontour)->default_value(0),
             "Number of contour points to calculate in BAO parameters.")
         ("model-bins", po::value<int>(&modelBins)->default_value(200),
             "Number of high-resolution uniform bins to use for dumping best fit model.")
