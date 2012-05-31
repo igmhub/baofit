@@ -14,12 +14,13 @@ namespace baofit {
 	// average absorption redshift.
 	public:
 	    // Creates a new object using the specified binning and cosmology to map the observed coordinates
-	    // into co-moving coordinates, and pruning the data to rmin <= r < rmax (in Mpc/h) and
-	    // log(lambda2/lambda1) > llmin.
+	    // into co-moving coordinates. The data will be pruned to rmin <= r < rmax (in Mpc/h) and
+	    // log(lambda2/lambda1) > llmin when the finalize() method is called.
 		QuasarCorrelationData(likely::AbsBinningCPtr axis1, likely::AbsBinningCPtr axis2,
-		    likely::AbsBinningCPtr axis3, cosmo::AbsHomogeneousUniversePtr cosmology);
-        QuasarCorrelationData(std::vector<likely::AbsBinningCPtr> axes,
-            cosmo::AbsHomogeneousUniversePtr cosmology);
+		    likely::AbsBinningCPtr axis3, double rmin, double rmax, double llmin,
+		    cosmo::AbsHomogeneousUniversePtr cosmology);
+        QuasarCorrelationData(std::vector<likely::AbsBinningCPtr> axes, double rmin, double rmax,
+            double llmin, cosmo::AbsHomogeneousUniversePtr cosmology);
 		virtual ~QuasarCorrelationData();
 		// Polymorphic shallow copy so this type of data can be used with likely::BinnedDataResampler.
         virtual QuasarCorrelationData *clone(bool binningOnly = false) const;
@@ -35,11 +36,12 @@ namespace baofit {
         // the co-moving coordinates at the center of each remaining bin with data. No further
         // changes to our "shape" are possible after finalizing. See the documentation for
         // BinnedData::finalize() for details.
-        void finalize(double rmin, double rmax, double llmin);
+        virtual void finalize();
         // Transforms the specified values of ll,sep,dsep,z to co-moving r,mu.
         void transform(double ll, double sep, double dsep, double z, double &r, double &mu) const;
 	private:
-        void _initialize(cosmo::AbsHomogeneousUniversePtr cosmology);
+        void _initialize(double rmin, double rmax, double llmin, cosmo::AbsHomogeneousUniversePtr cosmology);
+        double _rmin, _rmax, _llmin;
         cosmo::AbsHomogeneousUniversePtr _cosmology;
         std::vector<double> _rLookup, _muLookup, _zLookup;
         // Calculates and saves (r,mu,z) for the specified global index.

@@ -1,6 +1,7 @@
 // Created 24-May-2012 by David Kirkby (University of California, Irvine) <dkirkby@uci.edu>
 
 #include "baofit/QuasarCorrelationData.h"
+#include "baofit/RuntimeError.h"
 
 #include "likely/BinnedData.h"
 #include "cosmo/AbsHomogeneousUniverse.h"
@@ -11,20 +12,28 @@ namespace local = baofit;
 
 local::QuasarCorrelationData::QuasarCorrelationData(
 likely::AbsBinningCPtr axis1, likely::AbsBinningCPtr axis2, likely::AbsBinningCPtr axis3,
-cosmo::AbsHomogeneousUniversePtr cosmology)
+double rmin, double rmax, double llmin, cosmo::AbsHomogeneousUniversePtr cosmology)
 : AbsCorrelationData(axis1,axis2,axis3)
 {
-    _initialize(cosmology);
+    _initialize(rmin,rmax,llmin,cosmology);
 }
 
 local::QuasarCorrelationData::QuasarCorrelationData(
-std::vector<likely::AbsBinningCPtr> axes, cosmo::AbsHomogeneousUniversePtr cosmology)
+std::vector<likely::AbsBinningCPtr> axes, double rmin, double rmax, double llmin,
+cosmo::AbsHomogeneousUniversePtr cosmology)
 : AbsCorrelationData(axes)
 {
-    _initialize(cosmology);
+    _initialize(rmin,rmax,llmin,cosmology);
 }
 
-void local::QuasarCorrelationData::_initialize(cosmo::AbsHomogeneousUniversePtr cosmology) {
+void local::QuasarCorrelationData::_initialize(double rmin, double rmax, double llmin,
+cosmo::AbsHomogeneousUniversePtr cosmology) {
+    if(rmin >= rmax) {
+        throw RuntimeError("QuasarCorrelationData: expected rmin < rmax.");
+    }
+    _rmin = rmin;
+    _rmax = rmax;
+    _llmin = llmin;
     _cosmology = cosmology;
     _lastIndex = -1;
     _arcminToRad = 4*std::atan(1)/(60.*180.);    
@@ -34,11 +43,11 @@ local::QuasarCorrelationData::~QuasarCorrelationData() { }
 
 local::QuasarCorrelationData *local::QuasarCorrelationData::clone(bool binningOnly) const {
     return binningOnly ?
-        new QuasarCorrelationData(getAxisBinning(),_cosmology) :
+        new QuasarCorrelationData(getAxisBinning(),_rmin,_rmax,_llmin,_cosmology) :
         new QuasarCorrelationData(*this);
 }
 
-void local::QuasarCorrelationData::finalize(double rmin, double rmax, double llmin) {
+void local::QuasarCorrelationData::finalize() {
     std::set<int> keep;
     std::vector<double> binCenter,binWidth;
     // Loop over bins with data.
@@ -48,8 +57,8 @@ void local::QuasarCorrelationData::finalize(double rmin, double rmax, double llm
         double r(getRadius(index)), mu(getCosAngle(index)), z(getRedshift(index));
         double ll(_binCenter[0]);
         // Keep this bin in our pruned dataset?
-        if(r >= rmin && r < rmax && ll >= llmin) {
-            keep.insert(index);            
+        if(r >= _rmin && r < _rmax && ll >= _llmin) {
+            keep.insert(index);
             // Remember these values.
             _rLookup.push_back(r);
             _muLookup.push_back(mu);
