@@ -8,9 +8,11 @@
 namespace baofit {
     
     class AbsCorrelationModel;
+    typedef boost::shared_ptr<AbsCorrelationModel> AbsCorrelationModelPtr;
     typedef boost::shared_ptr<const AbsCorrelationModel> AbsCorrelationModelCPtr;
     
     class AbsCorrelationData;
+    typedef boost::shared_ptr<AbsCorrelationData> AbsCorrelationDataPtr;    
     typedef boost::shared_ptr<const AbsCorrelationData> AbsCorrelationDataCPtr;    
 
     class QuasarCorrelationData;
