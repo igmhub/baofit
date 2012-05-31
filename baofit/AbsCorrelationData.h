@@ -23,6 +23,8 @@ namespace baofit {
         virtual double getCosAngle(int index) const = 0;
         // Returns the redshift associated with the specified global index.
         virtual double getRedshift(int index) const = 0;
+        // Finalizes a dataset before fitting to a model.
+        virtual void finalize();
 	}; // AbsCorrelationData	
 } // baofit
 

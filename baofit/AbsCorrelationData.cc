@@ -16,3 +16,5 @@ local::AbsCorrelationData::AbsCorrelationData(std::vector<likely::AbsBinningCPtr
 }
 
 local::AbsCorrelationData::~AbsCorrelationData() { }
+
+void local::AbsCorrelationData::finalize() { }
