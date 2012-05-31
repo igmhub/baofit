@@ -1068,11 +1068,8 @@ int main(int argc, char **argv) {
     }
     
     // Load the data we will fit.
-    LyaDataPtr data;
-    std::vector<LyaDataPtr> plateData;
     baofit::QuasarCorrelationDataPtr binnedData;
     likely::BinnedDataResampler resampler(randomSeed);
-    std::vector<baofit::QuasarCorrelationDataCPtr> plateBinnedData;
     try {
         // Initialize the (logLambda,separation,redshift) binning from command-line params.
         likely::AbsBinningCPtr llBins,
@@ -1085,10 +1082,8 @@ int main(int argc, char **argv) {
             llBins.reset(new likely::NonUniformSampling(twoStepSampling(nll,minll,dll,dll2)));
         }
         // Initialize the dataset we will fill.
-        data.reset(new LyaData(llBins,sepBins,zBins,cosmology));
         if(0 < dataName.length()) {
             // Load a single dataset.
-            data->load(dataName,verbose,false,fastLoad);
             binnedData = loadCosmolib(dataName,llBins,sepBins,zBins,cosmology,verbose,false,fastLoad);
         }
         else {
@@ -1110,24 +1105,15 @@ int main(int argc, char **argv) {
                     return -1;
                 }
                 std::string filename(boost::str(platefile % platerootName % plateName));
-
-                LyaDataPtr plate(new LyaData(llBins,sepBins,zBins,cosmology));
-                plate->load(filename,verbose,true,fastLoad);
-                plate->compress();
-                plateData.push_back(plate);
-                data->add(*plate);
-
                 baofit::QuasarCorrelationDataCPtr plateBinned =
                     loadCosmolib(filename,llBins,sepBins,zBins,cosmology,verbose,true,fastLoad);
                 plateBinned->compress();
                 //!!*binnedData += *plateBinned;
-                plateBinnedData.push_back(plateBinned);
                 resampler.addObservation(
                     boost::dynamic_pointer_cast<const likely::BinnedData>(plateBinned));
-                if(plateData.size() == maxPlates) break;
+                if(resampler.getNObservations() == maxPlates) break;
             }
             platelist.close();
-            data->finalize(false);
             binnedData = boost::dynamic_pointer_cast<baofit::QuasarCorrelationData>(resampler.combined());
         }
         //!!DK
@@ -1142,8 +1128,6 @@ int main(int argc, char **argv) {
                 << ", value=" << binnedData->getData(index) << std::endl;
         }
         //!!DK
-        
-        data->prune(rmin,rmax,llmin);
         
         binnedData->finalize(rmin,rmax,llmin);
 
@@ -1170,7 +1154,7 @@ int main(int argc, char **argv) {
         fitResult->printToStream(std::cout);
         
         // Perform bootstrap trials, if requested
-        int nPlates(plateData.size()), nInvalid(0);
+        int nPlates(resampler.getNObservations()), nInvalid(0);
         if(0 < bootstrapTrials && 0 < nPlates) {
             if(0 == bootstrapSize) bootstrapSize = nPlates;
             baofit::QuasarCorrelationDataPtr bsData;
