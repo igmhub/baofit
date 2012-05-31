@@ -94,10 +94,11 @@ void getInt(std::string::const_iterator const &begin, std::string::const_iterato
 // The fast option disables regexp checks for valid numeric inputs.
 baofit::QuasarCorrelationDataPtr loadCosmolib(std::string dataName,
     likely::AbsBinningCPtr llBins, likely::AbsBinningCPtr sepBins, likely::AbsBinningCPtr zBins,
-    cosmo::AbsHomogeneousUniversePtr cosmology, bool verbose, bool icov = false, bool fast = false) {
+    double rmin, double rmax, double llmin, cosmo::AbsHomogeneousUniversePtr cosmology,
+    bool verbose, bool icov = false, bool fast = false) {
     // Create the new BinnedData.
     baofit::QuasarCorrelationDataPtr
-        binnedData(new baofit::QuasarCorrelationData(llBins,sepBins,zBins,cosmology));
+        binnedData(new baofit::QuasarCorrelationData(llBins,sepBins,zBins,rmin,rmax,llmin,cosmology));
     // General stuff we will need for reading both files.
     std::string line;
     int lineNumber(0);
@@ -209,6 +210,7 @@ baofit::QuasarCorrelationDataPtr loadCosmolib(std::string dataName,
         std::cout << "Read " << lineNumber << " of " << ncov
             << " covariance values from " << covName << std::endl;
     }
+    binnedData->compress();
     return binnedData;
 }
 
@@ -1068,8 +1070,13 @@ int main(int argc, char **argv) {
     }
     
     // Load the data we will fit.
+    /*
     baofit::QuasarCorrelationDataPtr binnedData;
     likely::BinnedDataResampler resampler(randomSeed);
+    */
+    baofit::CorrelationAnalyzer analyzer(randomSeed);
+    analyzer.setModel(model);
+    
     try {
         // Initialize the (logLambda,separation,redshift) binning from command-line params.
         likely::AbsBinningCPtr llBins,
@@ -1084,7 +1091,8 @@ int main(int argc, char **argv) {
         // Initialize the dataset we will fill.
         if(0 < dataName.length()) {
             // Load a single dataset.
-            binnedData = loadCosmolib(dataName,llBins,sepBins,zBins,cosmology,verbose,false,fastLoad);
+            analyzer.addData(
+                loadCosmolib(dataName,llBins,sepBins,zBins,rmin,rmax,llmin,cosmology,verbose,false,fastLoad));
         }
         else {
             // Load individual plate datasets.
@@ -1105,41 +1113,21 @@ int main(int argc, char **argv) {
                     return -1;
                 }
                 std::string filename(boost::str(platefile % platerootName % plateName));
-                baofit::QuasarCorrelationDataCPtr plateBinned =
-                    loadCosmolib(filename,llBins,sepBins,zBins,cosmology,verbose,true,fastLoad);
+                analyzer.addData(
+                    loadCosmolib(filename,llBins,sepBins,zBins,rmin,rmax,llmin,cosmology,verbose,true,fastLoad));
+                /**
                 plateBinned->compress();
-                //!!*binnedData += *plateBinned;
                 resampler.addObservation(
                     boost::dynamic_pointer_cast<const likely::BinnedData>(plateBinned));
-                if(resampler.getNObservations() == maxPlates) break;
+                **/
+                if(analyzer.getNData() == maxPlates) break;
             }
             platelist.close();
-            binnedData = boost::dynamic_pointer_cast<baofit::QuasarCorrelationData>(resampler.combined());
+            //!!binnedData = boost::dynamic_pointer_cast<baofit::QuasarCorrelationData>(resampler.combined());
         }
-        //!!DK
-        std::vector<double> coords;
-        for(int offset = 0; offset < 10; ++offset) {
-            int index = binnedData->getIndexAtOffset(offset);
-            binnedData->getBinCenters(index,coords);
-            std::cout << "Covariance3D[" << offset << "] idx=" << index << ", ll="
-                << coords[0] << ", sep=" << coords[1] << ", z=" << coords[2]
-                << ", r=" << binnedData->getRadius(index) << ", mu=" << binnedData->getCosAngle(index)
-                << ", z=" << binnedData->getRedshift(index)
-                << ", value=" << binnedData->getData(index) << std::endl;
-        }
-        //!!DK
         
-        binnedData->finalize(rmin,rmax,llmin);
+        //!!binnedData->finalize(rmin,rmax,llmin);
 
-        for(int offset = 0; offset < 10; ++offset) {
-            int index = binnedData->getIndexAtOffset(offset);
-            binnedData->getBinCenters(index,coords);
-            std::cout << "Covariance3D[" << offset << "] idx=" << index << ", ll="
-                << coords[0] << ", sep=" << coords[1] << ", z=" << coords[2]
-                << ", r=" << binnedData->getRadius(index) << ", mu=" << binnedData->getCosAngle(index)
-                << ", z=" << binnedData->getRedshift(index)
-                << ", value=" << binnedData->getData(index) << std::endl;
-        }
     }
     catch(cosmo::RuntimeError const &e) {
         std::cerr << "ERROR while reading data:\n  " << e.what() << std::endl;
@@ -1148,11 +1136,16 @@ int main(int argc, char **argv) {
     
     // Minimize the -log(Likelihood) function.
     try {
+        lk::FunctionMinimumPtr fmin = analyzer.fitCombined("mn2::vmetric");
+        fmin->printToStream(std::cout);
+        /**
         // Fit the combined dataset.
         baofit::CorrelationFitter fitEngine(binnedData,model);
         lk::FunctionMinimumPtr fitResult = fitEngine.fit("mn2::vmetric");
         fitResult->printToStream(std::cout);
-        
+        **/
+
+        /**
         // Perform bootstrap trials, if requested
         int nPlates(resampler.getNObservations()), nInvalid(0);
         if(0 < bootstrapTrials && 0 < nPlates) {
@@ -1168,11 +1161,10 @@ int main(int argc, char **argv) {
             for(int trial = 0; trial < bootstrapTrials; ++trial) {
                 bsData = boost::dynamic_pointer_cast<baofit::QuasarCorrelationData>(
                     resampler.bootstrap(bootstrapSize,fixCovariance));
-            /**
-            int trial(0);
-            while(bsData = boost::dynamic_pointer_cast<baofit::QuasarCorrelationData>(
-            resampler.jackknife(1,trial++))) {
-            **/
+
+            //int trial(0);
+            //while(bsData = boost::dynamic_pointer_cast<baofit::QuasarCorrelationData>(
+            //resampler.jackknife(1,trial++))) {
 
                 bsData->finalize(rmin,rmax,llmin);
                 baofit::CorrelationFitter bsFitEngine(bsData,model);
@@ -1211,6 +1203,7 @@ int main(int argc, char **argv) {
             std::cout << std::endl << "Bootstrap Errors & Correlations:" << std::endl;
             accumulator.getCovariance()->printToStream(std::cout,true,"%12.6f",labels);
         }
+        **/
 
 /**        
         lk::GradientCalculatorPtr gcptr;
