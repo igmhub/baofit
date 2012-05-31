@@ -1023,7 +1023,7 @@ int main(int argc, char **argv) {
     }
     bool verbose(vm.count("verbose")), minos(vm.count("minos")), fastLoad(vm.count("fast-load")),
         fixLinear(vm.count("fix-linear")), fixBao(vm.count("fix-bao")), fixScale(vm.count("fix-scale")),
-        noBBand(vm.count("no-bband")), naiveCovariance(vm.count("naive-covariance")),
+        noBBand(vm.count("no-bband")), fixCovariance(0 == vm.count("naive-covariance")),
         nullHypothesis(vm.count("null-hypothesis"));
 
     // Check for the required filename parameters.
@@ -1166,11 +1166,10 @@ int main(int argc, char **argv) {
             likely::CovarianceAccumulator accumulator(nstats);
             for(int trial = 0; trial < bootstrapTrials; ++trial) {
                 bsData = boost::dynamic_pointer_cast<baofit::QuasarCorrelationData>(
-                    resampler.bootstrap(bootstrapSize));
+                    resampler.bootstrap(bootstrapSize,fixCovariance));
                 bsData->finalize(rmin,rmax,llmin);
                 baofit::CorrelationFit bsFitEngine(bsData,model);
                 lk::FunctionMinimumPtr bsMin = bsFitEngine.fit("mn2::vmetric");
-                std::cout << "== Trial " << trial << std::endl;
                 if(bsMin->getStatus() == likely::FunctionMinimum::OK) {
                     // Lookup the fitted values of floating parameters.
                     std::vector<double> pvalues = bsMin->getParameters(true);
