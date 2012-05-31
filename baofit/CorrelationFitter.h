@@ -1,18 +1,18 @@
 // Created 28-May-2012 by David Kirkby (University of California, Irvine) <dkirkby@uci.edu>
 
-#ifndef BAOFIT_CORRELATION_FIT
-#define BAOFIT_CORRELATION_FIT
+#ifndef BAOFIT_CORRELATION_FITTER
+#define BAOFIT_CORRELATION_FITTER
 
 #include "baofit/types.h"
 #include "likely/types.h"
 
 namespace baofit {
-	class CorrelationFit {
+	class CorrelationFitter {
 	// Manages a correlation function fit.
 	public:
 	    // Creates a new fit manager for the specified data and model.
-		CorrelationFit(AbsCorrelationDataCPtr data, AbsCorrelationModelCPtr model);
-		virtual ~CorrelationFit();
+		CorrelationFitter(AbsCorrelationDataCPtr data, AbsCorrelationModelCPtr model);
+		virtual ~CorrelationFitter();
 		// Changes the error scale definition. The default value of 1 corresponds to the
 		// usual 1-sigma errors.
         void setErrorScale(double scale);
@@ -24,7 +24,7 @@ namespace baofit {
         AbsCorrelationDataCPtr _data;
         AbsCorrelationModelCPtr _model;
         double _errorScale;
-	}; // CorrelationFit
+	}; // CorrelationFitter
 } // baofit
 
-#endif // BAOFIT_CORRELATION_FIT
+#endif // BAOFIT_CORRELATION_FITTER

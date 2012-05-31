@@ -1,6 +1,6 @@
 // Created 28-May-2012 by David Kirkby (University of California, Irvine) <dkirkby@uci.edu>
 
-#include "baofit/CorrelationFit.h"
+#include "baofit/CorrelationFitter.h"
 #include "baofit/RuntimeError.h"
 #include "baofit/AbsCorrelationData.h"
 #include "baofit/AbsCorrelationModel.h"
@@ -9,24 +9,24 @@
 
 namespace local = baofit;
 
-local::CorrelationFit::CorrelationFit(AbsCorrelationDataCPtr data, AbsCorrelationModelCPtr model)
+local::CorrelationFitter::CorrelationFitter(AbsCorrelationDataCPtr data, AbsCorrelationModelCPtr model)
 : _data(data), _model(model), _errorScale(1)
 {
 }
 
-local::CorrelationFit::~CorrelationFit() { }
+local::CorrelationFitter::~CorrelationFitter() { }
 
-void local::CorrelationFit::setErrorScale(double scale) {
+void local::CorrelationFitter::setErrorScale(double scale) {
     if(scale <= 0) {
-        throw RuntimeError("CorrelationFit::setErrorScale: expected scale > 0.");
+        throw RuntimeError("CorrelationFitter::setErrorScale: expected scale > 0.");
     }
     _errorScale = scale;
 }
 
-double local::CorrelationFit::operator()(likely::Parameters const &params) const {
+double local::CorrelationFitter::operator()(likely::Parameters const &params) const {
     // Check that we have the expected number of parameters.
     if(params.size() != _model->getNParameters()) {
-        throw RuntimeError("CorrelationFit: got unexpected number of parameters.");
+        throw RuntimeError("CorrelationFitter: got unexpected number of parameters.");
     }
     // Loop over the dataset bins.
     std::vector<double> pred;
@@ -52,7 +52,7 @@ double local::CorrelationFit::operator()(likely::Parameters const &params) const
     return 0.5*_data->chiSquare(pred)/_errorScale;
 }
 
-likely::FunctionMinimumPtr local::CorrelationFit::fit(std::string const &methodName) const {
+likely::FunctionMinimumPtr local::CorrelationFitter::fit(std::string const &methodName) const {
     likely::FunctionPtr fptr(new likely::Function(*this));
     return likely::findMinimum(fptr,_model->getParameters(),methodName);
 }

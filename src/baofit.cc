@@ -1149,7 +1149,7 @@ int main(int argc, char **argv) {
     // Minimize the -log(Likelihood) function.
     try {
         // Fit the combined dataset.
-        baofit::CorrelationFit fitEngine(binnedData,model);
+        baofit::CorrelationFitter fitEngine(binnedData,model);
         lk::FunctionMinimumPtr fitResult = fitEngine.fit("mn2::vmetric");
         fitResult->printToStream(std::cout);
         
@@ -1164,11 +1164,18 @@ int main(int argc, char **argv) {
             int nstats = baseline.size()+1;
             boost::scoped_array<lk::WeightedAccumulator> stats(new lk::WeightedAccumulator[nstats]);
             likely::CovarianceAccumulator accumulator(nstats);
+
             for(int trial = 0; trial < bootstrapTrials; ++trial) {
                 bsData = boost::dynamic_pointer_cast<baofit::QuasarCorrelationData>(
                     resampler.bootstrap(bootstrapSize,fixCovariance));
+            /**
+            int trial(0);
+            while(bsData = boost::dynamic_pointer_cast<baofit::QuasarCorrelationData>(
+            resampler.jackknife(1,trial++))) {
+            **/
+
                 bsData->finalize(rmin,rmax,llmin);
-                baofit::CorrelationFit bsFitEngine(bsData,model);
+                baofit::CorrelationFitter bsFitEngine(bsData,model);
                 lk::FunctionMinimumPtr bsMin = bsFitEngine.fit("mn2::vmetric");
                 if(bsMin->getStatus() == likely::FunctionMinimum::OK) {
                     // Lookup the fitted values of floating parameters.
