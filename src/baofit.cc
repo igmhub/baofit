@@ -1164,9 +1164,54 @@ int main(int argc, char **argv) {
     
     // Minimize the -log(Likelihood) function.
     try {
+        // Fit the combined dataset.
         baofit::CorrelationFit fitEngine(binnedData,model);
         lk::FunctionMinimumPtr fitResult = fitEngine.fit("mn2::vmetric");
         fitResult->printToStream(std::cout);
+        
+        // Perform bootstrap trials, if requested
+        int nPlates(plateData.size()), nInvalid(0);
+        if(0 < bootstrapTrials && 0 < nPlates) {
+            if(0 == bootstrapSize) bootstrapSize = nPlates;
+            baofit::QuasarCorrelationDataPtr bsData;
+            // Lookup the values of floating parameters from the combined fit.
+            std::vector<double> baseline = fitResult->getParameters(true);
+            // Initialize statistics accumulators.
+            likely::CovarianceAccumulator accumulator(baseline.size()+1);
+            for(int trial = 0; trial < bootstrapTrials; ++trial) {
+                bsData = boost::dynamic_pointer_cast<baofit::QuasarCorrelationData>(
+                    resampler.bootstrap(bootstrapSize));
+                bsData->finalize(rmin,rmax,llmin);
+                baofit::CorrelationFit bsFitEngine(bsData,model);
+                lk::FunctionMinimumPtr bsMin = bsFitEngine.fit("mn2::vmetric");
+                std::cout << "== Trial " << trial << std::endl;
+                bsMin->printToStream(std::cout);
+                if(bsMin->getStatus() == likely::FunctionMinimum::OK) {
+                    // Lookup the fitted values of floating parameters.
+                    std::vector<double> residuals = bsMin->getParameters(true);
+                    // Calculate differences from the baseline fit result (to minimize
+                    // roundoff error when accumulating statistics).
+                    for(int par = 0; par < residuals.size(); ++par) {
+                        residuals[par] -= baseline[par];
+                    }
+                    // Include the fit chiSquare (relative to the baseline value) in
+                    // our statistics.
+                    residuals.push_back(bsMin->getMinValue() - fitResult->getMinValue());
+                    accumulator.accumulate(residuals);
+                }
+                else {
+                    nInvalid++;
+                }
+                if(trial == bootstrapTrials-1 || (verbose && (0 == (trial+1)%10))) {
+                    std::cout << "Completed " << (trial+1) << " bootstrap trials (" << nInvalid
+                        << " invalid)" << std::endl;
+                }
+            }
+            std::vector<std::string> labels(fitResult->getNames(true));
+            labels.push_back("ChiSquare");
+            accumulator.getCovariance()->printToStream(std::cout,"%12.6f",labels);
+        }
+
 /**        
         lk::GradientCalculatorPtr gcptr;
         LyaBaoLikelihood nll(binnedData,model,rmin,rmax,fixLinear,fixBao,fixScale,noBBand,
