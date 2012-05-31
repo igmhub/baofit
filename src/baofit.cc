@@ -1161,7 +1161,9 @@ int main(int argc, char **argv) {
             // Lookup the values of floating parameters from the combined fit.
             std::vector<double> baseline = fitResult->getParameters(true);
             // Initialize statistics accumulators.
-            likely::CovarianceAccumulator accumulator(baseline.size()+1);
+            int nstats = baseline.size()+1;
+            boost::scoped_array<lk::WeightedAccumulator> stats(new lk::WeightedAccumulator[nstats]);
+            likely::CovarianceAccumulator accumulator(nstats);
             for(int trial = 0; trial < bootstrapTrials; ++trial) {
                 bsData = boost::dynamic_pointer_cast<baofit::QuasarCorrelationData>(
                     resampler.bootstrap(bootstrapSize));
@@ -1169,19 +1171,21 @@ int main(int argc, char **argv) {
                 baofit::CorrelationFit bsFitEngine(bsData,model);
                 lk::FunctionMinimumPtr bsMin = bsFitEngine.fit("mn2::vmetric");
                 std::cout << "== Trial " << trial << std::endl;
-                bsMin->printToStream(std::cout);
                 if(bsMin->getStatus() == likely::FunctionMinimum::OK) {
                     // Lookup the fitted values of floating parameters.
-                    std::vector<double> residuals = bsMin->getParameters(true);
-                    // Calculate differences from the baseline fit result (to minimize
-                    // roundoff error when accumulating statistics).
-                    for(int par = 0; par < residuals.size(); ++par) {
-                        residuals[par] -= baseline[par];
+                    std::vector<double> pvalues = bsMin->getParameters(true);
+                    for(int par = 0; par < pvalues.size(); ++par) {
+                        // Accumulate statistics for this parameter.
+                        stats[par].accumulate(pvalues[par]);
+                        // Calculate differences from the baseline fit result (to minimize
+                        // roundoff error when accumulating covariance statistics).
+                        pvalues[par] -= baseline[par];
                     }
                     // Include the fit chiSquare (relative to the baseline value) in
                     // our statistics.
-                    residuals.push_back(bsMin->getMinValue() - fitResult->getMinValue());
-                    accumulator.accumulate(residuals);
+                    stats[nstats-1].accumulate(bsMin->getMinValue());
+                    pvalues.push_back(bsMin->getMinValue() - fitResult->getMinValue());
+                    accumulator.accumulate(pvalues);
                 }
                 else {
                     nInvalid++;
@@ -1193,7 +1197,13 @@ int main(int argc, char **argv) {
             }
             std::vector<std::string> labels(fitResult->getNames(true));
             labels.push_back("ChiSquare");
-            accumulator.getCovariance()->printToStream(std::cout,"%12.6f",labels);
+            boost::format resultFormat("%20s = %12.6f +/- %12.6f\n");
+            std::cout << std::endl << "Bootstrap Results:" << std::endl;
+            for(int stat = 0; stat < nstats; ++stat) {
+                std::cout << resultFormat % labels[stat] % stats[stat].mean() % stats[stat].error();
+            }
+            std::cout << std::endl << "Bootstrap Errors & Correlations:" << std::endl;
+            accumulator.getCovariance()->printToStream(std::cout,true,"%12.6f",labels);
         }
 
 /**        
