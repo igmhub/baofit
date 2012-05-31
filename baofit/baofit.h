@@ -11,3 +11,4 @@
 #include "baofit/QuasarCorrelationData.h"
 
 #include "baofit/CorrelationFitter.h"
+#include "baofit/CorrelationAnalyzer.h"

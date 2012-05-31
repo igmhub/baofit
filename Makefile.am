@@ -15,7 +15,8 @@ libbaofit_la_SOURCES = \
 	baofit/BaoCorrelationModel.cc \
 	baofit/AbsCorrelationData.cc \
 	baofit/QuasarCorrelationData.cc \
-	baofit/CorrelationFitter.cc
+	baofit/CorrelationFitter.cc \
+	baofit/CorrelationAnalyzer.cc
 
 # library headers to install (nobase prefix preserves any subdirectories)
 # Anything that includes config.h should *not* be listed here.
@@ -28,7 +29,8 @@ nobase_include_HEADERS = \
 	baofit/BaoCorrelationModel.h \
 	baofit/AbsCorrelationData.h \
 	baofit/QuasarCorrelationData.h \
-	baofit/CorrelationFitter.h
+	baofit/CorrelationFitter.h \
+	baofit/CorrelationAnalyzer.h
 
 # instructions for building each program
 
