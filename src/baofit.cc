@@ -3,17 +3,6 @@
 #include "baofit/baofit.h"
 #include "cosmo/cosmo.h"
 #include "likely/likely.h"
-// the following are not part of the public API, so not included by likely.h
-#include "likely/MinuitEngine.h"
-#include "likely/EngineRegistry.h"
-
-#include "Minuit2/MnUserParameters.h"
-#include "Minuit2/FunctionMinimum.h"
-#include "Minuit2/MnPrint.h"
-#include "Minuit2/MnStrategy.h"
-#include "Minuit2/MnMigrad.h"
-#include "Minuit2/MnMinos.h"
-#include "Minuit2/MnContours.h"
 
 #include "boost/program_options.hpp"
 #include "boost/bind.hpp"
@@ -30,26 +19,8 @@
 #include <fstream>
 #include <iostream>
 #include <cmath>
-#include <cstdlib>
 #include <cassert>
 #include <vector>
-#include <set>
-#include <algorithm>
-
-// Declare bindings to BLAS,LAPACK routines we need
-extern "C" {
-    // http://www.netlib.org/lapack/double/dpptrf.f
-    void dpptrf_(char const *uplo, int const *n, double *ap, int *info);
-    // http://www.netlib.org/lapack/double/dpptri.f
-    void dpptri_(char const *uplo, int const *n, double *ap, int *info);
-    // http://netlib.org/blas/dspmv.f
-    void dspmv_(char const *uplo, int const *n, double const *alpha, double const *ap,
-        double const *x, int const *incx, double const *beta, double *y, int const *incy);
-    // http://www.netlib.org/blas/dsymm.f
-    void dsymm_(char const *side, char const *uplo, int const *m, int const *n,
-        double const *alpha, double const *a, int const *lda, double const *b,
-        int const *ldb, double const *beta, double *c, int const *ldc);
-}
 
 namespace lk = likely;
 namespace po = boost::program_options;
@@ -138,14 +109,12 @@ baofit::QuasarCorrelationDataPtr loadCosmolib(std::string dataName,
             getDouble(what[tok+1].first,what[tok+1].second,token[tok]);
         }
         // Add this bin to our dataset.
-        //!!addData(token[0],token[2],token[3],token[4]);
         axisValues[0] = token[2];
         axisValues[1] = token[3];
         axisValues[2] = token[4];
         int index = binnedData->getIndex(axisValues);
         binnedData->setData(index,token[0]);        
     }
-    //!!finalizeData();
     paramsIn.close();
     if(verbose) {
         std::cout << "Read " << binnedData->getNBinsWithData() << " of "
@@ -178,7 +147,6 @@ baofit::QuasarCorrelationDataPtr loadCosmolib(std::string dataName,
         getDouble(what[3].first,what[3].second,value);
         // Add this covariance to our dataset.
         if(icov) value = -value; // !?! see line #388 of Observed2Point.cpp
-        //!!addCovariance(offset1,offset2,value,icov);
         int index1 = *(binnedData->begin()+offset1), index2 = *(binnedData->begin()+offset2);
         if(icov) {
             binnedData->setInverseCovariance(index1,index2,value);
@@ -341,6 +309,9 @@ int main(int argc, char **argv) {
         return -1;
     }
 
+    // Initialize our analyzer.
+    baofit::CorrelationAnalyzer analyzer(randomSeed,verbose);
+
     // Initialize the cosmology calculations we will need.
     cosmo::AbsHomogeneousUniversePtr cosmology;
     baofit::AbsCorrelationModelCPtr model;
@@ -363,15 +334,9 @@ int main(int argc, char **argv) {
         std::cerr << "ERROR during cosmology initialization:\n  " << e.what() << std::endl;
         return -2;
     }
-    
-    // Load the data we will fit.
-    /*
-    baofit::QuasarCorrelationDataPtr binnedData;
-    likely::BinnedDataResampler resampler(randomSeed);
-    */
-    baofit::CorrelationAnalyzer analyzer(randomSeed,verbose);
     analyzer.setModel(model);
     
+    // Load the data we will fit.
     try {
         // Initialize the (logLambda,separation,redshift) binning from command-line params.
         likely::AbsBinningCPtr llBins,
@@ -386,8 +351,8 @@ int main(int argc, char **argv) {
         // Initialize the dataset we will fill.
         if(0 < dataName.length()) {
             // Load a single dataset.
-            analyzer.addData(
-                loadCosmolib(dataName,llBins,sepBins,zBins,rmin,rmax,llmin,cosmology,verbose,false,fastLoad));
+            analyzer.addData(loadCosmolib(dataName,llBins,sepBins,zBins,
+                rmin,rmax,llmin,cosmology,verbose,false,fastLoad));
         }
         else {
             // Load individual plate datasets.
@@ -399,7 +364,6 @@ int main(int argc, char **argv) {
                 std::cerr << "Unable to open platelist file " << platelistName << std::endl;
                 return -1;
             }
-            //!!binnedData.reset(new baofit::QuasarCorrelationData(llBins,sepBins,zBins,cosmology));
             while(platelist.good() && !platelist.eof()) {
                 platelist >> plateName;
                 if(platelist.eof()) break;
@@ -408,277 +372,24 @@ int main(int argc, char **argv) {
                     return -1;
                 }
                 std::string filename(boost::str(platefile % platerootName % plateName));
-                analyzer.addData(
-                    loadCosmolib(filename,llBins,sepBins,zBins,rmin,rmax,llmin,cosmology,verbose,true,fastLoad));
-                /**
-                plateBinned->compress();
-                resampler.addObservation(
-                    boost::dynamic_pointer_cast<const likely::BinnedData>(plateBinned));
-                **/
+                analyzer.addData(loadCosmolib(filename,llBins,sepBins,zBins,
+                    rmin,rmax,llmin,cosmology,verbose,true,fastLoad));
                 if(analyzer.getNData() == maxPlates) break;
             }
             platelist.close();
-            //!!binnedData = boost::dynamic_pointer_cast<baofit::QuasarCorrelationData>(resampler.combined());
         }
-        
-        //!!binnedData->finalize(rmin,rmax,llmin);
-
     }
     catch(cosmo::RuntimeError const &e) {
         std::cerr << "ERROR while reading data:\n  " << e.what() << std::endl;
         return -2;
     }
     
-    // Minimize the -log(Likelihood) function.
+    // Do the requested analysis.
     try {
         lk::FunctionMinimumPtr fmin = analyzer.fitCombined("mn2::vmetric");
-
-        /**
-        // Fit the combined dataset.
-        baofit::CorrelationFitter fitEngine(binnedData,model);
-        lk::FunctionMinimumPtr fitResult = fitEngine.fit("mn2::vmetric");
-        fitResult->printToStream(std::cout);
-        **/
-
         if(bootstrapTrials > 0) {
             analyzer.doBootstrapAnalysis("mn2::vmetric",fmin,bootstrapTrials,bootstrapSize,fixCovariance);
         }
-
-        /**
-        // Perform bootstrap trials, if requested
-        int nPlates(resampler.getNObservations()), nInvalid(0);
-        if(0 < bootstrapTrials && 0 < nPlates) {
-            if(0 == bootstrapSize) bootstrapSize = nPlates;
-            baofit::QuasarCorrelationDataPtr bsData;
-            // Lookup the values of floating parameters from the combined fit.
-            std::vector<double> baseline = fitResult->getParameters(true);
-            // Initialize statistics accumulators.
-            int nstats = baseline.size()+1;
-            boost::scoped_array<lk::WeightedAccumulator> stats(new lk::WeightedAccumulator[nstats]);
-            likely::CovarianceAccumulator accumulator(nstats);
-
-            for(int trial = 0; trial < bootstrapTrials; ++trial) {
-                bsData = boost::dynamic_pointer_cast<baofit::QuasarCorrelationData>(
-                    resampler.bootstrap(bootstrapSize,fixCovariance));
-
-            //int trial(0);
-            //while(bsData = boost::dynamic_pointer_cast<baofit::QuasarCorrelationData>(
-            //resampler.jackknife(1,trial++))) {
-
-                bsData->finalize(rmin,rmax,llmin);
-                baofit::CorrelationFitter bsFitEngine(bsData,model);
-                lk::FunctionMinimumPtr bsMin = bsFitEngine.fit("mn2::vmetric");
-                if(bsMin->getStatus() == likely::FunctionMinimum::OK) {
-                    // Lookup the fitted values of floating parameters.
-                    std::vector<double> pvalues = bsMin->getParameters(true);
-                    for(int par = 0; par < pvalues.size(); ++par) {
-                        // Accumulate statistics for this parameter.
-                        stats[par].accumulate(pvalues[par]);
-                        // Calculate differences from the baseline fit result (to minimize
-                        // roundoff error when accumulating covariance statistics).
-                        pvalues[par] -= baseline[par];
-                    }
-                    // Include the fit chiSquare (relative to the baseline value) in
-                    // our statistics.
-                    stats[nstats-1].accumulate(bsMin->getMinValue());
-                    pvalues.push_back(bsMin->getMinValue() - fitResult->getMinValue());
-                    accumulator.accumulate(pvalues);
-                }
-                else {
-                    nInvalid++;
-                }
-                if(trial == bootstrapTrials-1 || (verbose && (0 == (trial+1)%10))) {
-                    std::cout << "Completed " << (trial+1) << " bootstrap trials (" << nInvalid
-                        << " invalid)" << std::endl;
-                }
-            }
-            std::vector<std::string> labels(fitResult->getNames(true));
-            labels.push_back("ChiSquare");
-            boost::format resultFormat("%20s = %12.6f +/- %12.6f\n");
-            std::cout << std::endl << "Bootstrap Results:" << std::endl;
-            for(int stat = 0; stat < nstats; ++stat) {
-                std::cout << resultFormat % labels[stat] % stats[stat].mean() % stats[stat].error();
-            }
-            std::cout << std::endl << "Bootstrap Errors & Correlations:" << std::endl;
-            accumulator.getCovariance()->printToStream(std::cout,true,"%12.6f",labels);
-        }
-        **/
-
-/**        
-        lk::GradientCalculatorPtr gcptr;
-        LyaBaoLikelihood nll(binnedData,model,rmin,rmax,fixLinear,fixBao,fixScale,noBBand,
-            initialAmp,initialScale);
-        lk::FunctionPtr fptr(new lk::Function(boost::ref(nll)));
-
-        int npar(nll.getNPar());
-        lk::AbsEnginePtr engine = lk::getEngine("mn2::vmetric",fptr,gcptr,model->getParameters());
-        lk::MinuitEngine &minuit = dynamic_cast<lk::MinuitEngine&>(*engine);        
-        lk::MinuitEngine::StatePtr initialState(new ROOT::Minuit2::MnUserParameterState());
-        nll.initialize(initialState);
-        std::cout << *initialState;
-        
-        ROOT::Minuit2::MnStrategy strategy(1); // lo(0),med(1),hi(2)
-        ROOT::Minuit2::MnMigrad fitter((ROOT::Minuit2::FCNBase const&)minuit,*initialState,strategy); 
-
-        int maxfcn = 100*npar*npar;
-        double edmtol = 0.1;
-        ROOT::Minuit2::FunctionMinimum fmin = fitter(maxfcn,edmtol);
-        
-        if(minos) {
-            ROOT::Minuit2::MnMinos minosError((ROOT::Minuit2::FCNBase const&)minuit,fmin,strategy);
-            for(int ipar = 0; ipar < npar; ++ipar) {
-                std::pair<double,double> error = minosError(ipar,maxfcn);
-                std::cout << "MINOS error[" << ipar << "] = +" << error.second
-                    << ' ' << error.first << std::endl;
-            }
-        }
-        
-        std::cout << fmin;
-        std::cout << fmin.UserCovariance();
-        std::cout << fmin.UserState().GlobalCC();
-        
-        // Remember the best-fit parameters and errors.
-        std::vector<double> bestParams = fmin.UserParameters().Params(),
-            bestErrors = fmin.UserParameters().Errors();
-        double bestFval = fmin.Fval();
-        
-        std::vector<ContourPoints> contourData;
-        if(ncontour > 0) {
-            if(verbose) {
-                std::cout << "Calculating contours with " << ncontour << " points..." << std::endl;
-            }
-            // 95% CL (see http://wwwasdoc.web.cern.ch/wwwasdoc/minuit/node33.html)
-            // Calculate in mathematica using:
-            // Solve[CDF[ChiSquareDistribution[2], x] == 0.95, x]
-            nll.setErrorScale(5.99146);
-            fmin = fitter(maxfcn,edmtol);
-            ROOT::Minuit2::MnContours contours95((ROOT::Minuit2::FCNBase const&)minuit,fmin,strategy);
-            // Parameter indices: 1=bias, 2=beta, 3=BAO amp, 4=BAO scale, 5=bband a1/10, 6=bband a2/1000
-            contourData.push_back(contours95(5,6,ncontour));
-            contourData.push_back(contours95(4,6,ncontour));
-            contourData.push_back(contours95(1,6,ncontour));
-            contourData.push_back(contours95(5,3,ncontour));
-            contourData.push_back(contours95(4,3,ncontour));
-            contourData.push_back(contours95(1,3,ncontour));            
-            contourData.push_back(contours95(5,2,ncontour));
-            contourData.push_back(contours95(4,2,ncontour));
-            contourData.push_back(contours95(1,2,ncontour));
-            // 68% CL
-            nll.setErrorScale(2.29575);
-            fmin = fitter(maxfcn,edmtol);
-            ROOT::Minuit2::MnContours contours68((ROOT::Minuit2::FCNBase const&)minuit,fmin,strategy);
-            contourData.push_back(contours68(5,6,ncontour));
-            contourData.push_back(contours68(4,6,ncontour));
-            contourData.push_back(contours68(1,6,ncontour));
-            contourData.push_back(contours68(5,3,ncontour));
-            contourData.push_back(contours68(4,3,ncontour));
-            contourData.push_back(contours68(1,3,ncontour));            
-            contourData.push_back(contours68(5,2,ncontour));
-            contourData.push_back(contours68(4,2,ncontour));
-            contourData.push_back(contours68(1,2,ncontour));
-            // reset
-            nll.setErrorScale(1);
-        }
-        
-        // Simulate the null hypothesis by applying theory offsets to each plate, if requested.
-        if(nullHypothesis) {
-            std::vector<double> nullParams(bestParams);
-            nullParams[3] = 0; // BAO peak amplitude
-            BOOST_FOREACH(LyaDataPtr plate, plateData) {
-                plate->applyTheoryOffsets(model,bestParams,nullParams);
-            }
-        }
-        
-        int nplates(plateData.size()), nInvalid(0);
-        if(0 < bootstrapTrials && 0 < nplates) {
-            lk::Random &random(lk::Random::instance());
-            random.setSeed(randomSeed);
-            boost::scoped_array<lk::WeightedAccumulator>
-                accumulators(new lk::WeightedAccumulator[npar+1]);
-            if(0 == bootstrapSize) bootstrapSize = nplates;
-            std::ofstream out(bootstrapSaveName.c_str());
-            out << "trial nuniq alpha bias beta amp scale xio a0 a1 a2 chisq" << std::endl;
-            boost::scoped_ptr<std::ofstream> curvesOut;
-            if(0 < bootstrapCurvesName.length()) {
-                curvesOut.reset(new std::ofstream(bootstrapCurvesName.c_str()));
-            }
-            for(int k = 0; k < bootstrapTrials; ++k) {
-                // First, decide how many copies of each plate to use in this trial.
-                std::vector<double> counter(nplates,0);
-                for(int p = 0; p < bootstrapSize; ++p) {
-                    // Pick a random plate to use in this trial.
-                    int index = (int)std::floor(random.getUniform()*nplates);
-                    // Keep track of how many times we use this plate.
-                    counter[index]++;
-                }
-                // Next, build the dataset for this trial.
-                data->reset();
-                for(int index = 0; index < nplates; ++index) {
-                    int repeat = counter[index];
-                    if(0 < repeat) data->add(*plateData[index],repeat);
-                }
-                data->finalize(!naiveCovariance);
-                // Count total number of different plates used.
-                int nuniq = nplates - std::count(counter.begin(),counter.end(),0);
-                // Reset parameters to their initial values.
-                initialState.reset(new ROOT::Minuit2::MnUserParameterState());
-                nll.initialize(initialState);
-                // Do the fit.
-                ROOT::Minuit2::MnMigrad
-                    bsFitter((ROOT::Minuit2::FCNBase const&)minuit,*initialState,strategy);
-                fmin = bsFitter(maxfcn,edmtol);
-                if(fmin.IsValid()) {
-                    // Save the fit results and accumulate bootstrap stats for each parameter.
-                    out << k << ' ' << nuniq << ' ';
-                    std::vector<double> params = fmin.UserParameters().Params();
-                    for(int i = 0; i < npar; ++i) {
-                        double value = params[i];
-                        accumulators[i].accumulate(value);
-                        out << value << ' ';
-                    }
-                    out << fmin.Fval() << std::endl;
-                    accumulators[npar].accumulate(fmin.Fval());
-                    // Output curves of the best-fit multipoles if requested.
-                    if(curvesOut) {
-                        // A generic correlation model does not know how to calculate multipoles, so
-                        // we must dynamically cast to our more specialized BAO model type.
-                        boost::shared_ptr<const baofit::BaoCorrelationModel>
-                            baoModel(boost::dynamic_pointer_cast<const baofit::BaoCorrelationModel>(model));
-                        boost::format fmt(" %.3e %.3e %.3e");
-                        double dr(1); // Mpc/h
-                        int nr = 1+std::floor((rmax-rmin)/dr);
-                        for(int i = 0; i < nr; ++i) {
-                            double r = rmin + i*dr;
-                            std::vector<double> xi = baoModel->evaluateMultipoles(r,params);
-                            *curvesOut << fmt % xi[0] % xi[1] % xi[2];
-                        }
-                        *curvesOut << std::endl;
-                    }
-                }
-                else {
-                    nInvalid++;
-                }
-                if(verbose && (0 == (k+1)%10)) {
-                    std::cout << "Completed " << (k+1) << " bootstrap trials (" << nInvalid
-                        << " invalid)" << std::endl;
-                }
-            }
-            if(curvesOut) curvesOut->close();
-            out.close();
-            for(int i = 0; i < npar; ++i) {
-                std::cout << i << ' ' << accumulators[i].mean() << " +/- "
-                    << accumulators[i].error() << "\t\t[ " << bestParams[i] << " +/- "
-                    << bestErrors[i] << " ]" << std::endl;
-            }
-            std::cout << "minChiSq = " << accumulators[npar].mean() << " +/- "
-                << accumulators[npar].error() << "\t\t[ " << bestFval << " ]" << std::endl;
-        }
-        
-        if(dumpName.length() > 0) {
-            if(verbose) std::cout << "Dumping fit results to " << dumpName << std::endl;
-            //nll.dump(dumpName,fmin.UserParameters().Params(),contourData,modelBins);
-        }
-**/
     }
     catch(cosmo::RuntimeError const &e) {
         std::cerr << "ERROR during fit:\n  " << e.what() << std::endl;
