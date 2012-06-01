@@ -91,11 +91,17 @@ std::vector<double> const &params) const {
     _bb1->setDistortion(beta);
     _bb2->setDistortion(beta);
     // Calculate the peak contribution with scaled radius.
-    double fid((*_fid)(r*scale,mu)), nw((*_nw)(r*scale,mu)); // scale cancels in mu
-    double peak = ampl*(fid-nw);
+    double peak(0);
+    if(ampl != 0) {
+        double fid((*_fid)(r*scale,mu)), nw((*_nw)(r*scale,mu)); // scale cancels in mu
+        peak = ampl*(fid-nw);
+    }
     // Calculate the additional broadband contribution with no radius scaling.
-    double bbc((*_bbc)(r,mu)), bb0((*_nw)(r,mu)), bb1((*_bb1)(r,mu)), bb2((*_bb2)(r,mu));
-    double broadband = xio*bbc + (1+a0)*bb0 + a1*bb1 + a2*bb2;
+    double broadband(0);
+    if(xio != 0) broadband += xio*(*_bbc)(r,mu);
+    if(1+a0 != 0) broadband += (1+a0)*(*_nw)(r,mu);
+    if(a1 != 0) broadband += a1*(*_bb1)(r,mu);
+    if(a2 != 0) broadband += a2*(*_bb2)(r,mu);
     // Combine the peak and broadband components, with bias and redshift evolution.
     return bias*bias*zfactor*(peak + broadband);
 }
