@@ -5,15 +5,12 @@
 #include "likely/likely.h"
 
 #include "boost/program_options.hpp"
-#include "boost/bind.hpp"
-#include "boost/ref.hpp"
 #include "boost/lexical_cast.hpp"
-#include "boost/regex.hpp"
 #include "boost/format.hpp"
-#include "boost/foreach.hpp"
 #include "boost/spirit/include/qi.hpp"
 #include "boost/spirit/include/phoenix_core.hpp"
 #include "boost/spirit/include/phoenix_operator.hpp"
+#include "boost/spirit/include/phoenix_stl.hpp"
 #include "boost/pointer_cast.hpp"
 
 #include <fstream>
@@ -24,6 +21,9 @@
 
 namespace lk = likely;
 namespace po = boost::program_options;
+namespace qi = boost::spirit::qi;
+namespace ascii = boost::spirit::ascii;
+namespace phoenix = boost::phoenix;
 
 std::vector<double> twoStepSampling(
 int nBins, double breakpoint,double dlog, double dlin, double eps = 1e-3) {
@@ -44,21 +44,86 @@ int nBins, double breakpoint,double dlog, double dlin, double eps = 1e-3) {
     return samplePoints;
 }
 
-void getDouble(std::string::const_iterator const &begin, std::string::const_iterator const &end,
-    double &value) {
-    // Use boost::spirit::parse instead of the easier boost::lexical_cast since this is
-    // a bottleneck when reading many files. For details, see:
-    // http://tinodidriksen.com/2011/05/28/cpp-convert-string-to-double-speed/
-    std::string tokenString(begin,end);
-    char const *tokenPtr = tokenString.c_str();
-    boost::spirit::qi::parse(tokenPtr, &tokenPtr[tokenString.size()],
-        boost::spirit::qi::double_, value);    
-}
+// Loads a binned correlation function in French format and returns a shared pointer to
+// a MultipoleCorrelationData.
+void loadFrench(std::string dataName, bool verbose = true) {
 
-void getInt(std::string::const_iterator const &begin, std::string::const_iterator const &end,
-    int &value) {
-    std::string tokenString(begin,end);
-    value = std::atoi(tokenString.c_str());        
+    // General stuff we will need for reading both files.
+    std::string line;
+    int lines;
+    
+    // import boost spirit parser symbols
+    using qi::double_;
+    using qi::int_;
+    using qi::_1;
+    using phoenix::ref;
+    using phoenix::push_back;
+
+    // Loop over lines in the parameter file.
+    std::string paramsName(dataName + ".txt");
+    std::ifstream paramsIn(paramsName.c_str());
+    if(!paramsIn.good()) throw baofit::RuntimeError("loadFrench: Unable to open " + paramsName);
+    lines = 0;
+    double rval,mono,quad;
+    while(std::getline(paramsIn,line)) {
+        lines++;
+        bool ok = qi::phrase_parse(line.begin(),line.end(),
+            (
+                double_[ref(rval) = _1] >> double_[ref(mono) = _1] >> double_[ref(quad) = _1]
+            ),
+            ascii::space);
+        if(!ok) {
+            throw baofit::RuntimeError("loadFrench: error reading line " +
+                boost::lexical_cast<std::string>(lines) + " of " + paramsName);
+        }
+    }
+    paramsIn.close();
+    if(verbose) {
+        std::cout << "Read " << lines << " data values from " << paramsName << std::endl;
+    }
+    
+    // Loop over lines in the covariance file.
+    std::string covName = paramsName;
+    int pos = covName.rfind('/',-1);
+    covName.insert(pos+1,"cov_");
+    std::ifstream covIn(covName.c_str());
+    if(!covIn.good()) throw cosmo::RuntimeError("Unable to open " + covName);
+    lines = 0;
+    int index1,index2;
+    double cov;
+    likely::CovarianceMatrix Cboth(100), Cmono(50), Cquad(50);
+    while(std::getline(covIn,line)) {
+        lines++;
+        bool ok = qi::phrase_parse(line.begin(),line.end(),
+            (
+                int_[ref(index1) = _1] >> int_[ref(index2) = _1] >> double_[ref(cov) = _1]
+            ),
+            ascii::space);
+        if(!ok) {
+            throw baofit::RuntimeError("loadFrench: error reading line " +
+                boost::lexical_cast<std::string>(lines) + " of " + covName);
+        }
+        if(index1 <= index2) Cboth.setCovariance(index1,index2,cov);
+        if(index1 <= index2 && index2 < 50) Cmono.setCovariance(index1,index2,cov);
+        if(index1 <= index2 && index1 >= 50) Cquad.setCovariance(index1-50,index2-50,cov);
+            
+    }
+    covIn.close();
+    if(verbose) {
+        std::cout << "Read " << lines << " covariance values from " << covName << std::endl;
+    }
+    // Try to invert the matrices...
+    try {
+        Cmono.getInverseCovariance(0,0);
+        std::cout << "mono ok" << std::endl;
+        Cquad.getInverseCovariance(0,0);
+        std::cout << "quad ok" << std::endl;
+        Cboth.getInverseCovariance(0,0);
+        std::cout << "both ok" << std::endl;
+    }
+    catch(likely::RuntimeError const &e) {
+        std::cout << "At least one covariance matrix is not positive definite." << std::endl;
+    }
 }
 
 // Loads a binned correlation function in cosmolib format and returns a BinnedData object.
@@ -67,84 +132,71 @@ baofit::QuasarCorrelationDataPtr loadCosmolib(std::string dataName,
     likely::AbsBinningCPtr llBins, likely::AbsBinningCPtr sepBins, likely::AbsBinningCPtr zBins,
     double rmin, double rmax, double llmin, cosmo::AbsHomogeneousUniversePtr cosmology,
     bool verbose, bool icov = false, bool fast = false) {
-    // Create the new BinnedData.
+
+    // Create the new BinnedData that we will fill.
     baofit::QuasarCorrelationDataPtr
         binnedData(new baofit::QuasarCorrelationData(llBins,sepBins,zBins,rmin,rmax,llmin,cosmology));
+
     // General stuff we will need for reading both files.
     std::string line;
-    int lineNumber(0);
-    // Capturing regexps for positive integer and signed floating-point constants.
-    std::string ipat("(0|(?:[1-9][0-9]*))"),fpat("([-+]?[0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]+)?)");
-    if(fast) {
-        // Replace validation patterns with simple non-whitespace groups.
-        ipat = "(\\S+)";
-        fpat = "(\\S+)";
-    }
-    boost::match_results<std::string::const_iterator> what;
+    int lines;
+    
+    // import boost spirit parser symbols
+    using qi::double_;
+    using qi::int_;
+    using qi::_1;
+    using phoenix::ref;
+    using phoenix::push_back;
+
     // Loop over lines in the parameter file.
     std::string paramsName(dataName + ".params");
     std::ifstream paramsIn(paramsName.c_str());
-    if(!paramsIn.good()) throw cosmo::RuntimeError("Unable to open " + paramsName);
-    boost::regex paramPattern(
-        boost::str(boost::format("\\s*%s\\s+%s\\s*\\| Lya covariance 3D \\(%s,%s,%s\\)\\s*")
-        % fpat % fpat % fpat % fpat % fpat));
-    std::vector<double> axisValues(3);
-    while(paramsIn.good() && !paramsIn.eof()) {
-        std::getline(paramsIn,line);
-        if(paramsIn.eof()) break;
-        if(!paramsIn.good()) {
-            throw cosmo::RuntimeError("Unable to read line " +
-                boost::lexical_cast<std::string>(lineNumber));
+    if(!paramsIn.good()) throw baofit::RuntimeError("loadCosmolib: Unable to open " + paramsName);
+    lines = 0;
+    double xi;
+    std::vector<double> bin(3);
+    while(std::getline(paramsIn,line)) {
+        lines++;
+        bin.resize(0);
+        bool ok = qi::phrase_parse(line.begin(),line.end(),
+            (
+                double_[ref(xi) = _1] >> double_ >> "| Lya covariance 3D (" >>
+                double_[push_back(ref(bin),_1)] >> ',' >> double_[push_back(ref(bin),_1)] >>
+                ',' >> double_[push_back(ref(bin),_1)] >> ')'
+            ),
+            ascii::space);
+        if(!ok) {
+            throw baofit::RuntimeError("loadCosmolib: error reading line " +
+                boost::lexical_cast<std::string>(lines) + " of " + paramsName);
         }
-        lineNumber++;
-        // Parse this line with a regexp.
-        if(!boost::regex_match(line,what,paramPattern)) {
-            throw cosmo::RuntimeError("Badly formatted params line " +
-                boost::lexical_cast<std::string>(lineNumber) + ": '" + line + "'");
-        }
-        // Expected tokens are [0] value [1] Cinv*d (ignored) [2] logLambda [3] separation [4] redshift.
-        int nTokens(5);
-        std::vector<double> token(nTokens);
-        for(int tok = 0; tok < nTokens; ++tok) {
-            getDouble(what[tok+1].first,what[tok+1].second,token[tok]);
-        }
-        // Add this bin to our dataset.
-        axisValues[0] = token[2];
-        axisValues[1] = token[3];
-        axisValues[2] = token[4];
-        int index = binnedData->getIndex(axisValues);
-        binnedData->setData(index,token[0]);        
+        int index = binnedData->getIndex(bin);
+        binnedData->setData(index,xi);        
     }
     paramsIn.close();
     if(verbose) {
         std::cout << "Read " << binnedData->getNBinsWithData() << " of "
             << binnedData->getNBinsTotal() << " data values from " << paramsName << std::endl;
     }
+    
     // Loop over lines in the covariance file.
     std::string covName(dataName + (icov ? ".icov" : ".cov"));
     std::ifstream covIn(covName.c_str());
     if(!covIn.good()) throw cosmo::RuntimeError("Unable to open " + covName);
-    boost::regex covPattern(boost::str(boost::format("\\s*%s\\s+%s\\s+%s\\s*")
-        % ipat % ipat % fpat));
-    lineNumber = 0;
+    lines = 0;
     double value;
     int offset1,offset2;
-    while(covIn.good() && !covIn.eof()) {
-        std::getline(covIn,line);
-        if(covIn.eof()) break;
-        if(!covIn.good()) {
-            throw cosmo::RuntimeError("Unable to read line " +
-                boost::lexical_cast<std::string>(lineNumber));
+    while(std::getline(covIn,line)) {
+        lines++;
+        bin.resize(0);
+        bool ok = qi::phrase_parse(line.begin(),line.end(),
+            (
+                int_[ref(offset1) = _1] >> int_[ref(offset2) = _1] >> double_[ref(value) = _1]
+            ),
+            ascii::space);
+        if(!ok) {
+            throw baofit::RuntimeError("loadCosmolib: error reading line " +
+                boost::lexical_cast<std::string>(lines) + " of " + paramsName);
         }
-        lineNumber++;
-        // Parse this line with a regexp.
-        if(!boost::regex_match(line,what,covPattern)) {
-            throw cosmo::RuntimeError("Badly formatted cov line " +
-                boost::lexical_cast<std::string>(lineNumber) + ": '" + line + "'");
-        }
-        getInt(what[1].first,what[1].second,offset1);
-        getInt(what[2].first,what[2].second,offset2);
-        getDouble(what[3].first,what[3].second,value);
         // Add this covariance to our dataset.
         if(icov) value = -value; // !?! see line #388 of Observed2Point.cpp
         int index1 = *(binnedData->begin()+offset1), index2 = *(binnedData->begin()+offset2);
@@ -155,7 +207,14 @@ baofit::QuasarCorrelationDataPtr loadCosmolib(std::string dataName,
             binnedData->setCovariance(index1,index2,value);
         }
     }
-    //!!finalizeCovariance(icov);
+    covIn.close();
+    if(verbose) {
+        int ndata = binnedData->getNBinsWithData();
+        int ncov = (ndata*(ndata+1))/2;
+        std::cout << "Read " << lines << " of " << ncov
+            << " covariance values from " << covName << std::endl;
+    }
+
     // Check for zero values on the diagonal
     for(likely::BinnedData::IndexIterator iter = binnedData->begin();
     iter != binnedData->end(); ++iter) {
@@ -171,13 +230,7 @@ baofit::QuasarCorrelationDataPtr loadCosmolib(std::string dataName,
             }                
         }
     }
-    covIn.close();
-    if(verbose) {
-        int ndata = binnedData->getNBinsWithData();
-        int ncov = (ndata*(ndata+1))/2;
-        std::cout << "Read " << lineNumber << " of " << ncov
-            << " covariance values from " << covName << std::endl;
-    }
+    // Compress our binned data to take advantage of a potentially sparse covariance matrix.
     binnedData->compress();
     return binnedData;
 }
@@ -335,6 +388,22 @@ int main(int argc, char **argv) {
         return -2;
     }
     analyzer.setModel(model);
+    
+    loadFrench("APC/CF_for_tim/CF_M02_000_JK2D_fits");
+    loadFrench("APC/CF_for_tim/CF_M02_001_JK2D_fits");
+    loadFrench("APC/CF_for_tim/CF_M02_002_JK2D_fits");
+    loadFrench("APC/CF_for_tim/CF_M02_003_JK2D_fits");
+    loadFrench("APC/CF_for_tim/CF_M02_004_JK2D_fits");
+    loadFrench("APC/CF_for_tim/CF_M02_005_JK2D_fits");
+    loadFrench("APC/CF_for_tim/CF_M02_006_JK2D_fits");
+    loadFrench("APC/CF_for_tim/CF_M02_007_JK2D_fits");
+    loadFrench("APC/CF_for_tim/CF_M02_008_JK2D_fits");
+    loadFrench("APC/CF_for_tim/CF_M02_009_JK2D_fits");
+    loadFrench("APC/CF_for_tim/CF_M02_010_JK2D_fits");
+    loadFrench("APC/CF_for_tim/CF_M02_011_JK2D_fits");
+    loadFrench("APC/CF_for_tim/CF_M02_012_JK2D_fits");
+    loadFrench("APC/CF_for_tim/CF_M02_013_JK2D_fits");
+    loadFrench("APC/CF_for_tim/CF_M02_014_JK2D_fits");
     
     // Load the data we will fit.
     try {
