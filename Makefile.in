@@ -80,7 +80,7 @@ libbaofit_la_LIBADD =
 am_libbaofit_la_OBJECTS = AbsCorrelationModel.lo \
 	BaoCorrelationModel.lo AbsCorrelationData.lo \
 	QuasarCorrelationData.lo MultipoleCorrelationData.lo \
-	CorrelationFitter.lo CorrelationAnalyzer.lo
+	CorrelationFitter.lo CorrelationAnalyzer.lo boss.lo
 libbaofit_la_OBJECTS = $(am_libbaofit_la_OBJECTS)
 PROGRAMS = $(bin_PROGRAMS)
 am_baofit_OBJECTS = baofit.$(OBJEXT)
@@ -254,7 +254,8 @@ libbaofit_la_SOURCES = \
 	baofit/QuasarCorrelationData.cc \
 	baofit/MultipoleCorrelationData.cc \
 	baofit/CorrelationFitter.cc \
-	baofit/CorrelationAnalyzer.cc
+	baofit/CorrelationAnalyzer.cc \
+	baofit/boss.cc
 
 
 # library headers to install (nobase prefix preserves any subdirectories)
@@ -270,7 +271,8 @@ nobase_include_HEADERS = \
 	baofit/QuasarCorrelationData.h \
 	baofit/MultipoleCorrelationData.h \
 	baofit/CorrelationFitter.h \
-	baofit/CorrelationAnalyzer.h
+	baofit/CorrelationAnalyzer.h \
+	baofit/boss.h
 
 
 # instructions for building each program
@@ -427,6 +429,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/MultipoleCorrelationData.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/QuasarCorrelationData.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/baofit.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/boss.Plo@am__quote@
 
 .cc.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -497,6 +500,13 @@ CorrelationAnalyzer.lo: baofit/CorrelationAnalyzer.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='baofit/CorrelationAnalyzer.cc' object='CorrelationAnalyzer.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o CorrelationAnalyzer.lo `test -f 'baofit/CorrelationAnalyzer.cc' || echo '$(srcdir)/'`baofit/CorrelationAnalyzer.cc
+
+boss.lo: baofit/boss.cc
+@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT boss.lo -MD -MP -MF $(DEPDIR)/boss.Tpo -c -o boss.lo `test -f 'baofit/boss.cc' || echo '$(srcdir)/'`baofit/boss.cc
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/boss.Tpo $(DEPDIR)/boss.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='baofit/boss.cc' object='boss.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o boss.lo `test -f 'baofit/boss.cc' || echo '$(srcdir)/'`baofit/boss.cc
 
 baofit.o: src/baofit.cc
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT baofit.o -MD -MP -MF $(DEPDIR)/baofit.Tpo -c -o baofit.o `test -f 'src/baofit.cc' || echo '$(srcdir)/'`src/baofit.cc
