@@ -3,6 +3,7 @@
 #ifndef BAOFIT_CORRELATION_FITTER
 #define BAOFIT_CORRELATION_FITTER
 
+#include "baofit/AbsCorrelationData.h"
 #include "baofit/types.h"
 #include "likely/types.h"
 
@@ -21,6 +22,7 @@ namespace baofit {
         // Performs the fit and returns an estimate of the function minimum.
         likely::FunctionMinimumPtr fit(std::string const &methodName) const;
 	private:
+        AbsCorrelationData::TransverseBinningType _type;
         AbsCorrelationDataCPtr _data;
         AbsCorrelationModelCPtr _model;
         double _errorScale;

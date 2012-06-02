@@ -2,7 +2,6 @@
 
 #include "baofit/CorrelationFitter.h"
 #include "baofit/RuntimeError.h"
-#include "baofit/AbsCorrelationData.h"
 #include "baofit/AbsCorrelationModel.h"
 
 #include "likely/AbsEngine.h"
@@ -10,7 +9,7 @@
 namespace local = baofit;
 
 local::CorrelationFitter::CorrelationFitter(AbsCorrelationDataCPtr data, AbsCorrelationModelCPtr model)
-: _data(data), _model(model), _errorScale(1)
+: _data(data), _model(model), _errorScale(1), _type(data->getTransverseBinningType())
 {
 }
 
@@ -34,17 +33,18 @@ double local::CorrelationFitter::operator()(likely::Parameters const &params) co
     static int offset(0);
     for(baofit::AbsCorrelationData::IndexIterator iter = _data->begin(); iter != _data->end(); ++iter) {
         int index(*iter);
-        double r = _data->getRadius(index);
-        double mu = _data->getCosAngle(index);
         double z = _data->getRedshift(index);
-        double predicted = _model->evaluate(r,mu,z,params);
-        pred.push_back(predicted);
-        //!!DK
-        if(offset++ < 5) {
-            std::cout << "NEW rr,mu,z = " << r << ',' << mu << ',' << z
-                << " obs=" << _data->getData(index) << ", pred=" << predicted << std::endl;
+        double r = _data->getRadius(index);
+        double predicted;
+        if(_type == AbsCorrelationData::Coordinate) {
+            double mu = _data->getCosAngle(index);
+            predicted = _model->evaluate(r,mu,z,params);
         }
-        //!!DK
+        else {
+            int ell = _data->getMultipole(index);
+            predicted = _model->evaluateMultipole(r,ell,z,params);
+        }
+        pred.push_back(predicted);
     }
     // UP=0.5 is already hardcoded so we need a factor of 2 here since we are
     // calculating a chi-square. Apply an additional factor of _errorScale to
