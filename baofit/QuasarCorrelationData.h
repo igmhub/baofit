@@ -25,13 +25,12 @@ namespace baofit {
 		// Polymorphic shallow copy so this type of data can be used with likely::BinnedDataResampler.
         virtual QuasarCorrelationData *clone(bool binningOnly = false) const;
         // Returns the 3D radius in Mpc/h associated with the specified global index.
-        virtual double getRadius(int offset) const;
+        virtual double getRadius(int index) const;
         // Returns the cosine of the angle between the separation vector and
         // the line of sight (aka mu) associated with the specified global index.
-        // Returns zero if the data is azimuthally averaged.
-        virtual double getCosAngle(int offset) const;
+        virtual double getCosAngle(int index) const;
         // Returns the redshift associated with the specified global index.
-        virtual double getRedshift(int offset) const;
+        virtual double getRedshift(int index) const;
         // Finalize a quasar dataset by pruning to the specified co-moving limits and tabulating
         // the co-moving coordinates at the center of each remaining bin with data. No further
         // changes to our "shape" are possible after finalizing. See the documentation for
