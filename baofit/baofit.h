@@ -9,6 +9,7 @@
 
 #include "baofit/AbsCorrelationData.h"
 #include "baofit/QuasarCorrelationData.h"
+#include "baofit/MultipoleCorrelationData.h"
 
 #include "baofit/CorrelationFitter.h"
 #include "baofit/CorrelationAnalyzer.h"

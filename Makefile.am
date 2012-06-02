@@ -15,6 +15,7 @@ libbaofit_la_SOURCES = \
 	baofit/BaoCorrelationModel.cc \
 	baofit/AbsCorrelationData.cc \
 	baofit/QuasarCorrelationData.cc \
+	baofit/MultipoleCorrelationData.cc \
 	baofit/CorrelationFitter.cc \
 	baofit/CorrelationAnalyzer.cc
 
@@ -29,6 +30,7 @@ nobase_include_HEADERS = \
 	baofit/BaoCorrelationModel.h \
 	baofit/AbsCorrelationData.h \
 	baofit/QuasarCorrelationData.h \
+	baofit/MultipoleCorrelationData.h \
 	baofit/CorrelationFitter.h \
 	baofit/CorrelationAnalyzer.h
 
