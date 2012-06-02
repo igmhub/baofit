@@ -13,7 +13,7 @@ namespace local = baofit;
 local::QuasarCorrelationData::QuasarCorrelationData(
 likely::AbsBinningCPtr axis1, likely::AbsBinningCPtr axis2, likely::AbsBinningCPtr axis3,
 double rmin, double rmax, double llmin, cosmo::AbsHomogeneousUniversePtr cosmology)
-: AbsCorrelationData(axis1,axis2,axis3)
+: AbsCorrelationData(axis1,axis2,axis3,Coordinate)
 {
     _initialize(rmin,rmax,llmin,cosmology);
 }
@@ -21,7 +21,7 @@ double rmin, double rmax, double llmin, cosmo::AbsHomogeneousUniversePtr cosmolo
 local::QuasarCorrelationData::QuasarCorrelationData(
 std::vector<likely::AbsBinningCPtr> axes, double rmin, double rmax, double llmin,
 cosmo::AbsHomogeneousUniversePtr cosmology)
-: AbsCorrelationData(axes)
+: AbsCorrelationData(axes,Coordinate)
 {
     _initialize(rmin,rmax,llmin,cosmology);
 }
