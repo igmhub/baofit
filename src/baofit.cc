@@ -46,7 +46,15 @@ int nBins, double breakpoint,double dlog, double dlin, double eps = 1e-3) {
 
 // Loads a binned correlation function in French format and returns a shared pointer to
 // a MultipoleCorrelationData.
-void loadFrench(std::string dataName, bool verbose = true) {
+baofit::AbsCorrelationDataPtr loadFrench(std::string dataName, double zref = 2.3, bool verbose = true) {
+
+    // Create the new BinnedData that we will fill.
+    likely::AbsBinningCPtr
+        rBins(new likely::UniformBinning(0,200,50)),
+        ellBins(new likely::UniformSampling(0,0,1)), // only monopole for now
+        zBins(new likely::UniformSampling(zref,zref,1));
+    baofit::AbsCorrelationDataPtr
+        binnedData(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins));
 
     // General stuff we will need for reading both files.
     std::string line;
@@ -65,6 +73,7 @@ void loadFrench(std::string dataName, bool verbose = true) {
     if(!paramsIn.good()) throw baofit::RuntimeError("loadFrench: Unable to open " + paramsName);
     lines = 0;
     double rval,mono,quad;
+    std::vector<double> bin(3);
     while(std::getline(paramsIn,line)) {
         lines++;
         bool ok = qi::phrase_parse(line.begin(),line.end(),
@@ -76,6 +85,11 @@ void loadFrench(std::string dataName, bool verbose = true) {
             throw baofit::RuntimeError("loadFrench: error reading line " +
                 boost::lexical_cast<std::string>(lines) + " of " + paramsName);
         }
+        bin[0] = rval;
+        bin[2] = zref;
+        bin[1] = 0;
+        int monoIndex = binnedData->getIndex(bin);
+        binnedData->setData(monoIndex,mono);
     }
     paramsIn.close();
     if(verbose) {
@@ -91,7 +105,6 @@ void loadFrench(std::string dataName, bool verbose = true) {
     lines = 0;
     int index1,index2;
     double cov;
-    likely::CovarianceMatrix Cboth(100), Cmono(50), Cquad(50);
     while(std::getline(covIn,line)) {
         lines++;
         bool ok = qi::phrase_parse(line.begin(),line.end(),
@@ -103,38 +116,24 @@ void loadFrench(std::string dataName, bool verbose = true) {
             throw baofit::RuntimeError("loadFrench: error reading line " +
                 boost::lexical_cast<std::string>(lines) + " of " + covName);
         }
-        if(index1 <= index2) Cboth.setCovariance(index1,index2,cov);
-        if(index1 <= index2 && index2 < 50) Cmono.setCovariance(index1,index2,cov);
-        if(index1 <= index2 && index1 >= 50) Cquad.setCovariance(index1-50,index2-50,cov);
-            
+        if(index1 <= index2 && index2 < 50) binnedData->setCovariance(index1,index2,cov);
     }
     covIn.close();
     if(verbose) {
         std::cout << "Read " << lines << " covariance values from " << covName << std::endl;
     }
-    // Try to invert the matrices...
-    try {
-        Cmono.getInverseCovariance(0,0);
-        std::cout << "mono ok" << std::endl;
-        Cquad.getInverseCovariance(0,0);
-        std::cout << "quad ok" << std::endl;
-        Cboth.getInverseCovariance(0,0);
-        std::cout << "both ok" << std::endl;
-    }
-    catch(likely::RuntimeError const &e) {
-        std::cout << "At least one covariance matrix is not positive definite." << std::endl;
-    }
+    return binnedData;
 }
 
 // Loads a binned correlation function in cosmolib format and returns a BinnedData object.
 // The fast option disables regexp checks for valid numeric inputs.
-baofit::QuasarCorrelationDataPtr loadCosmolib(std::string dataName,
+baofit::AbsCorrelationDataPtr loadCosmolib(std::string dataName,
     likely::AbsBinningCPtr llBins, likely::AbsBinningCPtr sepBins, likely::AbsBinningCPtr zBins,
     double rmin, double rmax, double llmin, cosmo::AbsHomogeneousUniversePtr cosmology,
     bool verbose, bool icov = false, bool fast = false) {
 
     // Create the new BinnedData that we will fill.
-    baofit::QuasarCorrelationDataPtr
+    baofit::AbsCorrelationDataPtr
         binnedData(new baofit::QuasarCorrelationData(llBins,sepBins,zBins,rmin,rmax,llmin,cosmology));
 
     // General stuff we will need for reading both files.
