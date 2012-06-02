@@ -23,6 +23,9 @@ std::vector<likely::AbsBinningCPtr> axes, double rmin, double rmax, double llmin
 cosmo::AbsHomogeneousUniversePtr cosmology)
 : AbsCorrelationData(axes,Coordinate)
 {
+    if(axes.size() != 3) {
+        throw RuntimeError("QuasarCorrelationData: expected 3 axes.");
+    }
     _initialize(rmin,rmax,llmin,cosmology);
 }
 
