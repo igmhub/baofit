@@ -24,14 +24,12 @@ namespace baofit {
 		// Returns the correlation function evaluated in redshift space where (r,mu) is
 		// the pair separation and z is their average redshift. The separation r should
 		// be provided in Mpc/h.
-        virtual double evaluate(double r, double mu, double z, std::vector<double> const &params) const;
-        // Returns the azimuthally averaged monopole correlation function evaluated at
-        // comoving separation r in Mpc/h, with an average redshift z.
-        virtual double evaluate(double r, double z, std::vector<double> const &params) const;
-        // Returns a vector of ell=0,2,4 multipoles for the specified co-moving distance r in Mpc/h
-        // and fit parameters. In order to avoid duplicating the code in evaluate(), we call
-        // evaluate() with three different values of beta and solve for the multipoles.
-        std::vector<double> evaluateMultipoles(double r, std::vector<double> const &params) const;
+        virtual double evaluate(double r, double mu, double z,
+            std::vector<double> const &params) const;
+        // Returns the correlation function for the specified multipole at co-moving pair separation
+        // r and average pair redshift z.
+        virtual double evaluateMultipole(int ell, double r, double z,
+            std::vector<double> const &params) const;
 	private:
         double _zref;
         cosmo::RsdCorrelationFunctionPtr _fid, _nw, _bbc, _bb1, _bb2;

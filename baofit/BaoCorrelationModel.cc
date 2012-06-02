@@ -106,11 +106,12 @@ std::vector<double> const &params) const {
     return bias*bias*zfactor*(peak + broadband);
 }
 
-double local::BaoCorrelationModel::evaluate(double r, double z,
+double local::BaoCorrelationModel::evaluateMultipole(int ell, double r, double z,
 std::vector<double> const &params) const {
-    throw RuntimeError("BaoCorrelationModel::evaluate: monopole only not implemented yet.");
+    throw RuntimeError("BaoCorrelationModel::evaluateMultipole: not implemented yet.");
 }
 
+/*
 std::vector<double> local::BaoCorrelationModel::evaluateMultipoles(double r,
 std::vector<double> const &params) const {
     std::vector<double> pcopy(params);
@@ -133,3 +134,4 @@ std::vector<double> const &params) const {
     xi[2] = (-32*xia + 10*xib + 25*xic)/3;
     return xi;
 }
+*/
