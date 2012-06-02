@@ -66,10 +66,7 @@ void local::QuasarCorrelationData::finalize() {
         }
     }
     prune(keep);
-    // The fully qualified base-class name is needed here since our local prune(...)
-    // method hides the one in our base class. For details, see:
-    // http://stackoverflow.com/questions/5636289/overloaded-method-not-seen-in-subclass
-    likely::BinnedData::finalize();
+    AbsCorrelationData::finalize();
 }
 
 void local::QuasarCorrelationData::transform(double ll, double sep, double dsep, double z,

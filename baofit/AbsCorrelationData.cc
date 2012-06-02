@@ -19,8 +19,6 @@ TransverseBinningType type)
 
 local::AbsCorrelationData::~AbsCorrelationData() { }
 
-void local::AbsCorrelationData::finalize() { }
-
 double local::AbsCorrelationData::getCosAngle(int index) const { return 0; }
 
 int local::AbsCorrelationData::getMultipole(int index) const { return 0; }

@@ -31,8 +31,6 @@ namespace baofit {
         virtual int getMultipole(int index) const;
         // Returns the redshift associated with the specified global index.
         virtual double getRedshift(int index) const = 0;
-        // Finalizes a dataset before fitting to a model.
-        virtual void finalize();
     private:
         TransverseBinningType _type;
 	}; // AbsCorrelationData
