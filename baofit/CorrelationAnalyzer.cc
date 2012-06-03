@@ -3,6 +3,7 @@
 #include "baofit/CorrelationAnalyzer.h"
 #include "baofit/RuntimeError.h"
 #include "baofit/AbsCorrelationData.h"
+#include "baofit/AbsCorrelationModel.h"
 #include "baofit/CorrelationFitter.h"
 
 #include "likely/CovarianceAccumulator.h"
@@ -12,6 +13,8 @@
 
 #include "boost/smart_ptr.hpp"
 #include "boost/format.hpp"
+
+#include <iostream>
 
 namespace local = baofit;
 
@@ -101,4 +104,18 @@ likely::FunctionMinimumPtr fmin, int bootstrapTrials, int bootstrapSize, bool fi
     accumulator.getCovariance()->printToStream(std::cout,true,"%12.6f",labels);
     
     return nInvalid;
+}
+
+void local::CorrelationAnalyzer::dump(std::ostream &out, likely::FunctionMinimumPtr fmin,
+cosmo::Multipole multipole, int nr, double rmin, double rmax, double zval) const {
+    if(rmin >= rmax || nr < 2) {
+        throw RuntimeError("CorrelationAnalyzer::dump: invalid radial parameters.");
+    }
+    likely::Parameters params(fmin->getParameters());
+    double dr((rmax-rmin)/(nr-1));
+    for(int rIndex = 0; rIndex < nr; ++rIndex) {
+        double rval(rmin+dr*rIndex);
+        double pred = _model->evaluate(rval,multipole,zval,params);
+        out << rval << ' ' << pred << std::endl;
+    }
 }

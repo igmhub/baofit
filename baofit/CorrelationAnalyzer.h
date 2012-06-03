@@ -5,7 +5,11 @@
 
 #include "baofit/types.h"
 
+#include "cosmo/types.h"
+
 #include "likely/BinnedDataResampler.h"
+
+#include <iosfwd>
 
 namespace baofit {
 	class CorrelationAnalyzer {
@@ -26,10 +30,14 @@ namespace baofit {
         // Fits the combined correlation data aadded to this analyzer and returns
         // the estimated function minimum.
         likely::FunctionMinimumPtr fitCombined(std::string const &method) const;
-        // Performs a bootstrap analysis...
-        // Returns the number of fits to bootstrap samples that failed.
+        // Performs a bootstrap analysis and returns the number of fits to bootstrap
+        // samples that failed.
         int doBootstrapAnalysis(std::string const &method,likely::FunctionMinimumPtr fmin,
             int bootstrapTrials, int bootstrapSize = 0, bool fixCovariance = true) const;
+        // Dumps the specified fit result to the specified output stream. The fit result
+        // is assumed to correspond to model that is currently associated with this analyzer.
+        void dump(std::ostream &out, likely::FunctionMinimumPtr fmin,
+            cosmo::Multipole multipole, int nr, double rmin, double rmax, double zval) const;
 	private:
         bool _verbose;
         likely::BinnedDataResampler _resampler;

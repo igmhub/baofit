@@ -245,7 +245,10 @@ int main(int argc, char **argv) {
     
     // Do the requested analysis.
     try {
-        lk::FunctionMinimumPtr fmin = analyzer.fitCombined("mn2::vmetric");
+        lk::FunctionMinimumPtr fmin = analyzer.fitCombined("mn2::vmetric");        
+        std::ofstream out("fitmono.dat");
+        analyzer.dump(out,fmin,cosmo::Monopole,100,rmin,rmax,zref);
+        out.close();
         if(bootstrapTrials > 0) {
             analyzer.doBootstrapAnalysis("mn2::vmetric",fmin,bootstrapTrials,bootstrapSize,fixCovariance);
         }
