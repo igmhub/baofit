@@ -7,6 +7,7 @@
 
 #include "boost/program_options.hpp"
 #include "boost/format.hpp"
+#include "boost/smart_ptr.hpp"
 
 #include <fstream>
 #include <iostream>
@@ -232,6 +233,14 @@ int main(int argc, char **argv) {
     catch(baofit::RuntimeError const &e) {
         std::cerr << "ERROR while reading data:\n  " << e.what() << std::endl;
         return -2;
+    }
+
+    if(french) {
+        std::ofstream out("french.dat");
+        boost::shared_ptr<baofit::MultipoleCorrelationData> combined =
+            boost::dynamic_pointer_cast<baofit::MultipoleCorrelationData>(analyzer.getCombined());
+        combined->dump(out,cosmo::Monopole);
+        out.close();
     }
     
     // Do the requested analysis.

@@ -5,6 +5,8 @@
 
 #include "baofit/AbsCorrelationData.h"
 
+#include <iosfwd>
+
 namespace baofit {
 	class MultipoleCorrelationData : public AbsCorrelationData {
 	// Represents a 3D correlation function with its transverse degree of freedom projected
@@ -22,6 +24,9 @@ namespace baofit {
         virtual cosmo::Multipole getMultipole(int index) const;
         // Returns the redshift associated with the specified global index.
         virtual double getRedshift(int index) const;
+        // Dumps the specified monopole to the specified output stream. zIndex specifies which
+        // redshift slice to use in case there are several.
+        void dump(std::ostream &out, cosmo::Multipole multipole, int zIndex = 0) const;
 	private:
         void _setIndex(int index) const;
         mutable int _lastIndex;

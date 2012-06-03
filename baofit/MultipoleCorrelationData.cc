@@ -3,7 +3,10 @@
 #include "baofit/MultipoleCorrelationData.h"
 #include "baofit/RuntimeError.h"
 
+#include "likely/AbsBinning.h"
+
 #include <cmath>
+#include <iostream>
 
 namespace local = baofit;
 
@@ -62,4 +65,19 @@ void local::MultipoleCorrelationData::_setIndex(int index) const {
     }
     _zLast = _binCenter[2];
     _lastIndex = index;
+}
+
+void local::MultipoleCorrelationData::dump(
+std::ostream &out, cosmo::Multipole multipole, int zIndex) const {
+    std::vector<likely::AbsBinningCPtr> binning = getAxisBinning();
+    int nRadialBins(binning[0]->getNBins());
+    int ellIndex(binning[1]->getBinIndex((double)multipole));
+    std::vector<int> bin(3);
+    for(int rIndex = 0; rIndex < nRadialBins; ++rIndex) {
+        double rval(binning[0]->getBinCenter(rIndex));
+        bin[0] = rIndex;
+        int index = getIndex(bin);
+        double cov = hasCovariance() ? getCovariance(index,index) : 0;
+        out << rval << ' ' << getData(index) << ' ' << std::sqrt(cov) << std::endl;
+    }
 }
