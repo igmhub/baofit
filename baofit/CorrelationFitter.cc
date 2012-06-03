@@ -41,8 +41,8 @@ double local::CorrelationFitter::operator()(likely::Parameters const &params) co
             predicted = _model->evaluate(r,mu,z,params);
         }
         else {
-            int ell = _data->getMultipole(index);
-            predicted = _model->evaluateMultipole(r,ell,z,params);
+            cosmo::Multipole multipole = _data->getMultipole(index);
+            predicted = _model->evaluate(r,multipole,z,params);
         }
         pred.push_back(predicted);
     }
