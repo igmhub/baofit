@@ -21,10 +21,10 @@ int main(int argc, char **argv) {
     // Configure command-line option processing
     po::options_description cli("BAO fitting");
     double OmegaMatter,hubbleConstant,zref,minll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin;
-    int nll,nsep,nz,ncontour,modelBins,maxPlates,bootstrapTrials,bootstrapSize,randomSeed;
-    std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,dumpName;
-    double initialAmp,initialScale;
-    std::string platelistName,platerootName,bootstrapSaveName,bootstrapCurvesName;
+    int nll,nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed; //,ncontour,modelBins
+    std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName; //,dumpName
+    double initialAmp,initialScale,zfrench;
+    std::string platelistName,platerootName; //,bootstrapSaveName,bootstrapCurvesName
     cli.add_options()
         ("help,h", "Prints this info and exits.")
         ("verbose", "Prints additional information.")
@@ -48,8 +48,11 @@ int main(int argc, char **argv) {
             "Maximum 3D comoving separation (Mpc/h) to use in fit.")
         ("llmin", po::value<double>(&llmin)->default_value(0),
             "Minimum value of log(lam2/lam1) to use in fit.")
+        ("french", "3D correlation data files are in the French format (default is cosmolib).")
+        ("zfrench", po::value<double>(&zfrench)->default_value(2.30),
+            "Reference redshift used in French 3D correlation data")
         ("data", po::value<std::string>(&dataName)->default_value(""),
-            "3D correlation data will be read from <data>.params and <data>.cov")
+            "3D correlation data will be read from the specified file.")
         ("platelist", po::value<std::string>(&platelistName)->default_value(""),
             "3D correlation data will be read from individual plate datafiles listed in this file.")
         ("plateroot", po::value<std::string>(&platerootName)->default_value(""),
@@ -124,10 +127,10 @@ int main(int argc, char **argv) {
         std::cout << cli << std::endl;
         return 1;
     }
-    bool verbose(vm.count("verbose")), minos(vm.count("minos")), fixAlpha(vm.count("fix-alpha")),
+    bool verbose(vm.count("verbose")), french(vm.count("french")), fixAlpha(vm.count("fix-alpha")),
         fixLinear(vm.count("fix-linear")), fixBao(vm.count("fix-bao")), fixScale(vm.count("fix-scale")),
-        noBBand(vm.count("no-bband")), fixCovariance(0 == vm.count("naive-covariance")),
-        nullHypothesis(vm.count("null-hypothesis"));
+        noBBand(vm.count("no-bband")), fixCovariance(0 == vm.count("naive-covariance"));
+    // minos(vm.count("minos")), nullHypothesis(vm.count("null-hypothesis"))
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
@@ -150,7 +153,7 @@ int main(int argc, char **argv) {
     // Initialize our analyzer.
     baofit::CorrelationAnalyzer analyzer(randomSeed,verbose);
 
-    // Initialize the cosmology calculations we will need.
+    // Initialize the cosmology models we will use.
     cosmo::AbsHomogeneousUniversePtr cosmology;
     baofit::AbsCorrelationModelCPtr model;
     try {
@@ -174,35 +177,30 @@ int main(int argc, char **argv) {
     }
     analyzer.setModel(model);
     
-    baofit::boss::loadFrench("APC/CF_for_tim/CF_M02_000_JK2D_fits",zref,verbose);
-    baofit::boss::loadFrench("APC/CF_for_tim/CF_M02_001_JK2D_fits",zref,verbose);
-    baofit::boss::loadFrench("APC/CF_for_tim/CF_M02_002_JK2D_fits",zref,verbose);
-    baofit::boss::loadFrench("APC/CF_for_tim/CF_M02_003_JK2D_fits",zref,verbose);
-    baofit::boss::loadFrench("APC/CF_for_tim/CF_M02_004_JK2D_fits",zref,verbose);
-    baofit::boss::loadFrench("APC/CF_for_tim/CF_M02_005_JK2D_fits",zref,verbose);
-    baofit::boss::loadFrench("APC/CF_for_tim/CF_M02_006_JK2D_fits",zref,verbose);
-    baofit::boss::loadFrench("APC/CF_for_tim/CF_M02_007_JK2D_fits",zref,verbose);
-    baofit::boss::loadFrench("APC/CF_for_tim/CF_M02_008_JK2D_fits",zref,verbose);
-    baofit::boss::loadFrench("APC/CF_for_tim/CF_M02_009_JK2D_fits",zref,verbose);
-    baofit::boss::loadFrench("APC/CF_for_tim/CF_M02_010_JK2D_fits",zref,verbose);
-    baofit::boss::loadFrench("APC/CF_for_tim/CF_M02_011_JK2D_fits",zref,verbose);
-    baofit::boss::loadFrench("APC/CF_for_tim/CF_M02_012_JK2D_fits",zref,verbose);
-    baofit::boss::loadFrench("APC/CF_for_tim/CF_M02_013_JK2D_fits",zref,verbose);
-    baofit::boss::loadFrench("APC/CF_for_tim/CF_M02_014_JK2D_fits",zref,verbose);
-    
     // Load the data we will fit.
     try {
         
-        baofit::AbsCorrelationDataCPtr prototype = baofit::boss::createCosmolibPrototype(
-            minsep, dsep, nsep, minz, dz, nz, minll, dll, dll2, nll,rmin,rmax,llmin,cosmology);
+        baofit::AbsCorrelationDataCPtr prototype;
+        if(french) {
+            prototype = baofit::boss::createFrenchPrototype(zfrench);
+        }
+        else {
+            prototype = baofit::boss::createCosmolibPrototype(
+                minsep,dsep,nsep,minz,dz,nz,minll,dll,dll2,nll,rmin,rmax,llmin,cosmology);
+        }
         
         // Initialize the dataset we will fill.
         if(0 < dataName.length()) {
-            // Load a single dataset.
-            analyzer.addData(baofit::boss::loadCosmolib(dataName, prototype,verbose,false));
+            if(french) {
+                analyzer.addData(baofit::boss::loadFrench(dataName,prototype,verbose));
+            }
+            else {
+                // Load a single cosmolib dataset, assumed to provide cov instead of icov.
+                analyzer.addData(baofit::boss::loadCosmolib(dataName,prototype,verbose,false));
+            }
         }
         else {
-            // Load individual plate datasets.
+            // Load individual plate datasets, assumed to provided icov instead of cov.
             std::string plateName;
             boost::format platefile("%s%s");
             platelistName = platerootName + platelistName;
