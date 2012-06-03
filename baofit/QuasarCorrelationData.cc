@@ -52,7 +52,6 @@ local::QuasarCorrelationData *local::QuasarCorrelationData::clone(bool binningOn
 
 void local::QuasarCorrelationData::finalize() {
     std::set<int> keep;
-    std::vector<double> binCenter,binWidth;
     // Loop over bins with data.
     for(IndexIterator iter = begin(); iter != end(); ++iter) {
         // Lookup the value of ll,sep,z at the center of this bin.

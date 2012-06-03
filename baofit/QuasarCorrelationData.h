@@ -31,10 +31,10 @@ namespace baofit {
         virtual double getCosAngle(int index) const;
         // Returns the redshift associated with the specified global index.
         virtual double getRedshift(int index) const;
-        // Finalize a quasar dataset by pruning to the specified co-moving limits and tabulating
-        // the co-moving coordinates at the center of each remaining bin with data. No further
-        // changes to our "shape" are possible after finalizing. See the documentation for
-        // BinnedData::finalize() for details.
+        // Finalize a quasar dataset by pruning to the limits specified in our constructor,
+        // and tabulating the co-moving coordinates at the center of each remaining bin with data.
+        // No further changes to our "shape" are possible after finalizing. See the documentation
+        // for BinnedData::finalize() for details.
         virtual void finalize();
         // Transforms the specified values of ll,sep,dsep,z to co-moving r,mu.
         void transform(double ll, double sep, double dsep, double z, double &r, double &mu) const;
