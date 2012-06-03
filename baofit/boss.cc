@@ -51,7 +51,6 @@ local::loadFrench(std::string dataName, baofit::AbsCorrelationDataCPtr prototype
     
     // Lookup our reference redshift.
     double zref = prototype->getAxisBinning()[2]->getBinCenter(0);
-    std::cout << "French zref = " << zref << std::endl;
 
     // General stuff we will need for reading both files.
     std::string line;
