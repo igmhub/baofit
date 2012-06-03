@@ -28,7 +28,7 @@ namespace baofit {
             std::vector<double> const &params) const;
         // Returns the correlation function for the specified multipole at co-moving pair separation
         // r and average pair redshift z.
-        virtual double evaluateMultipole(int ell, double r, double z,
+        virtual double evaluate(double r, cosmo::Multipole multipole, double z,
             std::vector<double> const &params) const;
 	private:
         double _zref;

@@ -106,9 +106,30 @@ std::vector<double> const &params) const {
     return bias*bias*zfactor*(peak + broadband);
 }
 
-double local::BaoCorrelationModel::evaluateMultipole(int ell, double r, double z,
+double local::BaoCorrelationModel::evaluate(double r, cosmo::Multipole multipole, double z,
 std::vector<double> const &params) const {
-    throw RuntimeError("BaoCorrelationModel::evaluateMultipole: not implemented yet.");
+    double alpha(params[0]), beta(params[1]), bb(params[2]), ampl(params[3]), scale(params[4]);
+    double bias = bb/(1+beta);
+    double xio(params[5]), a0(params[6]), a1(params[7]), a2(params[8]);
+    // Calculate redshift evolution factor.
+    double zfactor = std::pow((1+z)/(1+_zref),alpha);
+    // No need to apply redshift-space distortion to each model component since we are
+    // working in undistorted multipoles here.
+
+    // Calculate the peak contribution with scaled radius.
+    double peak(0);
+    if(ampl != 0) {
+        double fid((*_fid)(r*scale,multipole)), nw((*_nw)(r*scale,multipole));
+        peak = ampl*(fid-nw);
+    }
+    // Calculate the additional broadband contribution with no radius scaling.
+    double broadband(0);
+    if(xio != 0) broadband += xio*(*_bbc)(r,multipole);
+    if(1+a0 != 0) broadband += (1+a0)*(*_nw)(r,multipole);
+    if(a1 != 0) broadband += a1*(*_bb1)(r,multipole);
+    if(a2 != 0) broadband += a2*(*_bb2)(r,multipole);
+    // Combine the peak and broadband components, with bias and redshift evolution.
+    return bias*bias*zfactor*(peak + broadband);
 }
 
 /*
