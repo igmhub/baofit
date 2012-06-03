@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
         ("hubble-constant", po::value<double>(&hubbleConstant)->default_value(0.7),
             "Present-day value of the Hubble parameter h = H0/(100 km/s/Mpc).")
         ("modelroot", po::value<std::string>(&modelrootName)->default_value(""),
-                "Common path to prepend to all model filenames.")
+            "Common path to prepend to all model filenames.")
         ("fiducial", po::value<std::string>(&fiducialName)->default_value(""),
             "Fiducial correlation functions will be read from <name>.<ell>.dat with ell=0,2,4.")
         ("nowiggles", po::value<std::string>(&nowigglesName)->default_value(""),
@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
         ("broadband", po::value<std::string>(&broadbandName)->default_value(""),
             "Broadband models will be read from <name>bb<x>.<ell>.dat with x=c,1,2 and ell=0,2,4.")
         ("zref", po::value<double>(&zref)->default_value(2.25),
-            "Reference redshift.")
+            "Reference redshift used by model correlation functions.")
         ("rmin", po::value<double>(&rmin)->default_value(0),
             "Minimum 3D comoving separation (Mpc/h) to use in fit.")
         ("rmax", po::value<double>(&rmax)->default_value(200),
@@ -49,9 +49,9 @@ int main(int argc, char **argv) {
         ("llmin", po::value<double>(&llmin)->default_value(0),
             "Minimum value of log(lam2/lam1) to use in fit.")
         ("data", po::value<std::string>(&dataName)->default_value(""),
-            "3D covariance data will be read from <data>.params and <data>.cov")
+            "3D correlation data will be read from <data>.params and <data>.cov")
         ("platelist", po::value<std::string>(&platelistName)->default_value(""),
-            "3D covariance data will be read from individual plate datafiles listed in this file.")
+            "3D correlation data will be read from individual plate datafiles listed in this file.")
         ("plateroot", po::value<std::string>(&platerootName)->default_value(""),
             "Common path to prepend to all plate datafiles listed in the platelist.")
         ("max-plates", po::value<int>(&maxPlates)->default_value(0),
@@ -60,12 +60,14 @@ int main(int argc, char **argv) {
             "Number of bootstrap trials to run if a platelist was provided.")
         ("bootstrap-size", po::value<int>(&bootstrapSize)->default_value(0),
             "Size of each bootstrap trial or zero to use the number of plates.")
+        /**
         ("bootstrap-save", po::value<std::string>(&bootstrapSaveName)->default_value("bstrials.txt"),
             "Name of file to write with results of each bootstrap trial.")
         ("bootstrap-curves", po::value<std::string>(&bootstrapCurvesName)->default_value(""),
             "Name of file to write individual bootstrap fit multipole curves to.")
         ("naive-covariance", "Uses the naive covariance matrix for each bootstrap trial.")
         ("null-hypothesis", "Applies theory offsets to simulate the null hypothesis.")
+        **/
         ("random-seed", po::value<int>(&randomSeed)->default_value(1966),
             "Random seed to use for generating bootstrap samples.")
         ("minll", po::value<double>(&minll)->default_value(0.0002),
@@ -88,6 +90,7 @@ int main(int argc, char **argv) {
             "Redshift binsize.")
         ("nz", po::value<int>(&nz)->default_value(2),
             "Maximum number of redshift bins.")
+        /**
         ("dump", po::value<std::string>(&dumpName)->default_value(""),
             "Filename for dumping fit results.")
         ("ncontour",po::value<int>(&ncontour)->default_value(0),
@@ -95,6 +98,7 @@ int main(int argc, char **argv) {
         ("model-bins", po::value<int>(&modelBins)->default_value(200),
             "Number of high-resolution uniform bins to use for dumping best fit model.")
         ("minos", "Runs MINOS to improve error estimates.")
+        **/
         ("fix-linear", "Fix linear bias parameters alpha, bias, beta.")
         ("fix-bao", "Fix BAO scale and amplitude parameters.")
         ("fix-scale", "Fix BAO scale parameter (amplitude floating).")
