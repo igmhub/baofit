@@ -200,7 +200,7 @@ int main(int argc, char **argv) {
             }
         }
         else {
-            // Load individual plate datasets, assumed to provided icov instead of cov.
+            // Load individual plate datasets.
             std::string plateName;
             boost::format platefile("%s%s");
             platelistName = platerootName + platelistName;
@@ -217,7 +217,13 @@ int main(int argc, char **argv) {
                     return -1;
                 }
                 std::string filename(boost::str(platefile % platerootName % plateName));
-                analyzer.addData(baofit::boss::loadCosmolib(filename,prototype,verbose,true));
+                if(french) {
+                    analyzer.addData(baofit::boss::loadFrench(filename,prototype,verbose));
+                }
+                else {
+                    // Add a cosmolib dataset, assumed to provided icov instead of cov.
+                    analyzer.addData(baofit::boss::loadCosmolib(filename,prototype,verbose,true));
+                }
                 if(analyzer.getNData() == maxPlates) break;
             }
             platelist.close();
