@@ -3,6 +3,7 @@
 #include "baofit/boss.h"
 #include "baofit/types.h"
 #include "baofit/RuntimeError.h"
+#include "baofit/AbsCorrelationData.h"
 #include "baofit/MultipoleCorrelationData.h"
 #include "baofit/QuasarCorrelationData.h"
 
@@ -10,41 +11,23 @@
 
 #include "likely/UniformBinning.h"
 #include "likely/UniformSampling.h"
+#include "likely/NonUniformSampling.h"
 
 #include "boost/lexical_cast.hpp"
 #include "boost/spirit/include/qi.hpp"
 #include "boost/spirit/include/phoenix_core.hpp"
 #include "boost/spirit/include/phoenix_operator.hpp"
 #include "boost/spirit/include/phoenix_stl.hpp"
+#include "boost/smart_ptr.hpp"
 
 #include <fstream>
 #include <iostream>
-#include <cassert>
 
 namespace local = baofit::boss;
 
 namespace qi = boost::spirit::qi;
 namespace ascii = boost::spirit::ascii;
 namespace phoenix = boost::phoenix;
-
-std::vector<double> local::twoStepSampling(
-int nBins, double breakpoint,double dlog, double dlin, double eps) {
-    assert(breakpoint > 0 && dlog > 0 && dlin > 0 && eps > 0);
-    std::vector<double> samplePoints;
-    // first sample is at zero.
-    samplePoints.push_back(0);
-    // next samples are uniformly spaced up to the breakpoint.
-    int nUniform = std::floor(breakpoint/dlin);
-    for(int k = 1; k <= nUniform; ++k) {
-        samplePoints.push_back((k-0.5)*dlin);
-    }
-    // remaining samples are logarithmically spaced, with log-weighted bin centers.
-    double ratio = std::log((breakpoint+dlog)/breakpoint);
-    for(int k = 1; k < nBins-nUniform; ++k) {
-        samplePoints.push_back(breakpoint*std::exp(ratio*(k-0.5)));
-    }
-    return samplePoints;
-}
 
 // Loads a binned correlation function in French format and returns a shared pointer to
 // a MultipoleCorrelationData.
@@ -128,16 +111,57 @@ local::loadFrench(std::string dataName, double zref, bool verbose) {
     return binnedData;
 }
 
-// Loads a binned correlation function in cosmolib format and returns a BinnedData object.
-// The fast option disables regexp checks for valid numeric inputs.
-baofit::AbsCorrelationDataPtr local::loadCosmolib(std::string dataName,
-likely::AbsBinningCPtr llBins, likely::AbsBinningCPtr sepBins, likely::AbsBinningCPtr zBins,
-double rmin, double rmax, double llmin, cosmo::AbsHomogeneousUniversePtr cosmology,
-bool verbose, bool icov, bool fast) {
+std::vector<double> local::twoStepSampling(
+int nBins, double breakpoint,double dlog, double dlin, double eps) {
+    if(!(breakpoint > 0 && dlog > 0 && dlin > 0 && eps > 0)) {
+        throw RuntimeError("twoStepSampling: invalid parameters.");
+    }
+    std::vector<double> samplePoints;
+    // first sample is at zero.
+    samplePoints.push_back(0);
+    // next samples are uniformly spaced up to the breakpoint.
+    int nUniform = std::floor(breakpoint/dlin);
+    for(int k = 1; k <= nUniform; ++k) {
+        samplePoints.push_back((k-0.5)*dlin);
+    }
+    // remaining samples are logarithmically spaced, with log-weighted bin centers.
+    double ratio = std::log((breakpoint+dlog)/breakpoint);
+    for(int k = 1; k < nBins-nUniform; ++k) {
+        samplePoints.push_back(breakpoint*std::exp(ratio*(k-0.5)));
+    }
+    return samplePoints;
+}
+
+// Creates a prototype QuasarCorrelationFunction with the specified binning and cosmology.
+baofit::AbsCorrelationDataCPtr local::createCosmolibPrototype(
+double minsep, double dsep, int nsep, double minz, double dz, int nz,
+double minll, double dll, double dll2, int nll,
+double rmin, double rmax, double llmin, cosmo::AbsHomogeneousUniversePtr cosmology) {
+
+    // Initialize the (logLambda,separation,redshift) binning from command-line params.
+    likely::AbsBinningCPtr llBins,
+        sepBins(new likely::UniformBinning(minsep,minsep+nsep*dsep,nsep)),
+        zBins(new likely::UniformSampling(minz+0.5*dz,minz+(nz-0.5)*dz,nz));
+    if(0 == dll2) {
+        llBins.reset(new likely::UniformBinning(minll,minll+nll*dll,nll));
+    }
+    else {
+        llBins.reset(new likely::NonUniformSampling(twoStepSampling(nll,minll,dll,dll2)));
+    }
 
     // Create the new BinnedData that we will fill.
     baofit::AbsCorrelationDataPtr
-        binnedData(new baofit::QuasarCorrelationData(llBins,sepBins,zBins,rmin,rmax,llmin,cosmology));
+        prototype(new baofit::QuasarCorrelationData(llBins,sepBins,zBins,rmin,rmax,llmin,cosmology));
+
+    return prototype;
+}
+
+// Loads a binned correlation function in cosmolib format and returns a BinnedData object.
+baofit::AbsCorrelationDataPtr local::loadCosmolib(std::string dataName,
+baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov) {
+
+    // Create the new BinnedData that we will fill.
+    baofit::AbsCorrelationDataPtr binnedData((baofit::QuasarCorrelationData *)(prototype->clone(true)));
 
     // General stuff we will need for reading both files.
     std::string line;

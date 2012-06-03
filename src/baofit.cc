@@ -10,7 +10,7 @@
 
 #include <fstream>
 #include <iostream>
-#include <cmath>
+#include <string>
 #include <vector>
 
 namespace lk = likely;
@@ -56,7 +56,6 @@ int main(int argc, char **argv) {
             "Common path to prepend to all plate datafiles listed in the platelist.")
         ("max-plates", po::value<int>(&maxPlates)->default_value(0),
             "Maximum number of plates to load (zero uses all available plates).")
-        ("fast-load", "Bypasses numeric input validation when reading data.")
         ("bootstrap-trials", po::value<int>(&bootstrapTrials)->default_value(0),
             "Number of bootstrap trials to run if a platelist was provided.")
         ("bootstrap-size", po::value<int>(&bootstrapSize)->default_value(0),
@@ -120,7 +119,7 @@ int main(int argc, char **argv) {
         std::cout << cli << std::endl;
         return 1;
     }
-    bool verbose(vm.count("verbose")), minos(vm.count("minos")), fastLoad(vm.count("fast-load")),
+    bool verbose(vm.count("verbose")), minos(vm.count("minos")), 
         fixLinear(vm.count("fix-linear")), fixBao(vm.count("fix-bao")), fixScale(vm.count("fix-scale")),
         noBBand(vm.count("no-bband")), fixCovariance(0 == vm.count("naive-covariance")),
         nullHypothesis(vm.count("null-hypothesis"));
@@ -188,22 +187,14 @@ int main(int argc, char **argv) {
     
     // Load the data we will fit.
     try {
-        // Initialize the (logLambda,separation,redshift) binning from command-line params.
-        likely::AbsBinningCPtr llBins,
-            sepBins(new likely::UniformBinning(minsep,minsep+nsep*dsep,nsep)),
-            zBins(new likely::UniformSampling(minz+0.5*dz,minz+(nz-0.5)*dz,nz));
-        if(0 == dll2) {
-            llBins.reset(new likely::UniformBinning(minll,minll+nll*dll,nll));
-        }
-        else {
-            llBins.reset(new likely::NonUniformSampling(
-                baofit::boss::twoStepSampling(nll,minll,dll,dll2)));
-        }
+        
+        baofit::AbsCorrelationDataCPtr prototype = baofit::boss::createCosmolibPrototype(
+            minsep, dsep, nsep, minz, dz, nz, minll, dll, dll2, nll,rmin,rmax,llmin,cosmology);
+        
         // Initialize the dataset we will fill.
         if(0 < dataName.length()) {
             // Load a single dataset.
-            analyzer.addData(baofit::boss::loadCosmolib(dataName,llBins,sepBins,zBins,
-                rmin,rmax,llmin,cosmology,verbose,false,fastLoad));
+            analyzer.addData(baofit::boss::loadCosmolib(dataName, prototype,verbose,false));
         }
         else {
             // Load individual plate datasets.
@@ -223,14 +214,13 @@ int main(int argc, char **argv) {
                     return -1;
                 }
                 std::string filename(boost::str(platefile % platerootName % plateName));
-                analyzer.addData(baofit::boss::loadCosmolib(filename,llBins,sepBins,zBins,
-                    rmin,rmax,llmin,cosmology,verbose,true,fastLoad));
+                analyzer.addData(baofit::boss::loadCosmolib(filename,prototype,verbose,true));
                 if(analyzer.getNData() == maxPlates) break;
             }
             platelist.close();
         }
     }
-    catch(cosmo::RuntimeError const &e) {
+    catch(baofit::RuntimeError const &e) {
         std::cerr << "ERROR while reading data:\n  " << e.what() << std::endl;
         return -2;
     }

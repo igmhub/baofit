@@ -12,15 +12,17 @@
 namespace baofit {
     namespace boss {
 
+        AbsCorrelationDataPtr loadFrench(std::string dataName, double zref, bool verbose);
+
         std::vector<double> twoStepSampling(
             int nBins, double breakpoint,double dlog, double dlin, double eps = 1e-3);
 
-        AbsCorrelationDataPtr loadFrench(std::string dataName, double zref, bool verbose);
+        AbsCorrelationDataCPtr createCosmolibPrototype(double minsep, double dsep, int nsep,
+            double minz, double dz, int nz, double minll, double dll, double dll2, int nll,
+            double rmin, double rmax, double llmin, cosmo::AbsHomogeneousUniversePtr cosmology);
 
         AbsCorrelationDataPtr loadCosmolib(std::string dataName,
-            likely::AbsBinningCPtr llBins, likely::AbsBinningCPtr sepBins, likely::AbsBinningCPtr zBins,
-            double rmin, double rmax, double llmin, cosmo::AbsHomogeneousUniversePtr cosmology,
-            bool verbose, bool icov = false, bool fast = false);
+            AbsCorrelationDataCPtr prototype, bool verbose, bool icov);
 
     } // boss
 } // baofit
