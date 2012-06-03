@@ -11,23 +11,36 @@
 namespace local = baofit;
 
 local::MultipoleCorrelationData::MultipoleCorrelationData(likely::AbsBinningCPtr axis1,
-likely::AbsBinningCPtr axis2, likely::AbsBinningCPtr axis3)
+likely::AbsBinningCPtr axis2, likely::AbsBinningCPtr axis3, double rmin, double rmax)
 : AbsCorrelationData(axis1,axis2,axis3,Multipole)
-{ }
+{
+    _initialize(rmin,rmax);
+}
 
-local::MultipoleCorrelationData::MultipoleCorrelationData(std::vector<likely::AbsBinningCPtr> axes)
+local::MultipoleCorrelationData::MultipoleCorrelationData(std::vector<likely::AbsBinningCPtr> axes,
+double rmin, double rmax)
 : AbsCorrelationData(axes,Multipole)
 {
     if(axes.size() != 3) {
         throw RuntimeError("MultipoleCorrelationData: expected 3 axes.");
     }
+    _initialize(rmin,rmax);
+}
+
+void local::MultipoleCorrelationData::_initialize(double rmin, double rmax) {
+    if(rmin >= rmax) {
+        throw RuntimeError("MultipoleCorrelationData: expected rmin < rmax.");
+    }
+    _rmin = rmin;
+    _rmax = rmax;
+    _lastIndex = -1;
 }
 
 local::MultipoleCorrelationData::~MultipoleCorrelationData() { }
 
 local::MultipoleCorrelationData *local::MultipoleCorrelationData::clone(bool binningOnly) const {
     return binningOnly ?
-        new MultipoleCorrelationData(getAxisBinning()) :
+        new MultipoleCorrelationData(getAxisBinning(),_rmin,_rmax) :
         new MultipoleCorrelationData(*this);
 }
 
@@ -67,6 +80,23 @@ void local::MultipoleCorrelationData::_setIndex(int index) const {
     _lastIndex = index;
 }
 
+void local::MultipoleCorrelationData::finalize() {
+    std::set<int> keep;
+    std::vector<double> binCenter;
+    // Loop over bins with data.
+    for(IndexIterator iter = begin(); iter != end(); ++iter) {
+        // Lookup the value of ll,sep,z at the center of this bin.
+        int index(*iter);
+        double r(getRadius(index));
+        // Keep this bin in our pruned dataset?
+        if(r >= _rmin && r < _rmax) {
+            keep.insert(index);
+        }
+    }
+    prune(keep);
+    AbsCorrelationData::finalize();
+}
+
 void local::MultipoleCorrelationData::dump(
 std::ostream &out, cosmo::Multipole multipole, int zIndex) const {
     std::vector<likely::AbsBinningCPtr> binning = getAxisBinning();
@@ -75,6 +105,8 @@ std::ostream &out, cosmo::Multipole multipole, int zIndex) const {
     std::vector<int> bin(3);
     for(int rIndex = 0; rIndex < nRadialBins; ++rIndex) {
         double rval(binning[0]->getBinCenter(rIndex));
+        if(rval < _rmin) continue;
+        if(rval >= _rmax) break;
         bin[0] = rIndex;
         int index = getIndex(bin);
         double cov = hasCovariance() ? getCovariance(index,index) : 0;

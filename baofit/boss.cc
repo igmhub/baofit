@@ -30,14 +30,14 @@ namespace ascii = boost::spirit::ascii;
 namespace phoenix = boost::phoenix;
 
 // Creates a prototype MultipoleCorrelationData with the specified binning.
-baofit::AbsCorrelationDataCPtr local::createFrenchPrototype(double zref) {
+baofit::AbsCorrelationDataCPtr local::createFrenchPrototype(double zref, double rmin, double rmax) {
     // Create the new BinnedData that we will fill.
     likely::AbsBinningCPtr
         rBins(new likely::UniformBinning(0,200,50)),
         ellBins(new likely::UniformSampling(0,0,1)), // only monopole for now
         zBins(new likely::UniformSampling(zref,zref,1));
     baofit::AbsCorrelationDataPtr
-        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins));
+        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins,rmin,rmax));
     return prototype;
 }
 

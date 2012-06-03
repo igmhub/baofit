@@ -183,7 +183,7 @@ int main(int argc, char **argv) {
         
         baofit::AbsCorrelationDataCPtr prototype;
         if(french) {
-            prototype = baofit::boss::createFrenchPrototype(zfrench);
+            prototype = baofit::boss::createFrenchPrototype(zfrench,rmin,rmax);
         }
         else {
             prototype = baofit::boss::createCosmolibPrototype(
