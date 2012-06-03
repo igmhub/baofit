@@ -21,4 +21,4 @@ local::AbsCorrelationData::~AbsCorrelationData() { }
 
 double local::AbsCorrelationData::getCosAngle(int index) const { return 0; }
 
-int local::AbsCorrelationData::getMultipole(int index) const { return 0; }
+cosmo::Multipole local::AbsCorrelationData::getMultipole(int index) const { return cosmo::Monopole; }

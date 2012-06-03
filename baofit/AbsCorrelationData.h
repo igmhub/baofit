@@ -6,6 +6,8 @@
 #include "likely/BinnedData.h"
 #include "likely/types.h"
 
+#include "cosmo/types.h"
+
 namespace baofit {
 	class AbsCorrelationData : public likely::BinnedData {
 	// Represents data binned in variables that map to the (r,mu,z) coordinates
@@ -28,7 +30,7 @@ namespace baofit {
         virtual double getCosAngle(int index) const;
         // Returns the multipole associated with the specified global index.
         // Will only be called if getTransverseBinningType() returns Multipole.
-        virtual int getMultipole(int index) const;
+        virtual cosmo::Multipole getMultipole(int index) const;
         // Returns the redshift associated with the specified global index.
         virtual double getRedshift(int index) const = 0;
     private:

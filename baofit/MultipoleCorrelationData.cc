@@ -33,12 +33,12 @@ double local::MultipoleCorrelationData::getRadius(int index) const {
     return _rLast;
 }
 
-double local::MultipoleCorrelationData::getRedshift(int index) const {
+cosmo::Multipole local::MultipoleCorrelationData::getMultipole(int index) const {
     _setIndex(index);
     return _ellLast;
 }
 
-int local::MultipoleCorrelationData::getMultipole(int index) const {
+double local::MultipoleCorrelationData::getRedshift(int index) const {
     _setIndex(index);
     return _zLast;
 }
@@ -47,7 +47,19 @@ void local::MultipoleCorrelationData::_setIndex(int index) const {
     if(index == _lastIndex) return;
     getBinCenters(index,_binCenter);
     _rLast = _binCenter[0];
-    _ellLast = (int)std::floor(_binCenter[1]+0.5);
+    switch((int)std::floor(_binCenter[1]+0.5)) {
+    case 0:
+        _ellLast = cosmo::Monopole;
+        break;
+    case 2:
+        _ellLast = cosmo::Quadrupole;
+        break;
+    case 4:
+        _ellLast = cosmo::Hexadecapole;
+        break;
+    default:
+        throw RuntimeError("MultipoleCorrelationData: invalid multipole value.");
+    }
     _zLast = _binCenter[2];
     _lastIndex = index;
 }

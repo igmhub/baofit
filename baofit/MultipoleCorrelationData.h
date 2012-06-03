@@ -19,7 +19,7 @@ namespace baofit {
         // Returns the 3D radius in Mpc/h associated with the specified global index.
         virtual double getRadius(int index) const;
         // Returns the multipole (0,2,4) associated with the specified global index.
-        virtual int getMultipole(int index) const;
+        virtual cosmo::Multipole getMultipole(int index) const;
         // Returns the redshift associated with the specified global index.
         virtual double getRedshift(int index) const;
 	private:
@@ -27,7 +27,7 @@ namespace baofit {
         mutable int _lastIndex;
         mutable std::vector<double> _binCenter;
         mutable double _rLast, _zLast;
-        mutable int _ellLast;
+        mutable cosmo::Multipole _ellLast;
 	}; // MultipoleCorrelationData
 } // baofit
 
