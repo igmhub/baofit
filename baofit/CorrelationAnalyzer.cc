@@ -25,10 +25,15 @@ void local::CorrelationAnalyzer::addData(AbsCorrelationDataCPtr data) {
     _resampler.addObservation(boost::dynamic_pointer_cast<const likely::BinnedData>(data));
 }
 
-likely::FunctionMinimumPtr local::CorrelationAnalyzer::fitCombined(std::string const &method) const {
+local::AbsCorrelationDataPtr local::CorrelationAnalyzer::getCombined() const {
     AbsCorrelationDataPtr combined =
         boost::dynamic_pointer_cast<baofit::AbsCorrelationData>(_resampler.combined());
     combined->finalize();
+    return combined;    
+}
+
+likely::FunctionMinimumPtr local::CorrelationAnalyzer::fitCombined(std::string const &method) const {
+    AbsCorrelationDataPtr combined = getCombined();
     CorrelationFitter fitter(combined,_model);
     likely::FunctionMinimumPtr fmin = fitter.fit(method);
     if(_verbose) fmin->printToStream(std::cout);

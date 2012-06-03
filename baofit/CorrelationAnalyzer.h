@@ -20,6 +20,9 @@ namespace baofit {
         int getNData() const;
         // Sets the correlation model to use.
         void setModel(AbsCorrelationModelCPtr model);
+        // Returns a shared pointer to the combined correlation data added to this
+        // analyzer, after it has been finalized.
+        AbsCorrelationDataPtr getCombined() const;
         // Fits the combined correlation data aadded to this analyzer and returns
         // the estimated function minimum.
         likely::FunctionMinimumPtr fitCombined(std::string const &method) const;
