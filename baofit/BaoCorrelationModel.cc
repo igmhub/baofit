@@ -17,12 +17,12 @@ namespace local = baofit;
 local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName,
     std::string const &fiducialName, std::string const &nowigglesName,
     std::string const &broadbandName, double zref, double initialAmp, double initialScale,
-    bool fixLinear, bool fixBao, bool fixScale, bool noBBand)
+    bool fixAlpha, bool fixLinear, bool fixBao, bool fixScale, bool noBBand)
 : AbsCorrelationModel(), _zref(zref)
 {
     // Define our parameters. The order here determines the order of elements in our
     // parameter vector for our evaluate(...) methods.
-    defineParameter("alpha",3.8,0.3, true); //fixLinear
+    defineParameter("alpha",3.8,0.3, fixAlpha || fixLinear);
     defineParameter("beta",1.0,0.1, fixLinear || (!fixBao && !noBBand));
     defineParameter("(1+beta)*bias",-0.34,0.03, fixLinear || (!fixBao && !noBBand));
     defineParameter("BAO amplitude", initialAmp,0.15,fixBao);

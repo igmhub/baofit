@@ -99,6 +99,7 @@ int main(int argc, char **argv) {
             "Number of high-resolution uniform bins to use for dumping best fit model.")
         ("minos", "Runs MINOS to improve error estimates.")
         **/
+        ("fix-alpha", "Fix linear bias parameter alpha.")
         ("fix-linear", "Fix linear bias parameters alpha, bias, beta.")
         ("fix-bao", "Fix BAO scale and amplitude parameters.")
         ("fix-scale", "Fix BAO scale parameter (amplitude floating).")
@@ -123,7 +124,7 @@ int main(int argc, char **argv) {
         std::cout << cli << std::endl;
         return 1;
     }
-    bool verbose(vm.count("verbose")), minos(vm.count("minos")), 
+    bool verbose(vm.count("verbose")), minos(vm.count("minos")), fixAlpha(vm.count("fix-alpha")),
         fixLinear(vm.count("fix-linear")), fixBao(vm.count("fix-bao")), fixScale(vm.count("fix-scale")),
         noBBand(vm.count("no-bband")), fixCovariance(0 == vm.count("naive-covariance")),
         nullHypothesis(vm.count("null-hypothesis"));
@@ -159,7 +160,7 @@ int main(int argc, char **argv) {
          // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
          model.reset(new baofit::BaoCorrelationModel(
              modelrootName,fiducialName,nowigglesName,broadbandName,zref,
-             initialAmp,initialScale,fixLinear,fixBao,fixScale,noBBand));
+             initialAmp,initialScale,fixAlpha,fixLinear,fixBao,fixScale,noBBand));
 
         if(verbose) std::cout << "Cosmology initialized." << std::endl;
     }
