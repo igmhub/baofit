@@ -29,18 +29,29 @@ namespace qi = boost::spirit::qi;
 namespace ascii = boost::spirit::ascii;
 namespace phoenix = boost::phoenix;
 
-// Loads a binned correlation function in French format and returns a shared pointer to
-// a MultipoleCorrelationData.
-baofit::AbsCorrelationDataPtr
-local::loadFrench(std::string dataName, double zref, bool verbose) {
-
+// Creates a prototype MultipoleCorrelationData with the specified binning.
+baofit::AbsCorrelationDataCPtr local::createFrenchPrototype(double zref) {
     // Create the new BinnedData that we will fill.
     likely::AbsBinningCPtr
         rBins(new likely::UniformBinning(0,200,50)),
         ellBins(new likely::UniformSampling(0,0,1)), // only monopole for now
         zBins(new likely::UniformSampling(zref,zref,1));
     baofit::AbsCorrelationDataPtr
-        binnedData(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins));
+        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins));
+    return prototype;
+}
+
+// Loads a binned correlation function in French format and returns a shared pointer to
+// a MultipoleCorrelationData.
+baofit::AbsCorrelationDataPtr
+local::loadFrench(std::string dataName, baofit::AbsCorrelationDataCPtr prototype, bool verbose) {
+
+    // Create the new AbsCorrelationData that we will fill.
+    baofit::AbsCorrelationDataPtr binnedData((baofit::MultipoleCorrelationData *)(prototype->clone(true)));
+    
+    // Lookup our reference redshift.
+    double zref = prototype->getAxisBinning()[2]->getBinCenter(0);
+    std::cout << "French zref = " << zref << std::endl;
 
     // General stuff we will need for reading both files.
     std::string line;
@@ -132,7 +143,7 @@ int nBins, double breakpoint,double dlog, double dlin, double eps) {
     return samplePoints;
 }
 
-// Creates a prototype QuasarCorrelationFunction with the specified binning and cosmology.
+// Creates a prototype QuasarCorrelationData with the specified binning and cosmology.
 baofit::AbsCorrelationDataCPtr local::createCosmolibPrototype(
 double minsep, double dsep, int nsep, double minz, double dz, int nz,
 double minll, double dll, double dll2, int nll,
@@ -160,7 +171,7 @@ double rmin, double rmax, double llmin, cosmo::AbsHomogeneousUniversePtr cosmolo
 baofit::AbsCorrelationDataPtr local::loadCosmolib(std::string dataName,
 baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov) {
 
-    // Create the new BinnedData that we will fill.
+    // Create the new AbsCorrelationData that we will fill.
     baofit::AbsCorrelationDataPtr binnedData((baofit::QuasarCorrelationData *)(prototype->clone(true)));
 
     // General stuff we will need for reading both files.

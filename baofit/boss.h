@@ -12,7 +12,10 @@
 namespace baofit {
     namespace boss {
 
-        AbsCorrelationDataPtr loadFrench(std::string dataName, double zref, bool verbose);
+        AbsCorrelationDataCPtr createFrenchPrototype(double zref);
+
+        AbsCorrelationDataPtr loadFrench(std::string dataName,
+            AbsCorrelationDataCPtr prototype, bool verbose);
 
         std::vector<double> twoStepSampling(
             int nBins, double breakpoint,double dlog, double dlin, double eps = 1e-3);
