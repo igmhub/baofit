@@ -50,6 +50,7 @@ int main(int argc, char **argv) {
         ("llmin", po::value<double>(&llmin)->default_value(0),
             "Minimum value of log(lam2/lam1) to use in fit.")
         ("french", "3D correlation data files are in the French format (default is cosmolib).")
+        ("dr9lrg", "3D correlation data files are in the BOSS DR9 LRG galaxy format.")
         ("zfrench", po::value<double>(&zfrench)->default_value(2.30),
             "Reference redshift used in French 3D correlation data")
         ("data", po::value<std::string>(&dataName)->default_value(""),
@@ -130,7 +131,8 @@ int main(int argc, char **argv) {
     }
     bool verbose(vm.count("verbose")), french(vm.count("french")), fixAlpha(vm.count("fix-alpha")),
         fixLinear(vm.count("fix-linear")), fixBao(vm.count("fix-bao")), fixScale(vm.count("fix-scale")),
-        noBBand(vm.count("no-bband")), fixCovariance(0 == vm.count("naive-covariance"));
+        noBBand(vm.count("no-bband")), fixCovariance(0 == vm.count("naive-covariance")),
+        dr9lrg(vm.count("dr9lrg"));
     // minos(vm.count("minos")), nullHypothesis(vm.count("null-hypothesis"))
 
     // Check for the required filename parameters.
@@ -185,6 +187,9 @@ int main(int argc, char **argv) {
         if(french) {
             prototype = baofit::boss::createFrenchPrototype(zfrench,rmin,rmax);
         }
+        else if(dr9lrg) {
+            prototype = baofit::boss::createDR9LRGPrototype(0.57,rmin,rmax,"LRG/Sample4_North.cov",verbose);
+        }
         else {
             prototype = baofit::boss::createCosmolibPrototype(
                 minsep,dsep,nsep,minz,dz,nz,minll,dll,dll2,nll,rmin,rmax,llmin,cosmology);
@@ -194,6 +199,9 @@ int main(int argc, char **argv) {
         if(0 < dataName.length()) {
             if(french) {
                 analyzer.addData(baofit::boss::loadFrench(dataName,prototype,verbose));
+            }
+            else if(dr9lrg) {
+                analyzer.addData(baofit::boss::loadDR9LRG(dataName,prototype,verbose));
             }
             else {
                 // Load a single cosmolib dataset, assumed to provide cov instead of icov.
@@ -235,8 +243,8 @@ int main(int argc, char **argv) {
         return -2;
     }
 
-    if(french) {
-        std::ofstream out("french.dat");
+    if(french || dr9lrg) {
+        std::ofstream out("monopole.dat");
         boost::shared_ptr<baofit::MultipoleCorrelationData> combined =
             boost::dynamic_pointer_cast<baofit::MultipoleCorrelationData>(analyzer.getCombined());
         combined->dump(out,cosmo::Monopole);
