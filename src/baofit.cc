@@ -246,11 +246,21 @@ int main(int argc, char **argv) {
     // Do the requested analysis.
     try {
         lk::FunctionMinimumPtr fmin = analyzer.fitCombined("mn2::vmetric");        
-        std::ofstream out("fitmono.dat");
-        analyzer.dump(out,fmin,cosmo::Monopole,100,rmin,rmax,zref);
-        out.close();
         if(bootstrapTrials > 0) {
             analyzer.doBootstrapAnalysis("mn2::vmetric",fmin,bootstrapTrials,bootstrapSize,fixCovariance);
+        }
+        {
+            // Dump the best-fit monopole model.
+            std::ofstream out("fitmono.dat");
+            analyzer.dump(out,fmin,cosmo::Monopole,100,rmin,rmax,zref);
+            out.close();
+        }
+        {
+            // Dump the best-fit monopole model without its peak contribution.
+            fmin->setParameterValue("BAO amplitude",0);
+            std::ofstream out("fitmono-smooth.dat");
+            analyzer.dump(out,fmin,cosmo::Monopole,100,rmin,rmax,zref);
+            out.close();
         }
     }
     catch(cosmo::RuntimeError const &e) {
