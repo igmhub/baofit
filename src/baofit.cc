@@ -155,7 +155,7 @@ int main(int argc, char **argv) {
     // Initialize our analyzer.
     baofit::CorrelationAnalyzer analyzer(randomSeed,verbose);
 
-    // Initialize the cosmology models we will use.
+    // Initialize the models we will use.
     cosmo::AbsHomogeneousUniversePtr cosmology;
     baofit::AbsCorrelationModelCPtr model;
     try {
@@ -167,22 +167,24 @@ int main(int argc, char **argv) {
              modelrootName,fiducialName,nowigglesName,broadbandName,zref,
              initialAmp,initialScale,fixAlpha,fixBeta,fixBias,fixBao,fixScale,noBBand));
 
-        if(verbose) std::cout << "Cosmology initialized." << std::endl;
+        if(verbose) std::cout << "Models initialized." << std::endl;
     }
     catch(cosmo::RuntimeError const &e) {
-        std::cerr << "ERROR during cosmology initialization:\n  " << e.what() << std::endl;
+        std::cerr << "ERROR during model initialization:\n  " << e.what() << std::endl;
         return -2;
     }
     catch(lk::RuntimeError const &e) {
-        std::cerr << "ERROR during cosmology initialization:\n  " << e.what() << std::endl;
+        std::cerr << "ERROR during model initialization:\n  " << e.what() << std::endl;
         return -2;
     }
+    if(verbose) model->printToStream(std::cout);
     analyzer.setModel(model);
     
     // Load the data we will fit.
     double zdata;
     try {
         
+        // Create a prototype of the binned data we will be loading.
         baofit::AbsCorrelationDataCPtr prototype;
         if(french) {
             zdata = 2.30;
@@ -199,21 +201,14 @@ int main(int argc, char **argv) {
                 minsep,dsep,nsep,minz,dz,nz,minll,dll,dll2,nll,rmin,rmax,llmin,cosmology);
         }
         
-        // Initialize the dataset we will fill.
+        // Build a list of the data files we will read.
+        std::vector<std::string> filelist;
         if(0 < dataName.length()) {
-            if(french) {
-                analyzer.addData(baofit::boss::loadFrench(dataName,prototype,verbose));
-            }
-            else if(dr9lrg) {
-                analyzer.addData(baofit::boss::loadDR9LRG(dataName,prototype,verbose));
-            }
-            else {
-                // Load a single cosmolib dataset, assumed to provide cov instead of icov.
-                analyzer.addData(baofit::boss::loadCosmolib(dataName,prototype,verbose,false));
-            }
+            // Load a single named file specified by --data.
+            filelist.push_back(dataName);
         }
         else {
-            // Load individual plate datasets.
+            // Load individual plate files specified by --plateroot and --platelist.
             std::string plateName;
             boost::format platefile("%s%s");
             platelistName = platerootName + platelistName;
@@ -229,20 +224,28 @@ int main(int argc, char **argv) {
                     std::cerr << "Error while reading platelist from " << platelistName << std::endl;
                     return -1;
                 }
-                std::string filename(boost::str(platefile % platerootName % plateName));
-                if(french) {
-                    analyzer.addData(baofit::boss::loadFrench(filename,prototype,verbose));
-                }
-                else if(dr9lrg) {
-                    analyzer.addData(baofit::boss::loadDR9LRG(filename,prototype,verbose));
-                }
-                else {
-                    // Add a cosmolib dataset, assumed to provided icov instead of cov.
-                    analyzer.addData(baofit::boss::loadCosmolib(filename,prototype,verbose,true));
-                }
-                if(analyzer.getNData() == maxPlates) break;
+                filelist.push_back(boost::str(platefile % platerootName % plateName));
+                if(filelist.size() == maxPlates) break;
             }
             platelist.close();
+            if(verbose) {
+                std::cout << "Read " << filelist.size() << " entries from " << platelistName << std::endl;
+            }
+        }
+        
+        // Load each file into our analyzer.
+        for(std::vector<std::string>::const_iterator filename = filelist.begin();
+        filename != filelist.end(); ++filename) {
+            if(french) {
+                analyzer.addData(baofit::boss::loadFrench(*filename,prototype,verbose));
+            }
+            else if(dr9lrg) {
+                analyzer.addData(baofit::boss::loadDR9LRG(*filename,prototype,verbose));
+            }
+            else {
+                // Add a cosmolib dataset, assumed to provided icov instead of cov.
+                analyzer.addData(baofit::boss::loadCosmolib(*filename,prototype,verbose,true));
+            }            
         }
     }
     catch(baofit::RuntimeError const &e) {
