@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
     double OmegaMatter,hubbleConstant,zref,minll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin;
     int nll,nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed; //,ncontour,modelBins
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName; //,dumpName
-    double initialAmp,initialScale,zfrench;
+    double initialAmp,initialScale;
     std::string platelistName,platerootName; //,bootstrapSaveName,bootstrapCurvesName
     cli.add_options()
         ("help,h", "Prints this info and exits.")
@@ -51,8 +51,6 @@ int main(int argc, char **argv) {
             "Minimum value of log(lam2/lam1) to use in fit.")
         ("french", "3D correlation data files are in the French format (default is cosmolib).")
         ("dr9lrg", "3D correlation data files are in the BOSS DR9 LRG galaxy format.")
-        ("zfrench", po::value<double>(&zfrench)->default_value(2.30),
-            "Reference redshift used in French 3D correlation data")
         ("data", po::value<std::string>(&dataName)->default_value(""),
             "3D correlation data will be read from the specified file.")
         ("platelist", po::value<std::string>(&platelistName)->default_value(""),
@@ -181,16 +179,21 @@ int main(int argc, char **argv) {
     analyzer.setModel(model);
     
     // Load the data we will fit.
+    double zdata;
     try {
         
         baofit::AbsCorrelationDataCPtr prototype;
         if(french) {
-            prototype = baofit::boss::createFrenchPrototype(zfrench,rmin,rmax);
+            zdata = 2.30;
+            prototype = baofit::boss::createFrenchPrototype(zdata,rmin,rmax);
         }
         else if(dr9lrg) {
-            prototype = baofit::boss::createDR9LRGPrototype(0.57,rmin,rmax,"LRG/Sample4_North.cov",verbose);
+            zdata = 0.57;
+            prototype = baofit::boss::createDR9LRGPrototype(zdata,rmin,rmax,
+                "LRG/Sample4_North.cov",verbose);
         }
         else {
+            zdata = 2.25;
             prototype = baofit::boss::createCosmolibPrototype(
                 minsep,dsep,nsep,minz,dz,nz,minll,dll,dll2,nll,rmin,rmax,llmin,cosmology);
         }
@@ -260,14 +263,14 @@ int main(int argc, char **argv) {
         {
             // Dump the best-fit monopole model.
             std::ofstream out("fitmono.dat");
-            analyzer.dump(out,fmin,cosmo::Monopole,100,rmin,rmax,zref);
+            analyzer.dump(out,fmin,cosmo::Monopole,100,rmin,rmax,zdata);
             out.close();
         }
         {
             // Dump the best-fit monopole model without its peak contribution.
             fmin->setParameterValue("BAO amplitude",0);
             std::ofstream out("fitmono-smooth.dat");
-            analyzer.dump(out,fmin,cosmo::Monopole,100,rmin,rmax,zref);
+            analyzer.dump(out,fmin,cosmo::Monopole,100,rmin,rmax,zdata);
             out.close();
         }
     }
