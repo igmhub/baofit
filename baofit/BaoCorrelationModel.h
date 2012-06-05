@@ -30,6 +30,8 @@ namespace baofit {
         // r and average pair redshift z.
         virtual double evaluate(double r, cosmo::Multipole multipole, double z,
             std::vector<double> const &params) const;
+        // Prints a multi-line description of this object to the specified output stream.
+        virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
 	private:
         double _zref;
         cosmo::RsdCorrelationFunctionPtr _fid, _nw, _bbc, _bb1, _bb2;

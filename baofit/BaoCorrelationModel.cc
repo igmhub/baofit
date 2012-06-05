@@ -18,7 +18,7 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
     std::string const &fiducialName, std::string const &nowigglesName,
     std::string const &broadbandName, double zref, double initialAmp, double initialScale,
     bool fixAlpha, bool fixBeta, bool fixBias, bool fixBao, bool fixScale, bool noBBand)
-: AbsCorrelationModel(), _zref(zref)
+: AbsCorrelationModel("BAO"), _zref(zref)
 {
     // Define our parameters. The order here determines the order of elements in our
     // parameter vector for our evaluate(...) methods.
@@ -132,27 +132,7 @@ std::vector<double> const &params) const {
     return bias*bias*zfactor*(peak + broadband);
 }
 
-/*
-std::vector<double> local::BaoCorrelationModel::evaluateMultipoles(double r,
-std::vector<double> const &params) const {
-    std::vector<double> pcopy(params);
-    pcopy[0] = 0; // alpha = 0 to fix z = zref
-    //pcopy[1] = 1; // fix bias = 1
-
-    pcopy[2] = 0; // mu=0, beta = 0 gives xi = xi0
-    double xia = evaluate(r,0,0,pcopy);
-    
-    pcopy[2] = +1; // mu=0, beta = +1 gives xi = (28/15)xi0 - (20/21)xi2 +(3/35)xi4
-    double xib = evaluate(r,0,0,pcopy);
-
-    pcopy[2] = -1; // mu=0, beta = -1 gives xi = (8/15)xi0 + (8/21)xi2 + (3/35)xi4
-    double xic = evaluate(r,0,0,pcopy);
-    
-    // Solve for xi0,xi2,xi4
-    std::vector<double> xi(3);
-    xi[0] = xia;
-    xi[1] = xia - (3./4.)*(xib - xic);
-    xi[2] = (-32*xia + 10*xib + 25*xic)/3;
-    return xi;
+void  local::BaoCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
+    AbsCorrelationModel::printToStream(out,formatSpec);
+    out << std::endl << "Reference redshift = " << _zref << std::endl;
 }
-*/

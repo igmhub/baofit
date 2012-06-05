@@ -7,13 +7,15 @@
 
 #include "cosmo/types.h"
 
+#include <string>
 #include <vector>
+#include <iosfwd>
 
 namespace baofit {
 	class AbsCorrelationModel {
 	// Represents an abstract parameterized model of a two-point correlation function.
 	public:
-		AbsCorrelationModel();
+		AbsCorrelationModel(std::string const &name);
 		virtual ~AbsCorrelationModel();
 		// Returns the correlation function evaluated in redshift space where (r,mu) is
 		// the pair separation and z is their average redshift. The separation r should
@@ -28,9 +30,12 @@ namespace baofit {
         likely::FitParameters const &getParameters() const;
         // Returns the number of model parameters (including both floating and fixed).
         int getNParameters() const;
+        // Prints a multi-line description of this object to the specified output stream.
+        virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
     protected:
         void defineParameter(std::string const &name, double value, double error, bool fixed);
 	private:
+        std::string _name;
         likely::FitParameters _parameters;
 	}; // AbsCorrelationModel
 
