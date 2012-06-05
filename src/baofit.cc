@@ -233,6 +233,9 @@ int main(int argc, char **argv) {
                 if(french) {
                     analyzer.addData(baofit::boss::loadFrench(filename,prototype,verbose));
                 }
+                else if(dr9lrg) {
+                    analyzer.addData(baofit::boss::loadDR9LRG(filename,prototype,verbose));
+                }
                 else {
                     // Add a cosmolib dataset, assumed to provided icov instead of cov.
                     analyzer.addData(baofit::boss::loadCosmolib(filename,prototype,verbose,true));
