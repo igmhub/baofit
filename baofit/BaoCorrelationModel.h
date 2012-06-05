@@ -19,7 +19,7 @@ namespace baofit {
 		BaoCorrelationModel(std::string const &modelrootName,
 		    std::string const &fiducialName, std::string const &nowigglesName,
             std::string const &broadbandName, double zref, double initialAmp, double initialScale,
-            bool fixAlpha, bool fixLinear, bool fixBao, bool fixScale, bool noBBand);
+            bool fixAlpha, bool fixBeta, bool fixBias, bool fixBao, bool fixScale, bool noBBand);
 		virtual ~BaoCorrelationModel();
 		// Returns the correlation function evaluated in redshift space where (r,mu) is
 		// the pair separation and z is their average redshift. The separation r should

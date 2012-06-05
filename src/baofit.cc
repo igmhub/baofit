@@ -103,7 +103,8 @@ int main(int argc, char **argv) {
         ("minos", "Runs MINOS to improve error estimates.")
         **/
         ("fix-alpha", "Fix linear bias parameter alpha.")
-        ("fix-linear", "Fix linear bias parameters alpha, bias, beta.")
+        ("fix-beta", "Fix linear bias parameter beta.")
+        ("fix-bias", "Fix linear bias parameter (1+beta)*bias.")
         ("fix-bao", "Fix BAO scale and amplitude parameters.")
         ("fix-scale", "Fix BAO scale parameter (amplitude floating).")
         ("no-bband", "Do not add any broadband contribution to the correlation function.")
@@ -128,9 +129,9 @@ int main(int argc, char **argv) {
         return 1;
     }
     bool verbose(vm.count("verbose")), french(vm.count("french")), fixAlpha(vm.count("fix-alpha")),
-        fixLinear(vm.count("fix-linear")), fixBao(vm.count("fix-bao")), fixScale(vm.count("fix-scale")),
+        fixBias(vm.count("fix-bias")), fixBao(vm.count("fix-bao")), fixScale(vm.count("fix-scale")),
         noBBand(vm.count("no-bband")), fixCovariance(0 == vm.count("naive-covariance")),
-        dr9lrg(vm.count("dr9lrg"));
+        dr9lrg(vm.count("dr9lrg")), fixBeta(vm.count("fix-beta"));
     // minos(vm.count("minos")), nullHypothesis(vm.count("null-hypothesis"))
 
     // Check for the required filename parameters.
@@ -164,7 +165,7 @@ int main(int argc, char **argv) {
          // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
          model.reset(new baofit::BaoCorrelationModel(
              modelrootName,fiducialName,nowigglesName,broadbandName,zref,
-             initialAmp,initialScale,fixAlpha,fixLinear,fixBao,fixScale,noBBand));
+             initialAmp,initialScale,fixAlpha,fixBeta,fixBias,fixBao,fixScale,noBBand));
 
         if(verbose) std::cout << "Cosmology initialized." << std::endl;
     }
