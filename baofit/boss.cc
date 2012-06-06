@@ -236,9 +236,10 @@ local::loadFrench(std::string const &dataName, baofit::AbsCorrelationDataCPtr pr
     return binnedData;
 }
 
+// Reproduce the hybrid linear-log binning of cosmolib's ForestCovariance3DTheory_Xi::BinToWavelength_3D
 std::vector<double> local::twoStepSampling(
-int nBins, double breakpoint,double dlog, double dlin, double eps) {
-    if(!(breakpoint > 0 && dlog > 0 && dlin > 0 && eps > 0)) {
+int nBins, double breakpoint,double dlog, double dlin) {
+    if(!(breakpoint > 0 && dlog > 0 && dlin > 0)) {
         throw RuntimeError("twoStepSampling: invalid parameters.");
     }
     std::vector<double> samplePoints;
