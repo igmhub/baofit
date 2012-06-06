@@ -36,8 +36,10 @@ namespace baofit {
             int bootstrapTrials, int bootstrapSize = 0, bool fixCovariance = true) const;
         // Dumps the specified fit result to the specified output stream. The fit result
         // is assumed to correspond to model that is currently associated with this analyzer.
+        // Use the optional script to modify the parameters used in the model.
         void dump(std::ostream &out, likely::FunctionMinimumPtr fmin,
-            cosmo::Multipole multipole, int nr, double rmin, double rmax, double zval) const;
+            cosmo::Multipole multipole, int nr, double rmin, double rmax, double zval,
+            std::string const &script = "") const;
 	private:
         bool _verbose;
         likely::BinnedDataResampler _resampler;

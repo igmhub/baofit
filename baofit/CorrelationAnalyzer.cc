@@ -107,15 +107,25 @@ likely::FunctionMinimumPtr fmin, int bootstrapTrials, int bootstrapSize, bool fi
 }
 
 void local::CorrelationAnalyzer::dump(std::ostream &out, likely::FunctionMinimumPtr fmin,
-cosmo::Multipole multipole, int nr, double rmin, double rmax, double zval) const {
+cosmo::Multipole multipole, int nr, double rmin, double rmax, double zval,
+std::string const &script) const {
     if(rmin >= rmax || nr < 2) {
         throw RuntimeError("CorrelationAnalyzer::dump: invalid radial parameters.");
     }
-    likely::Parameters params(fmin->getParameters());
+    // Get a copy of the the parameters at this minimum.
+    likely::FitParameters parameters(fmin->getFitParameters());
+    // Should check that these parameters are "congruent" (have same names?) with model params.
+    // assert(parameters.isCongruent(model...))
+    // Modify the parameters using the specified script, if any.
+    if(0 < script.length()) likely::modifyFitParameters(parameters, script);
+    // Get the parameter values (floating + fixed)
+    likely::Parameters parameterValues;
+    likely::getFitParameterValues(parameters,parameterValues);
+    // Loop over the specified radial grid.
     double dr((rmax-rmin)/(nr-1));
     for(int rIndex = 0; rIndex < nr; ++rIndex) {
         double rval(rmin+dr*rIndex);
-        double pred = _model->evaluate(rval,multipole,zval,params);
+        double pred = _model->evaluate(rval,multipole,zval,parameterValues);
         out << rval << ' ' << pred << std::endl;
     }
 }

@@ -298,10 +298,9 @@ int main(int argc, char **argv) {
             out.close();
         }
         {
-            // Dump the best-fit monopole model without its peak contribution.
-            fmin->setParameterValue("BAO amplitude",0);
+            // Dump the best-fit monopole model with its peak contribution forced to zero.
             std::ofstream out("fitmono-smooth.dat");
-            analyzer.dump(out,fmin,cosmo::Monopole,100,rmin,rmax,zdata);
+            analyzer.dump(out,fmin,cosmo::Monopole,100,rmin,rmax,zdata,"value[BAO amplitude]=0");
             out.close();
         }
     }
