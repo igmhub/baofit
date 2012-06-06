@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
     // messages. See http://stackoverflow.com/questions/1734916/
     genericOptions.add_options()
         ("help,h", "Prints this info and exits.")
-        ("verbose", "Prints additional information.")
+        ("quiet,q", "Run silently unless there is a problem.")
         ;
     modelOptions.add_options()
         ("omega-matter", po::value<double>(&OmegaMatter)->default_value(0.27,"0.27"),
@@ -132,7 +132,7 @@ int main(int argc, char **argv) {
         std::cout << allOptions << std::endl;
         return 1;
     }
-    bool verbose(vm.count("verbose")), french(vm.count("french")),
+    bool verbose(0 == vm.count("quiet")), french(vm.count("french")),
         fixCovariance(0 == vm.count("naive-covariance")),
         dr9lrg(vm.count("dr9lrg")), fixBeta(vm.count("fix-beta"));
     // minos(vm.count("minos")), nullHypothesis(vm.count("null-hypothesis"))
