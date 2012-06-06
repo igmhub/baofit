@@ -14,9 +14,8 @@ local::AbsCorrelationModel::AbsCorrelationModel(std::string const &name)
 
 local::AbsCorrelationModel::~AbsCorrelationModel() { }
 
-void local::AbsCorrelationModel::defineParameter(std::string const &name,
-double value, double error, bool fixed) {
-    _parameters.push_back(likely::FitParameter(name,value,fixed ? 0 : error));
+void local::AbsCorrelationModel::defineParameter(std::string const &name, double value, double error) {
+    _parameters.push_back(likely::FitParameter(name,value,error));
 }
 
 likely::FitParameters const &local::AbsCorrelationModel::getParameters() const {

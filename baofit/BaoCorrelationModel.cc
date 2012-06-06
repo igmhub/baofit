@@ -22,15 +22,15 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
 {
     // Define our parameters. The order here determines the order of elements in our
     // parameter vector for our evaluate(...) methods.
-    defineParameter("alpha",3.8,0.3, fixAlpha);
-    defineParameter("beta",1.0,0.1, fixBeta);
-    defineParameter("(1+beta)*bias",-0.34,0.03, fixBias);
-    defineParameter("BAO amplitude", initialAmp,0.15,fixBao);
-    defineParameter("BAO scale", initialScale,0.02,fixBao || fixScale);
-    defineParameter("BBand xio",0,0.001, noBBand);
-    defineParameter("BBand a0",-2.5,0.2, noBBand);
-    defineParameter("BBand a1",-1.8,2, noBBand);
-    defineParameter("BBand a2",0,2, noBBand);
+    defineParameter("alpha",3.8,0.3);
+    defineParameter("beta",1.0,0.1);
+    defineParameter("(1+beta)*bias",-0.34,0.03);
+    defineParameter("BAO amplitude",1,0.15);
+    defineParameter("BAO scale",1,0.02);
+    defineParameter("BBand xio",0,0.001);
+    defineParameter("BBand a0",-2.5,0.2);
+    defineParameter("BBand a1",-1.8,2);
+    defineParameter("BBand a2",0,2);
     // Load the interpolation data we will use for each multipole of each model.
     std::string root(modelrootName);
     if(0 < root.size() && root[root.size()-1] != '/') root += '/';

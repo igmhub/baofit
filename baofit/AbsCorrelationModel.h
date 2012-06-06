@@ -35,7 +35,10 @@ namespace baofit {
         // Configures our fit parameters using the specified script.
         virtual void configure(std::string const &script);
     protected:
-        void defineParameter(std::string const &name, double value, double error, bool fixed);
+        // Subclasses use this method to define their parameters. Parameters should generally
+        // be specified with a reasonable error > 0 since the configure() method provides a
+        // convenient way to fix a parameter before a fit.
+        void defineParameter(std::string const &name, double value, double error);
 	private:
         std::string _name;
         likely::FitParameters _parameters;
