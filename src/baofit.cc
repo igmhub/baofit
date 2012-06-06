@@ -19,59 +19,50 @@ namespace po = boost::program_options;
 
 int main(int argc, char **argv) {
     
-    // Configure command-line option processing
-    po::options_description cli("BAO fitting");
+    // Configure option processing
+    po::options_description allOptions("BAO fitting"), genericOptions("Generic"), modelOptions("Model"),
+        dataOptions("Data"), cosmolibOptions("Cosmolib"), analysisOptions("Analysis");
+
     double OmegaMatter,hubbleConstant,zref,minll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin;
     int nll,nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed; //,ncontour,modelBins
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName; //,dumpName
     std::string platelistName,platerootName,modelConfig; //,bootstrapSaveName,bootstrapCurvesName
-    cli.add_options()
+
+    genericOptions.add_options()
         ("help,h", "Prints this info and exits.")
         ("verbose", "Prints additional information.")
+        ;
+    modelOptions.add_options()
         ("omega-matter", po::value<double>(&OmegaMatter)->default_value(0.27),
             "Present-day value of OmegaMatter.")
         ("hubble-constant", po::value<double>(&hubbleConstant)->default_value(0.7),
             "Present-day value of the Hubble parameter h = H0/(100 km/s/Mpc).")
-        ("modelroot", po::value<std::string>(&modelrootName)->default_value(""),
-            "Common path to prepend to all model filenames.")
         ("fiducial", po::value<std::string>(&fiducialName)->default_value(""),
             "Fiducial correlation functions will be read from <name>.<ell>.dat with ell=0,2,4.")
         ("nowiggles", po::value<std::string>(&nowigglesName)->default_value(""),
             "No-wiggles correlation functions will be read from <name>.<ell>.dat with ell=0,2,4.")
         ("broadband", po::value<std::string>(&broadbandName)->default_value(""),
             "Broadband models will be read from <name>bb<x>.<ell>.dat with x=c,1,2 and ell=0,2,4.")
+        ("modelroot", po::value<std::string>(&modelrootName)->default_value(""),
+            "Common path to prepend to all model filenames.")
         ("zref", po::value<double>(&zref)->default_value(2.25),
             "Reference redshift used by model correlation functions.")
-        ("rmin", po::value<double>(&rmin)->default_value(0),
-            "Minimum 3D comoving separation (Mpc/h) to use in fit.")
-        ("rmax", po::value<double>(&rmax)->default_value(200),
-            "Maximum 3D comoving separation (Mpc/h) to use in fit.")
-        ("llmin", po::value<double>(&llmin)->default_value(0),
-            "Minimum value of log(lam2/lam1) to use in fit.")
-        ("french", "3D correlation data files are in the French format (default is cosmolib).")
-        ("dr9lrg", "3D correlation data files are in the BOSS DR9 LRG galaxy format.")
+        ("model-config", po::value<std::string>(&modelConfig)->default_value(""),
+            "Model parameters configuration script.")
+        ;
+    dataOptions.add_options()
         ("data", po::value<std::string>(&dataName)->default_value(""),
             "3D correlation data will be read from the specified file.")
         ("platelist", po::value<std::string>(&platelistName)->default_value(""),
             "3D correlation data will be read from individual plate datafiles listed in this file.")
         ("plateroot", po::value<std::string>(&platerootName)->default_value(""),
             "Common path to prepend to all plate datafiles listed in the platelist.")
+        ("french", "3D correlation data files are in the French format (default is cosmolib).")
+        ("dr9lrg", "3D correlation data files are in the BOSS DR9 LRG galaxy format.")
         ("max-plates", po::value<int>(&maxPlates)->default_value(0),
             "Maximum number of plates to load (zero uses all available plates).")
-        ("bootstrap-trials", po::value<int>(&bootstrapTrials)->default_value(0),
-            "Number of bootstrap trials to run if a platelist was provided.")
-        ("bootstrap-size", po::value<int>(&bootstrapSize)->default_value(0),
-            "Size of each bootstrap trial or zero to use the number of plates.")
-        /**
-        ("bootstrap-save", po::value<std::string>(&bootstrapSaveName)->default_value("bstrials.txt"),
-            "Name of file to write with results of each bootstrap trial.")
-        ("bootstrap-curves", po::value<std::string>(&bootstrapCurvesName)->default_value(""),
-            "Name of file to write individual bootstrap fit multipole curves to.")
-        ("naive-covariance", "Uses the naive covariance matrix for each bootstrap trial.")
-        ("null-hypothesis", "Applies theory offsets to simulate the null hypothesis.")
-        **/
-        ("random-seed", po::value<int>(&randomSeed)->default_value(1966),
-            "Random seed to use for generating bootstrap samples.")
+        ;
+    cosmolibOptions.add_options()
         ("minll", po::value<double>(&minll)->default_value(0.0002),
             "Minimum log(lam2/lam1).")
         ("dll", po::value<double>(&dll)->default_value(0.004),
@@ -92,7 +83,28 @@ int main(int argc, char **argv) {
             "Redshift binsize.")
         ("nz", po::value<int>(&nz)->default_value(2),
             "Maximum number of redshift bins.")
+        ;
+    analysisOptions.add_options()
+        ("rmin", po::value<double>(&rmin)->default_value(0),
+            "Minimum 3D comoving separation (Mpc/h) to use in fit.")
+        ("rmax", po::value<double>(&rmax)->default_value(200),
+            "Maximum 3D comoving separation (Mpc/h) to use in fit.")
+        ("llmin", po::value<double>(&llmin)->default_value(0),
+            "Minimum value of log(lam2/lam1) to use in fit.")
+        ("bootstrap-trials", po::value<int>(&bootstrapTrials)->default_value(0),
+            "Number of bootstrap trials to run if a platelist was provided.")
+        ("bootstrap-size", po::value<int>(&bootstrapSize)->default_value(0),
+            "Size of each bootstrap trial or zero to use the number of plates.")
+        ("random-seed", po::value<int>(&randomSeed)->default_value(1966),
+            "Random seed to use for generating bootstrap samples.")
+        ;
         /**
+        ("bootstrap-save", po::value<std::string>(&bootstrapSaveName)->default_value("bstrials.txt"),
+            "Name of file to write with results of each bootstrap trial.")
+        ("bootstrap-curves", po::value<std::string>(&bootstrapCurvesName)->default_value(""),
+            "Name of file to write individual bootstrap fit multipole curves to.")
+        ("naive-covariance", "Uses the naive covariance matrix for each bootstrap trial.")
+        ("null-hypothesis", "Applies theory offsets to simulate the null hypothesis.")
         ("dump", po::value<std::string>(&dumpName)->default_value(""),
             "Filename for dumping fit results.")
         ("ncontour",po::value<int>(&ncontour)->default_value(0),
@@ -101,14 +113,13 @@ int main(int argc, char **argv) {
             "Number of high-resolution uniform bins to use for dumping best fit model.")
         ("minos", "Runs MINOS to improve error estimates.")
         **/
-        ("model-config", po::value<std::string>(&modelConfig)->default_value(""),
-            "Model parameters configuration script.")
-        ;
 
-    // Do the command line parsing now.
+    allOptions.add(genericOptions).add(modelOptions).add(dataOptions)
+        .add(cosmolibOptions).add(analysisOptions);
     po::variables_map vm;
+    // Parse command line options first.
     try {
-        po::store(po::parse_command_line(argc, argv, cli), vm);
+        po::store(po::parse_command_line(argc, argv, allOptions), vm);
         po::notify(vm);
     }
     catch(std::exception const &e) {
@@ -116,7 +127,7 @@ int main(int argc, char **argv) {
         return -1;
     }
     if(vm.count("help")) {
-        std::cout << cli << std::endl;
+        std::cout << allOptions << std::endl;
         return 1;
     }
     bool verbose(vm.count("verbose")), french(vm.count("french")),
