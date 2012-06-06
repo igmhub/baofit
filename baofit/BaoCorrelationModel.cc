@@ -16,8 +16,7 @@ namespace local = baofit;
 
 local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName,
     std::string const &fiducialName, std::string const &nowigglesName,
-    std::string const &broadbandName, double zref, double initialAmp, double initialScale,
-    bool fixAlpha, bool fixBeta, bool fixBias, bool fixBao, bool fixScale, bool noBBand)
+    std::string const &broadbandName, double zref)
 : AbsCorrelationModel("BAO"), _zref(zref)
 {
     // Define our parameters. The order here determines the order of elements in our

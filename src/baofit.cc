@@ -24,7 +24,6 @@ int main(int argc, char **argv) {
     double OmegaMatter,hubbleConstant,zref,minll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin;
     int nll,nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed; //,ncontour,modelBins
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName; //,dumpName
-    double initialAmp,initialScale;
     std::string platelistName,platerootName,modelConfig; //,bootstrapSaveName,bootstrapCurvesName
     cli.add_options()
         ("help,h", "Prints this info and exits.")
@@ -104,16 +103,6 @@ int main(int argc, char **argv) {
         **/
         ("model-config", po::value<std::string>(&modelConfig)->default_value(""),
             "Model parameters configuration script.")
-        ("fix-alpha", "Fix linear bias parameter alpha.")
-        ("fix-beta", "Fix linear bias parameter beta.")
-        ("fix-bias", "Fix linear bias parameter (1+beta)*bias.")
-        ("fix-bao", "Fix BAO scale and amplitude parameters.")
-        ("fix-scale", "Fix BAO scale parameter (amplitude floating).")
-        ("no-bband", "Do not add any broadband contribution to the correlation function.")
-        ("initial-amp", po::value<double>(&initialAmp)->default_value(1),
-            "Initial value for the BAO amplitude parameter.")
-        ("initial-scale", po::value<double>(&initialScale)->default_value(1),
-            "Initial value for the BAO scale parameter.")
         ;
 
     // Do the command line parsing now.
@@ -130,9 +119,8 @@ int main(int argc, char **argv) {
         std::cout << cli << std::endl;
         return 1;
     }
-    bool verbose(vm.count("verbose")), french(vm.count("french")), fixAlpha(vm.count("fix-alpha")),
-        fixBias(vm.count("fix-bias")), fixBao(vm.count("fix-bao")), fixScale(vm.count("fix-scale")),
-        noBBand(vm.count("no-bband")), fixCovariance(0 == vm.count("naive-covariance")),
+    bool verbose(vm.count("verbose")), french(vm.count("french")),
+        fixCovariance(0 == vm.count("naive-covariance")),
         dr9lrg(vm.count("dr9lrg")), fixBeta(vm.count("fix-beta"));
     // minos(vm.count("minos")), nullHypothesis(vm.count("null-hypothesis"))
 
@@ -166,8 +154,7 @@ int main(int argc, char **argv) {
         
         // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
         model.reset(new baofit::BaoCorrelationModel(
-            modelrootName,fiducialName,nowigglesName,broadbandName,zref,
-            initialAmp,initialScale,fixAlpha,fixBeta,fixBias,fixBao,fixScale,noBBand));
+            modelrootName,fiducialName,nowigglesName,broadbandName,zref));
              
         // Configure our fit model parameters, if requested.
          if(0 < modelConfig.length()) model->configure(modelConfig);
