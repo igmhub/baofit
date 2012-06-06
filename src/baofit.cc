@@ -28,14 +28,16 @@ int main(int argc, char **argv) {
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName; //,dumpName
     std::string platelistName,platerootName,modelConfig; //,bootstrapSaveName,bootstrapCurvesName
 
+    // Default values in quotes below are to avoid roundoff errors leading to ugly --help
+    // messages. See http://stackoverflow.com/questions/1734916/
     genericOptions.add_options()
         ("help,h", "Prints this info and exits.")
         ("verbose", "Prints additional information.")
         ;
     modelOptions.add_options()
-        ("omega-matter", po::value<double>(&OmegaMatter)->default_value(0.27),
+        ("omega-matter", po::value<double>(&OmegaMatter)->default_value(0.27,"0.27"),
             "Present-day value of OmegaMatter.")
-        ("hubble-constant", po::value<double>(&hubbleConstant)->default_value(0.7),
+        ("hubble-constant", po::value<double>(&hubbleConstant)->default_value(0.7,"0.7"),
             "Present-day value of the Hubble parameter h = H0/(100 km/s/Mpc).")
         ("fiducial", po::value<std::string>(&fiducialName)->default_value(""),
             "Fiducial correlation functions will be read from <name>.<ell>.dat with ell=0,2,4.")
@@ -63,9 +65,9 @@ int main(int argc, char **argv) {
             "Maximum number of plates to load (zero uses all available plates).")
         ;
     cosmolibOptions.add_options()
-        ("minll", po::value<double>(&minll)->default_value(0.0002),
+        ("minll", po::value<double>(&minll)->default_value(0.0002,"0.0002"),
             "Minimum log(lam2/lam1).")
-        ("dll", po::value<double>(&dll)->default_value(0.004),
+        ("dll", po::value<double>(&dll)->default_value(0.004,"0.004"),
             "log(lam2/lam1) binsize.")
         ("dll2", po::value<double>(&dll2)->default_value(0),
             "log(lam2/lam1) second binsize parameter for two-step binning.")
@@ -77,9 +79,9 @@ int main(int argc, char **argv) {
             "Separation binsize in arcmins.")
         ("nsep", po::value<int>(&nsep)->default_value(14),
             "Maximum number of separation bins.")
-        ("minz", po::value<double>(&minz)->default_value(1.7),
+        ("minz", po::value<double>(&minz)->default_value(1.7,"1.7"),
             "Minimum redshift.")
-        ("dz", po::value<double>(&dz)->default_value(1.0),
+        ("dz", po::value<double>(&dz)->default_value(1.0,"1.0"),
             "Redshift binsize.")
         ("nz", po::value<int>(&nz)->default_value(2),
             "Maximum number of redshift bins.")
