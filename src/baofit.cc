@@ -20,19 +20,22 @@ namespace po = boost::program_options;
 int main(int argc, char **argv) {
     
     // Configure option processing
-    po::options_description allOptions("BAO fitting"), genericOptions("Generic"), modelOptions("Model"),
-        dataOptions("Data"), cosmolibOptions("Cosmolib"), analysisOptions("Analysis");
+    po::options_description allOptions("Fits cosmological data to measure baryon acoustic oscillations"),
+        genericOptions("Generic options"),modelOptions("Model options"), dataOptions("Data options"),
+        cosmolibOptions("Cosmolib data options"), analysisOptions("Analysis options");
 
     double OmegaMatter,hubbleConstant,zref,minll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin;
     int nll,nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed; //,ncontour,modelBins
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName; //,dumpName
-    std::string platelistName,platerootName,modelConfig; //,bootstrapSaveName,bootstrapCurvesName
+    std::string platelistName,platerootName,modelConfig,iniName; //,bootstrapSaveName,bootstrapCurvesName
 
     // Default values in quotes below are to avoid roundoff errors leading to ugly --help
     // messages. See http://stackoverflow.com/questions/1734916/
     genericOptions.add_options()
         ("help,h", "Prints this info and exits.")
-        ("quiet,q", "Run silently unless there is a problem.")
+        ("quiet,q", "Runs silently unless there is a problem.")
+        ("ini-file,i", po::value<std::string>(&iniName)->default_value(""),
+            "Loads options from specified INI file (command line has priority).")
         ;
     modelOptions.add_options()
         ("omega-matter", po::value<double>(&OmegaMatter)->default_value(0.27,"0.27"),
@@ -119,6 +122,7 @@ int main(int argc, char **argv) {
     allOptions.add(genericOptions).add(modelOptions).add(dataOptions)
         .add(cosmolibOptions).add(analysisOptions);
     po::variables_map vm;
+
     // Parse command line options first.
     try {
         po::store(po::parse_command_line(argc, argv, allOptions), vm);
@@ -132,6 +136,21 @@ int main(int argc, char **argv) {
         std::cout << allOptions << std::endl;
         return 1;
     }
+    // If an INI file was specified, load it now.
+    if(0 < iniName.length()) {
+        try {
+            std::ifstream iniFile(iniName.c_str());
+            po::store(po::parse_config_file(iniFile, allOptions), vm);
+            iniFile.close();
+            po::notify(vm);
+        }
+        catch(std::exception const &e) {
+            std::cerr << "Unable to parse INI file options: " << e.what() << std::endl;
+            return -1;
+        }        
+    }
+    
+    // Extract boolean options.
     bool verbose(0 == vm.count("quiet")), french(vm.count("french")),
         fixCovariance(0 == vm.count("naive-covariance")),
         dr9lrg(vm.count("dr9lrg")), fixBeta(vm.count("fix-beta"));
