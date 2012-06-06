@@ -78,9 +78,10 @@ am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(bindir)" \
 LTLIBRARIES = $(lib_LTLIBRARIES)
 libbaofit_la_LIBADD =
 am_libbaofit_la_OBJECTS = AbsCorrelationModel.lo \
-	BaoCorrelationModel.lo AbsCorrelationData.lo \
-	QuasarCorrelationData.lo MultipoleCorrelationData.lo \
-	CorrelationFitter.lo CorrelationAnalyzer.lo boss.lo
+	BaoCorrelationModel.lo XiCorrelationModel.lo \
+	AbsCorrelationData.lo QuasarCorrelationData.lo \
+	MultipoleCorrelationData.lo CorrelationFitter.lo \
+	CorrelationAnalyzer.lo boss.lo
 libbaofit_la_OBJECTS = $(am_libbaofit_la_OBJECTS)
 PROGRAMS = $(bin_PROGRAMS)
 am_baofit_OBJECTS = baofit.$(OBJEXT)
@@ -250,6 +251,7 @@ lib_LTLIBRARIES = libbaofit.la
 libbaofit_la_SOURCES = \
 	baofit/AbsCorrelationModel.cc \
 	baofit/BaoCorrelationModel.cc \
+	baofit/XiCorrelationModel.cc \
 	baofit/AbsCorrelationData.cc \
 	baofit/QuasarCorrelationData.cc \
 	baofit/MultipoleCorrelationData.cc \
@@ -267,6 +269,7 @@ nobase_include_HEADERS = \
 	baofit/RuntimeError.h \
 	baofit/AbsCorrelationModel.h \
 	baofit/BaoCorrelationModel.h \
+	baofit/XiCorrelationModel.h \
 	baofit/AbsCorrelationData.h \
 	baofit/QuasarCorrelationData.h \
 	baofit/MultipoleCorrelationData.h \
@@ -428,6 +431,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/CorrelationFitter.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/MultipoleCorrelationData.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/QuasarCorrelationData.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/XiCorrelationModel.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/baofit.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/boss.Plo@am__quote@
 
@@ -465,6 +469,13 @@ BaoCorrelationModel.lo: baofit/BaoCorrelationModel.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='baofit/BaoCorrelationModel.cc' object='BaoCorrelationModel.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o BaoCorrelationModel.lo `test -f 'baofit/BaoCorrelationModel.cc' || echo '$(srcdir)/'`baofit/BaoCorrelationModel.cc
+
+XiCorrelationModel.lo: baofit/XiCorrelationModel.cc
+@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT XiCorrelationModel.lo -MD -MP -MF $(DEPDIR)/XiCorrelationModel.Tpo -c -o XiCorrelationModel.lo `test -f 'baofit/XiCorrelationModel.cc' || echo '$(srcdir)/'`baofit/XiCorrelationModel.cc
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/XiCorrelationModel.Tpo $(DEPDIR)/XiCorrelationModel.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='baofit/XiCorrelationModel.cc' object='XiCorrelationModel.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o XiCorrelationModel.lo `test -f 'baofit/XiCorrelationModel.cc' || echo '$(srcdir)/'`baofit/XiCorrelationModel.cc
 
 AbsCorrelationData.lo: baofit/AbsCorrelationData.cc
 @am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT AbsCorrelationData.lo -MD -MP -MF $(DEPDIR)/AbsCorrelationData.Tpo -c -o AbsCorrelationData.lo `test -f 'baofit/AbsCorrelationData.cc' || echo '$(srcdir)/'`baofit/AbsCorrelationData.cc

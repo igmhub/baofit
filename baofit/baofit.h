@@ -6,6 +6,7 @@
 
 #include "baofit/AbsCorrelationModel.h"
 #include "baofit/BaoCorrelationModel.h"
+#include "baofit/XiCorrelationModel.h"
 
 #include "baofit/AbsCorrelationData.h"
 #include "baofit/QuasarCorrelationData.h"
