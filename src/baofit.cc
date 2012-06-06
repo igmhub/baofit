@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
     int nll,nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed; //,ncontour,modelBins
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName; //,dumpName
     double initialAmp,initialScale;
-    std::string platelistName,platerootName; //,bootstrapSaveName,bootstrapCurvesName
+    std::string platelistName,platerootName,modelConfig; //,bootstrapSaveName,bootstrapCurvesName
     cli.add_options()
         ("help,h", "Prints this info and exits.")
         ("verbose", "Prints additional information.")
@@ -102,6 +102,8 @@ int main(int argc, char **argv) {
             "Number of high-resolution uniform bins to use for dumping best fit model.")
         ("minos", "Runs MINOS to improve error estimates.")
         **/
+        ("model-config", po::value<std::string>(&modelConfig)->default_value(""),
+            "Model parameters configuration script.")
         ("fix-alpha", "Fix linear bias parameter alpha.")
         ("fix-beta", "Fix linear bias parameter beta.")
         ("fix-bias", "Fix linear bias parameter (1+beta)*bias.")
@@ -157,15 +159,18 @@ int main(int argc, char **argv) {
 
     // Initialize the models we will use.
     cosmo::AbsHomogeneousUniversePtr cosmology;
-    baofit::AbsCorrelationModelCPtr model;
+    baofit::AbsCorrelationModelPtr model;
     try {
         // Build the homogeneous cosmology we will use.
         cosmology.reset(new cosmo::LambdaCdmRadiationUniverse(OmegaMatter,0,hubbleConstant));
         
-         // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
-         model.reset(new baofit::BaoCorrelationModel(
-             modelrootName,fiducialName,nowigglesName,broadbandName,zref,
-             initialAmp,initialScale,fixAlpha,fixBeta,fixBias,fixBao,fixScale,noBBand));
+        // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
+        model.reset(new baofit::BaoCorrelationModel(
+            modelrootName,fiducialName,nowigglesName,broadbandName,zref,
+            initialAmp,initialScale,fixAlpha,fixBeta,fixBias,fixBao,fixScale,noBBand));
+             
+        // Configure our fit model parameters, if requested.
+         if(0 < modelConfig.length()) model->configure(modelConfig);
 
         if(verbose) std::cout << "Models initialized." << std::endl;
     }
@@ -289,7 +294,6 @@ int main(int argc, char **argv) {
         std::cerr << "ERROR during fit:\n  " << e.what() << std::endl;
         return -2;
     }
-
     // All done: normal exit.
     return 0;
 }

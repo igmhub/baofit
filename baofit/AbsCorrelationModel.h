@@ -32,6 +32,8 @@ namespace baofit {
         int getNParameters() const;
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
+        // Configures our fit parameters using the specified script.
+        virtual void configure(std::string const &script);
     protected:
         void defineParameter(std::string const &name, double value, double error, bool fixed);
 	private:

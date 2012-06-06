@@ -2,6 +2,8 @@
 
 #include "baofit/AbsCorrelationModel.h"
 
+#include "likely/FitParameter.h"
+
 #include <iostream>
 
 namespace local = baofit;
@@ -28,4 +30,8 @@ int local::AbsCorrelationModel::getNParameters() const {
 void  local::AbsCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
     out << "Correlation Model \"" << _name << "\" has initial parameters:" << std::endl;
     printFitParametersToStream(_parameters,out,formatSpec);
+}
+
+void local::AbsCorrelationModel::configure(std::string const &script) {
+    likely::modifyFitParameters(_parameters,script);
 }
