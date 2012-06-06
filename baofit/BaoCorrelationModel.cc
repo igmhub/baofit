@@ -27,8 +27,8 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
     defineParameter("BAO amplitude",1,0.15);
     defineParameter("BAO scale",1,0.02);
     defineParameter("BBand xio",0,0.001);
-    defineParameter("BBand a0",-2.5,0.2);
-    defineParameter("BBand a1",-1.8,2);
+    defineParameter("BBand a0",0,0.2);
+    defineParameter("BBand a1",0,2);
     defineParameter("BBand a2",0,2);
     // Load the interpolation data we will use for each multipole of each model.
     std::string root(modelrootName);
