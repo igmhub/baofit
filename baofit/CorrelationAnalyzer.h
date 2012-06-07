@@ -34,6 +34,12 @@ namespace baofit {
         // samples that failed.
         int doBootstrapAnalysis(std::string const &method,likely::FunctionMinimumPtr fmin,
             int bootstrapTrials, int bootstrapSize = 0, bool fixCovariance = true) const;
+        // Dumps the data, prediction, and diagonal error for each bin of the combined
+        // data set to the specified output stream. The fit result is assumed to correspond
+        // to model that is currently associated with this analyzer. Use the optional script
+        // to modify the parameters used in the model.
+        void dumpResiduals(std::ostream &out, likely::FunctionMinimumPtr fmin,
+            std::string const &script = "") const;
         // Dumps the model predictions for the specified fit result to the specified
         // output stream. The fit result is assumed to correspond to model that is
         // currently associated with this analyzer. Use the optional script to modify

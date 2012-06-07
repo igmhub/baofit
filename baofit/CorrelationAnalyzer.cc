@@ -15,6 +15,7 @@
 #include "boost/format.hpp"
 
 #include <iostream>
+#include <cmath>
 
 namespace local = baofit;
 
@@ -36,7 +37,7 @@ local::AbsCorrelationDataPtr local::CorrelationAnalyzer::getCombined() const {
 }
 
 likely::FunctionMinimumPtr local::CorrelationAnalyzer::fitCombined(std::string const &method) const {
-    AbsCorrelationDataPtr combined = getCombined();
+    AbsCorrelationDataCPtr combined = getCombined();
     CorrelationFitter fitter(combined,_model);
     likely::FunctionMinimumPtr fmin = fitter.fit(method);
     if(_verbose) fmin->printToStream(std::cout);
@@ -104,6 +105,47 @@ likely::FunctionMinimumPtr fmin, int bootstrapTrials, int bootstrapSize, bool fi
     accumulator.getCovariance()->printToStream(std::cout,true,"%12.6f",labels);
     
     return nInvalid;
+}
+
+void local::CorrelationAnalyzer::dumpResiduals(std::ostream &out, likely::FunctionMinimumPtr fmin,
+std::string const &script) const {
+    if(getNData() == 0) {
+        throw RuntimeError("CorrelationAnalyzer::dumpResiduals: no observations have been added.");
+    }
+    AbsCorrelationDataCPtr combined = getCombined();
+    AbsCorrelationData::TransverseBinningType type = combined->getTransverseBinningType();
+    // Get a copy of the the parameters at this minimum.
+    likely::FitParameters parameters(fmin->getFitParameters());
+    // Should check that these parameters are "congruent" (have same names?) with model params.
+    // assert(parameters.isCongruent(model...))
+    // Modify the parameters using the specified script, if any.
+    if(0 < script.length()) likely::modifyFitParameters(parameters, script);    
+    // Get the parameter values (floating + fixed)
+    likely::Parameters parameterValues;
+    likely::getFitParameterValues(parameters,parameterValues);
+    // Loop over 3D bins in the combined dataset.
+    std::vector<int> bin(3);
+    for(likely::BinnedData::IndexIterator iter = combined->begin(); iter != combined->end(); ++iter) {
+        int index(*iter);
+        double data = combined->getData(index);
+        double error = std::sqrt(combined->getCovariance(index,index));
+        double z = combined->getRedshift(index);
+        double r = combined->getRadius(index);
+        double predicted;
+        if(type == AbsCorrelationData::Coordinate) {
+            double mu = combined->getCosAngle(index);
+            predicted = _model->evaluate(r,mu,z,parameterValues);
+        }
+        else {
+            cosmo::Multipole multipole = combined->getMultipole(index);
+            predicted = _model->evaluate(r,multipole,z,parameterValues);
+        }
+        combined->getBinIndices(index,bin);
+        for(int axis = 0; axis < 3; ++axis) {
+            out << bin[axis] << ' ';
+        }
+        out << data << ' ' << predicted << ' ' << error << std::endl;
+    }
 }
 
 void local::CorrelationAnalyzer::dumpModel(std::ostream &out, likely::FunctionMinimumPtr fmin,

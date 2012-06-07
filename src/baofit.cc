@@ -310,6 +310,12 @@ int main(int argc, char **argv) {
             analyzer.dumpModel(out,fmin,cosmo::Monopole,100,rmin,rmax,zdata,"value[BAO amplitude]=0");
             out.close();
         }
+        {
+            // Dump the best-fit residuals for each data bin.
+            std::ofstream out("residuals.dat");
+            analyzer.dumpResiduals(out,fmin,"value[BAO scale]=1");
+            out.close();
+        }
     }
     catch(cosmo::RuntimeError const &e) {
         std::cerr << "ERROR during fit:\n  " << e.what() << std::endl;
