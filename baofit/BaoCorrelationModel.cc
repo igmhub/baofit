@@ -112,9 +112,17 @@ std::vector<double> const &params) const {
     double xio(params[5]), a0(params[6]), a1(params[7]), a2(params[8]);
     // Calculate redshift evolution factor.
     double zfactor = std::pow((1+z)/(1+_zref),alpha);
-    // No need to apply redshift-space distortion to each model component since we are
-    // working in undistorted multipoles here.
-
+    // Calculate the redshift-space distortion scale factor for this multipole.
+    double rsdScale;
+    if(multipole == cosmo::Hexadecapole) {
+        rsdScale = (8./35.)*beta*beta;
+    }
+    else if(multipole == cosmo::Quadrupole) {
+        rsdScale = 4*beta*((1./3.) + beta/7.);
+    }
+    else {
+        rsdScale = 1 + beta*((2./3.) + beta/5.);
+    }
     // Calculate the peak contribution with scaled radius.
     double peak(0);
     if(ampl != 0) {
@@ -128,7 +136,7 @@ std::vector<double> const &params) const {
     if(a1 != 0) broadband += a1*(*_bb1)(r,multipole);
     if(a2 != 0) broadband += a2*(*_bb2)(r,multipole);
     // Combine the peak and broadband components, with bias and redshift evolution.
-    return bias*bias*zfactor*(peak + broadband);
+    return bias*bias*zfactor*rsdScale*(peak + broadband);
 }
 
 void  local::BaoCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
