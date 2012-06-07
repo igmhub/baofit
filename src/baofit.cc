@@ -301,13 +301,13 @@ int main(int argc, char **argv) {
         {
             // Dump the best-fit monopole model.
             std::ofstream out("fitmono.dat");
-            analyzer.dump(out,fmin,cosmo::Monopole,100,rmin,rmax,zdata);
+            analyzer.dumpModel(out,fmin,cosmo::Monopole,100,rmin,rmax,zdata);
             out.close();
         }
         if(!xiModel) {
             // Dump the best-fit monopole model with its peak contribution forced to zero.
             std::ofstream out("fitmono-smooth.dat");
-            analyzer.dump(out,fmin,cosmo::Monopole,100,rmin,rmax,zdata,"value[BAO amplitude]=0");
+            analyzer.dumpModel(out,fmin,cosmo::Monopole,100,rmin,rmax,zdata,"value[BAO amplitude]=0");
             out.close();
         }
     }

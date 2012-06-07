@@ -106,7 +106,7 @@ likely::FunctionMinimumPtr fmin, int bootstrapTrials, int bootstrapSize, bool fi
     return nInvalid;
 }
 
-void local::CorrelationAnalyzer::dump(std::ostream &out, likely::FunctionMinimumPtr fmin,
+void local::CorrelationAnalyzer::dumpModel(std::ostream &out, likely::FunctionMinimumPtr fmin,
 cosmo::Multipole multipole, int nr, double rmin, double rmax, double zval,
 std::string const &script) const {
     if(rmin >= rmax || nr < 2) {
