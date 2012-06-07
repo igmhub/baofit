@@ -13,6 +13,7 @@
 
 #include "boost/smart_ptr.hpp"
 #include "boost/format.hpp"
+#include "boost/math/special_functions/gamma.hpp"
 
 #include <iostream>
 #include <cmath>
@@ -40,7 +41,15 @@ likely::FunctionMinimumPtr local::CorrelationAnalyzer::fitCombined(std::string c
     AbsCorrelationDataCPtr combined = getCombined();
     CorrelationFitter fitter(combined,_model);
     likely::FunctionMinimumPtr fmin = fitter.fit(method);
-    if(_verbose) fmin->printToStream(std::cout);
+    if(_verbose) {
+        double chisq = 2*fmin->getMinValue();
+        int nbins = combined->getNBinsWithData();
+        int npar = _model->getNParameters(true);
+        double prob = 1 - boost::math::gamma_p((nbins-npar)/2,chisq/2);
+        std::cout << std::endl << "Results of combined fit: chiSquare / dof = " << chisq << " / ("
+            << nbins << '-' << npar << "), prob = " << prob << std::endl << std::endl;
+        fmin->printToStream(std::cout);
+    }
     return fmin;
 }
 
@@ -78,10 +87,10 @@ likely::FunctionMinimumPtr fmin, int bootstrapTrials, int bootstrapSize, bool fi
                 // roundoff error when accumulating covariance statistics).
                 pvalues[par] -= baseline[par];
             }
-            // Include the fit chiSquare (relative to the baseline value) in
+            // Include the fit chiSquare = 2*FMIN (relative to the baseline value) in
             // our statistics.
-            stats[nstats-1].accumulate(bsMin->getMinValue());
-            pvalues.push_back(bsMin->getMinValue() - fmin->getMinValue());
+            stats[nstats-1].accumulate(2*bsMin->getMinValue());
+            pvalues.push_back(2*(bsMin->getMinValue() - fmin->getMinValue()));
             accumulator.accumulate(pvalues);
         }
         else {
@@ -95,7 +104,7 @@ likely::FunctionMinimumPtr fmin, int bootstrapTrials, int bootstrapSize, bool fi
     }
     // Print a summary of the analysis results.
     std::vector<std::string> labels(fmin->getNames(true));
-    labels.push_back("ChiSquare");
+    labels.push_back("chiSquare");
     boost::format resultFormat("%20s = %12.6f +/- %12.6f\n");
     std::cout << std::endl << "Bootstrap Results:" << std::endl;
     for(int stat = 0; stat < nstats; ++stat) {
