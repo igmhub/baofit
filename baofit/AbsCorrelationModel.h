@@ -28,8 +28,8 @@ namespace baofit {
             std::vector<double> const &params) const = 0;
         // Returns a reference to our model's fit parameters.
         likely::FitParameters const &getParameters() const;
-        // Returns the number of model parameters (including both floating and fixed).
-        int getNParameters() const;
+        // Returns the number of model parameters.
+        int getNParameters(bool onlyFloating = false) const;
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
         // Configures our fit parameters using the specified script.

@@ -22,8 +22,8 @@ likely::FitParameters const &local::AbsCorrelationModel::getParameters() const {
     return _parameters;
 }
 
-int local::AbsCorrelationModel::getNParameters() const {
-    return _parameters.size();
+int local::AbsCorrelationModel::getNParameters(bool onlyFloating) const {
+    return onlyFloating ? likely::countFloatingFitParameters(_parameters) : _parameters.size();
 }
 
 void  local::AbsCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
