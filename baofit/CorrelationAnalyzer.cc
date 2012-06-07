@@ -30,15 +30,21 @@ void local::CorrelationAnalyzer::addData(AbsCorrelationDataCPtr data) {
     _resampler.addObservation(boost::dynamic_pointer_cast<const likely::BinnedData>(data));
 }
 
-local::AbsCorrelationDataPtr local::CorrelationAnalyzer::getCombined() const {
+local::AbsCorrelationDataPtr local::CorrelationAnalyzer::getCombined(bool verbose) const {
     AbsCorrelationDataPtr combined =
         boost::dynamic_pointer_cast<baofit::AbsCorrelationData>(_resampler.combined());
+    int nbefore = combined->getNBinsWithData();
     combined->finalize();
+    if(verbose) {
+        int nafter = combined->getNBinsWithData();
+        std::cout << "Combined data has " << nafter << " (" << nbefore
+            << ") bins with data after (before) finalizing." << std::endl;
+    }
     return combined;    
 }
 
 likely::FunctionMinimumPtr local::CorrelationAnalyzer::fitCombined(std::string const &method) const {
-    AbsCorrelationDataCPtr combined = getCombined();
+    AbsCorrelationDataCPtr combined = getCombined(true);
     CorrelationFitter fitter(combined,_model);
     likely::FunctionMinimumPtr fmin = fitter.fit(method);
     if(_verbose) {
@@ -144,16 +150,19 @@ std::string const &script) const {
         if(type == AbsCorrelationData::Coordinate) {
             double mu = combined->getCosAngle(index);
             predicted = _model->evaluate(r,mu,z,parameterValues);
+            out << r << ' ' << mu << ' ' << z;
         }
         else {
             cosmo::Multipole multipole = combined->getMultipole(index);
             predicted = _model->evaluate(r,multipole,z,parameterValues);
+            out << r << ' ' << (int)multipole << ' ' << z;
         }
         combined->getBinIndices(index,bin);
+        out << ' ' << index;
         for(int axis = 0; axis < 3; ++axis) {
-            out << bin[axis] << ' ';
+            out << ' ' << bin[axis];
         }
-        out << data << ' ' << predicted << ' ' << error << std::endl;
+        out << ' ' << data << ' ' << predicted << ' ' << error << std::endl;
     }
 }
 
