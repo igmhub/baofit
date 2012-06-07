@@ -14,12 +14,12 @@ local::XiCorrelationModel::XiCorrelationModel(likely::AbsBinningCPtr rbins)
     // Create parameters at the center of each radial bin.
     boost::format pname("xi%d-%d");
     for(int ell = 0; ell <= 4; ell += 2) {
-        double perror = 1e-6;
-        if(2 == ell) perror = 1e-7;
-        else if(4 == ell) perror = 1e-8;
+        double perror = 1;
+        if(2 == ell) perror = 0.1;
+        else if(4 == ell) perror = 0.01;
         for(int index = 0; index < _rbins->getNBins(); ++index) {
             double rval(_rbins->getBinCenter(index));
-            defineParameter(boost::str(pname % ell % index),0,1e-6);
+            defineParameter(boost::str(pname % ell % index),0,perror);
         }
     }
 }
@@ -37,5 +37,5 @@ std::vector<double> const &params) const {
     int index = _rbins->getBinIndex(r);
     if(multipole == cosmo::Quadrupole) index += _rbins->getNBins();
     else if(multipole == cosmo::Hexadecapole) index += 2*_rbins->getNBins();
-    return params[index];
+    return 1e-6*params[index];
 }
