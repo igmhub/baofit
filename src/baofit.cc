@@ -52,6 +52,7 @@ int main(int argc, char **argv) {
             "Common path to prepend to all model filenames.")
         ("zref", po::value<double>(&zref)->default_value(2.25),
             "Reference redshift used by model correlation functions.")
+        ("xi-model", "Uses experimental binned correlation model.")
         ("model-config", po::value<std::string>(&modelConfig)->default_value(""),
             "Model parameters configuration script.")
         ;
@@ -152,7 +153,7 @@ int main(int argc, char **argv) {
     
     // Extract boolean options.
     bool verbose(0 == vm.count("quiet")), french(vm.count("french")),
-        fixCovariance(0 == vm.count("naive-covariance")),
+        fixCovariance(0 == vm.count("naive-covariance")), xiModel(vm.count("xi-model")),
         dr9lrg(vm.count("dr9lrg")), fixBeta(vm.count("fix-beta"));
     // minos(vm.count("minos")), nullHypothesis(vm.count("null-hypothesis"))
 
@@ -184,9 +185,15 @@ int main(int argc, char **argv) {
         // Build the homogeneous cosmology we will use.
         cosmology.reset(new cosmo::LambdaCdmRadiationUniverse(OmegaMatter,0,hubbleConstant));
         
-        // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
-        model.reset(new baofit::BaoCorrelationModel(
-            modelrootName,fiducialName,nowigglesName,broadbandName,zref));
+        if(xiModel) {
+            likely::AbsBinningCPtr rbins(new likely::UniformBinning(60.,150.,9));
+            model.reset(new baofit::XiCorrelationModel(rbins));
+        }
+        else {
+            // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
+            model.reset(new baofit::BaoCorrelationModel(
+                modelrootName,fiducialName,nowigglesName,broadbandName,zref));
+        }
              
         // Configure our fit model parameters, if requested.
          if(0 < modelConfig.length()) model->configure(modelConfig);
@@ -297,7 +304,7 @@ int main(int argc, char **argv) {
             analyzer.dump(out,fmin,cosmo::Monopole,100,rmin,rmax,zdata);
             out.close();
         }
-        {
+        if(!xiModel) {
             // Dump the best-fit monopole model with its peak contribution forced to zero.
             std::ofstream out("fitmono-smooth.dat");
             analyzer.dump(out,fmin,cosmo::Monopole,100,rmin,rmax,zdata,"value[BAO amplitude]=0");
