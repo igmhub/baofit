@@ -159,7 +159,8 @@ baofit::AbsCorrelationDataCPtr local::createFrenchPrototype(double zref, double 
 // Loads a binned correlation function in French format and returns a shared pointer to
 // a MultipoleCorrelationData.
 baofit::AbsCorrelationDataPtr
-local::loadFrench(std::string const &dataName, baofit::AbsCorrelationDataCPtr prototype, bool verbose) {
+local::loadFrench(std::string const &dataName, baofit::AbsCorrelationDataCPtr prototype,
+bool verbose, bool checkPosDef) {
 
     // Create the new AbsCorrelationData that we will fill.
     baofit::AbsCorrelationDataPtr binnedData((baofit::MultipoleCorrelationData *)(prototype->clone(true)));
@@ -233,6 +234,15 @@ local::loadFrench(std::string const &dataName, baofit::AbsCorrelationDataCPtr pr
     if(verbose) {
         std::cout << "Read " << lines << " covariance values from " << covName << std::endl;
     }
+    if(checkPosDef) {
+        // Check that the covariance is positive definite by triggering an inversion.
+        try {
+            binnedData->getInverseCovariance(0,0);
+        }
+        catch(likely::RuntimeError const &e) {
+            std::cerr << "### Inverse covariance not positive-definite: " << covName << std::endl;
+        }
+    }
     return binnedData;
 }
 
@@ -284,7 +294,7 @@ double rmin, double rmax, double llmin, cosmo::AbsHomogeneousUniversePtr cosmolo
 
 // Loads a binned correlation function in cosmolib format and returns a BinnedData object.
 baofit::AbsCorrelationDataPtr local::loadCosmolib(std::string const &dataName,
-baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov) {
+baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool checkPosDef) {
 
     // Create the new AbsCorrelationData that we will fill.
     baofit::AbsCorrelationDataPtr binnedData((baofit::QuasarCorrelationData *)(prototype->clone(true)));
@@ -380,6 +390,15 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov) {
             if(0 == binnedData->getCovariance(index,index)) {
                 binnedData->setCovariance(index,index,1e40);
             }                
+        }
+    }
+    if(checkPosDef) {
+        // Check that the covariance is positive definite by triggering an inversion.
+        try {
+            binnedData->getCovariance(0,0);
+        }
+        catch(likely::RuntimeError const &e) {
+            std::cerr << "### Inverse covariance not positive-definite: " << covName << std::endl;
         }
     }
     // Compress our binned data to take advantage of a potentially sparse covariance matrix.

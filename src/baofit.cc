@@ -67,6 +67,7 @@ int main(int argc, char **argv) {
         ("dr9lrg", "3D correlation data files are in the BOSS DR9 LRG galaxy format.")
         ("max-plates", po::value<int>(&maxPlates)->default_value(0),
             "Maximum number of plates to load (zero uses all available plates).")
+        ("check-posdef", "Checks that each covariance is positive-definite (slow).")
         ;
     cosmolibOptions.add_options()
         ("minll", po::value<double>(&minll)->default_value(0.0002,"0.0002"),
@@ -152,7 +153,7 @@ int main(int argc, char **argv) {
     }
     
     // Extract boolean options.
-    bool verbose(0 == vm.count("quiet")), french(vm.count("french")),
+    bool verbose(0 == vm.count("quiet")), french(vm.count("french")), checkPosDef(vm.count("check-posdef")),
         fixCovariance(0 == vm.count("naive-covariance")), xiModel(vm.count("xi-model")),
         dr9lrg(vm.count("dr9lrg")), fixBeta(vm.count("fix-beta"));
     // minos(vm.count("minos")), nullHypothesis(vm.count("null-hypothesis"))
@@ -268,14 +269,14 @@ int main(int argc, char **argv) {
         for(std::vector<std::string>::const_iterator filename = filelist.begin();
         filename != filelist.end(); ++filename) {
             if(french) {
-                analyzer.addData(baofit::boss::loadFrench(*filename,prototype,verbose));
+                analyzer.addData(baofit::boss::loadFrench(*filename,prototype,verbose,checkPosDef));
             }
             else if(dr9lrg) {
                 analyzer.addData(baofit::boss::loadDR9LRG(*filename,prototype,verbose));
             }
             else {
                 // Add a cosmolib dataset, assumed to provided icov instead of cov.
-                analyzer.addData(baofit::boss::loadCosmolib(*filename,prototype,verbose,true));
+                analyzer.addData(baofit::boss::loadCosmolib(*filename,prototype,verbose,true,checkPosDef));
             }            
         }
     }
