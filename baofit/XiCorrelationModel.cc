@@ -11,7 +11,7 @@
 namespace local = baofit;
 
 local::XiCorrelationModel::XiCorrelationModel(likely::AbsBinningCPtr rbins, double zref)
-: AbsCorrelationModel("Xi"), _rbins(rbins), _zref(zref)
+: AbsCorrelationModel("Xi Correlation Model"), _rbins(rbins), _zref(zref)
 {
     // Create parameters at the center of each radial bin.
     boost::format pname("xi%d-%d");

@@ -17,7 +17,7 @@ namespace local = baofit;
 local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName,
     std::string const &fiducialName, std::string const &nowigglesName,
     std::string const &broadbandName, double zref)
-: AbsCorrelationModel("BAO"), _zref(zref)
+: AbsCorrelationModel("BAO Correlation Model"), _zref(zref)
 {
     // Define our parameters. The order here determines the order of elements in our
     // parameter vector for our evaluate(...) methods.
