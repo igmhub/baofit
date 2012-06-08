@@ -314,7 +314,7 @@ int main(int argc, char **argv) {
         {
             // Dump the best-fit residuals for each data bin.
             std::ofstream out("residuals.dat");
-            analyzer.dumpResiduals(out,fmin,"value[BAO scale]=1");
+            analyzer.dumpResiduals(out,fmin);
             out.close();
         }
     }
