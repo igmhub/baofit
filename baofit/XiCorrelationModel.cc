@@ -3,6 +3,7 @@
 #include "baofit/XiCorrelationModel.h"
 
 #include "likely/AbsBinning.h"
+#include "likely/Interpolator.h"
 
 #include "boost/format.hpp"
 
@@ -10,8 +11,9 @@
 
 namespace local = baofit;
 
-local::XiCorrelationModel::XiCorrelationModel(likely::AbsBinningCPtr rbins, double zref)
-: AbsCorrelationModel("Xi Correlation Model"), _rbins(rbins), _zref(zref)
+local::XiCorrelationModel::XiCorrelationModel(likely::AbsBinningCPtr rbins, double zref,
+std::string const &method)
+: AbsCorrelationModel("Xi Correlation Model"), _rbins(rbins), _method(method), _zref(zref)
 {
     // Create parameters at the center of each radial bin.
     boost::format pname("xi%d-%d");
@@ -22,6 +24,7 @@ local::XiCorrelationModel::XiCorrelationModel(likely::AbsBinningCPtr rbins, doub
         for(int index = 0; index < _rbins->getNBins(); ++index) {
             double rval(_rbins->getBinCenter(index));
             defineParameter(boost::str(pname % ell % index),0,perror);
+            if(0 == ell) _rValues.push_back(rval);
         }
     }
     // Define linear bias parameters.
@@ -33,6 +36,49 @@ local::XiCorrelationModel::XiCorrelationModel(likely::AbsBinningCPtr rbins, doub
 }
 
 local::XiCorrelationModel::~XiCorrelationModel() { }
+
+void local::XiCorrelationModel::_initializeInterpolators() const {
+    int index, nbins(_rbins->getNBins());
+    // Do we need to (re)initialize our xi0 interpolator?
+    for(index = 0; index < nbins; ++index) {
+        if(isParameterValueChanged(index)) break;
+    }
+    if(index < nbins) {
+        static int n0(0);
+        std::cout << "xi0 " << ++n0 << std::endl;
+        _xiValues.resize(0);
+        for(index = 0; index < nbins; ++index) {
+            _xiValues.push_back(getParameterValue(index));
+        }
+        _xi0.reset(new likely::Interpolator(_rValues,_xiValues,_method));
+    }
+    // Do we need to (re)initialize our xi2 interpolator?
+    for(index = nbins; index < 2*nbins; ++index) {
+        if(isParameterValueChanged(index)) break;
+    }
+    if(index < 2*nbins) {
+        static int n2(0);
+        std::cout << "xi2 " << ++n2 << std::endl;
+        _xiValues.resize(0);
+        for(index = nbins; index < 2*nbins; ++index) {
+            _xiValues.push_back(getParameterValue(index));
+        }
+        _xi2.reset(new likely::Interpolator(_rValues,_xiValues,_method));
+    }
+    // Do we need to (re)initialize our xi4 interpolator?
+    for(index = 2*nbins; index < 3*nbins; ++index) {
+        if(isParameterValueChanged(index)) break;
+    }
+    if(index < 3*nbins) {
+        static int n4(0);
+        std::cout << "xi4 " << ++n4 << std::endl;
+        _xiValues.resize(0);
+        for(index = 2*nbins; index < 3*nbins; ++index) {
+            _xiValues.push_back(getParameterValue(index));
+        }
+        _xi4.reset(new likely::Interpolator(_rValues,_xiValues,_method));
+    }
+}
 
 double local::XiCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
     // Fetch linear bias parameters.
@@ -48,13 +94,10 @@ double local::XiCorrelationModel::_evaluate(double r, double mu, double z, bool 
     double P2(1.5*mu2-0.5), P4(4.375*mu2*mu2-3.75*mu2+0.375);
     // Calculate the beta functions for each multipole.
     double C0(1 + beta*((2./3.) + beta/5.)), C2(4*beta*((1./3.) + beta/7.)), C4((8./35.)*beta*beta);
-    // Find which radial bin we are in.
-    int index(_rbins->getBinIndex(r));
-    int nbins(_rbins->getNBins());
+    // Rebuild our interpolators, if necessary.
+    if(anyChanged) _initializeInterpolators();
     // Combine the multipoles.
-    return _normScale*bias*bias*zfactor*
-        (C0*getParameterValue(index) + C2*P2*getParameterValue(index+nbins) +
-        C4*P4*getParameterValue(index+2*nbins));
+    return _normScale*bias*bias*zfactor*(C0*(*_xi0)(r) + C2*P2*(*_xi2)(r) + C4*P4*(*_xi4)(r));
 }
 
 double local::XiCorrelationModel::_evaluate(double r, cosmo::Multipole multipole, double z,
@@ -67,21 +110,19 @@ bool anyChanged) const {
     double bias = bb/(1+beta);
     // Calculate redshift evolution factor.
     double zfactor = std::pow((1+z)/(1+_zref),alpha);
-    // Find which radial bin we are in and calculate the appropriate normalization factor.
-    int index = _rbins->getBinIndex(r);
+    // Rebuild our interpolators, if necessary.
+    if(anyChanged) _initializeInterpolators();
+    // Return the appropriately normalization multipole.
     double norm = _normScale*bias*bias*zfactor;
-    if(multipole == cosmo::Quadrupole) {
-        index += _rbins->getNBins();
-        norm *= (8./35.)*beta*beta;
+    if(multipole == cosmo::Hexadecapole) {
+        return norm*(8./35.)*beta*beta*(*_xi2)(r);
     }
-    else if(multipole == cosmo::Hexadecapole) {
-        index += 2*_rbins->getNBins();
-        norm *= 4*beta*((1./3.) + beta/7.);
+    else if(multipole == cosmo::Quadrupole) {
+        return norm*4*beta*((1./3.) + beta/7.)*(*_xi4)(r);
     }
     else {
-        norm *= 1 + beta*((2./3.) + beta/5.);
+        return norm*(1 + beta*((2./3.) + beta/5.))*(*_xi0)(r);
     }
-    return norm*getParameterValue(index);
 }
 
 void  local::XiCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {

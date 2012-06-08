@@ -10,7 +10,8 @@
 namespace baofit {
 	class XiCorrelationModel : public AbsCorrelationModel {
 	public:
-		XiCorrelationModel(likely::AbsBinningCPtr rbins, double zref);
+	    // Creates a new interpolating correlation model.
+		XiCorrelationModel(likely::AbsBinningCPtr rbins, double zref, std::string const &method = "linear");
 		virtual ~XiCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
@@ -24,7 +25,12 @@ namespace baofit {
         virtual double _evaluate(double r, cosmo::Multipole multipole, double z, bool anyChanged) const;
 	private:
         likely::AbsBinningCPtr _rbins;
+        std::string _method;
         double _zref, _normScale;
+        std::vector<double> _rValues;
+        mutable std::vector<double> _xiValues;
+        mutable likely::InterpolatorPtr _xi0, _xi2, _xi4;
+        void _initializeInterpolators() const;
 	}; // XiCorrelationModel
 } // baofit
 
