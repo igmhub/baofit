@@ -23,7 +23,7 @@ namespace baofit {
         // Returns the number of data objects added to this analyzer.
         int getNData() const;
         // Sets the correlation model to use.
-        void setModel(AbsCorrelationModelCPtr model);
+        void setModel(AbsCorrelationModelPtr model);
         // Returns a shared pointer to the combined correlation data added to this
         // analyzer, after it has been finalized. If verbose, prints out the number
         // of bins with data before and after finalizing the data.
@@ -52,12 +52,12 @@ namespace baofit {
 	private:
         bool _verbose;
         likely::BinnedDataResampler _resampler;
-        AbsCorrelationModelCPtr _model;
+        AbsCorrelationModelPtr _model;
 	}; // CorrelationAnalyzer
 	
     inline void CorrelationAnalyzer::setVerbose(bool value) { _verbose = value; }
     inline int CorrelationAnalyzer::getNData() const { return _resampler.getNObservations(); }
-    inline void CorrelationAnalyzer::setModel(AbsCorrelationModelCPtr model) { _model = model; }
+    inline void CorrelationAnalyzer::setModel(AbsCorrelationModelPtr model) { _model = model; }
 
 } // baofit
 

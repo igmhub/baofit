@@ -197,7 +197,7 @@ int main(int argc, char **argv) {
         }
              
         // Configure our fit model parameters, if requested.
-         if(0 < modelConfig.length()) model->configure(modelConfig);
+         if(0 < modelConfig.length()) model->configureFitParameters(modelConfig);
 
         if(verbose) std::cout << "Models initialized." << std::endl;
     }

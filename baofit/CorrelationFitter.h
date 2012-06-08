@@ -12,7 +12,7 @@ namespace baofit {
 	// Manages a correlation function fit.
 	public:
 	    // Creates a new fit manager for the specified data and model.
-		CorrelationFitter(AbsCorrelationDataCPtr data, AbsCorrelationModelCPtr model);
+		CorrelationFitter(AbsCorrelationDataCPtr data, AbsCorrelationModelPtr model);
 		virtual ~CorrelationFitter();
 		// Changes the error scale definition. The default value of 1 corresponds to the
 		// usual 1-sigma errors.
@@ -24,7 +24,7 @@ namespace baofit {
 	private:
         AbsCorrelationData::TransverseBinningType _type;
         AbsCorrelationDataCPtr _data;
-        AbsCorrelationModelCPtr _model;
+        AbsCorrelationModelPtr _model;
         double _errorScale;
 	}; // CorrelationFitter
 } // baofit

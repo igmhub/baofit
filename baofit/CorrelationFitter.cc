@@ -8,7 +8,7 @@
 
 namespace local = baofit;
 
-local::CorrelationFitter::CorrelationFitter(AbsCorrelationDataCPtr data, AbsCorrelationModelCPtr model)
+local::CorrelationFitter::CorrelationFitter(AbsCorrelationDataCPtr data, AbsCorrelationModelPtr model)
 : _data(data), _model(model), _errorScale(1), _type(data->getTransverseBinningType())
 {
 }
