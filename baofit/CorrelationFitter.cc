@@ -54,5 +54,5 @@ double local::CorrelationFitter::operator()(likely::Parameters const &params) co
 
 likely::FunctionMinimumPtr local::CorrelationFitter::fit(std::string const &methodName) const {
     likely::FunctionPtr fptr(new likely::Function(*this));
-    return likely::findMinimum(fptr,_model->getParameters(),methodName);
+    return _model->findMinimum(fptr,methodName);
 }
