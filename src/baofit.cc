@@ -25,9 +25,9 @@ int main(int argc, char **argv) {
         cosmolibOptions("Cosmolib data options"), analysisOptions("Analysis options");
 
     double OmegaMatter,hubbleConstant,zref,minll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin;
-    int nll,nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed; //,ncontour,modelBins
-    std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName; //,dumpName
-    std::string platelistName,platerootName,modelConfig,iniName; //,bootstrapSaveName,bootstrapCurvesName
+    int nll,nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed;
+    std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,
+        platelistName,platerootName,modelConfig,iniName;
 
     // Default values in quotes below are to avoid roundoff errors leading to ugly --help
     // messages. See http://stackoverflow.com/questions/1734916/
@@ -105,21 +105,6 @@ int main(int argc, char **argv) {
         ("random-seed", po::value<int>(&randomSeed)->default_value(1966),
             "Random seed to use for generating bootstrap samples.")
         ;
-        /**
-        ("bootstrap-save", po::value<std::string>(&bootstrapSaveName)->default_value("bstrials.txt"),
-            "Name of file to write with results of each bootstrap trial.")
-        ("bootstrap-curves", po::value<std::string>(&bootstrapCurvesName)->default_value(""),
-            "Name of file to write individual bootstrap fit multipole curves to.")
-        ("naive-covariance", "Uses the naive covariance matrix for each bootstrap trial.")
-        ("null-hypothesis", "Applies theory offsets to simulate the null hypothesis.")
-        ("dump", po::value<std::string>(&dumpName)->default_value(""),
-            "Filename for dumping fit results.")
-        ("ncontour",po::value<int>(&ncontour)->default_value(0),
-            "Number of contour points to calculate in BAO parameters.")
-        ("model-bins", po::value<int>(&modelBins)->default_value(200),
-            "Number of high-resolution uniform bins to use for dumping best fit model.")
-        ("minos", "Runs MINOS to improve error estimates.")
-        **/
 
     allOptions.add(genericOptions).add(modelOptions).add(dataOptions)
         .add(cosmolibOptions).add(analysisOptions);
@@ -153,10 +138,9 @@ int main(int argc, char **argv) {
     }
     
     // Extract boolean options.
-    bool verbose(0 == vm.count("quiet")), french(vm.count("french")), checkPosDef(vm.count("check-posdef")),
-        fixCovariance(0 == vm.count("naive-covariance")), xiModel(vm.count("xi-model")),
-        dr9lrg(vm.count("dr9lrg")), fixBeta(vm.count("fix-beta"));
-    // minos(vm.count("minos")), nullHypothesis(vm.count("null-hypothesis"))
+    bool verbose(0 == vm.count("quiet")), french(vm.count("french")),
+        checkPosDef(vm.count("check-posdef")), fixCovariance(0 == vm.count("naive-covariance")),
+        xiModel(vm.count("xi-model")), dr9lrg(vm.count("dr9lrg"));
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
