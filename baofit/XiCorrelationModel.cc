@@ -28,6 +28,8 @@ local::XiCorrelationModel::XiCorrelationModel(likely::AbsBinningCPtr rbins, doub
     defineParameter("alpha",3.8,0.3);
     defineParameter("beta",1.0,0.1);
     defineParameter("(1+beta)*bias",-0.34,0.03);
+    // Pick a normalization scale that gives parameter values of order one.
+    _normScale = 1e-2;
 }
 
 local::XiCorrelationModel::~XiCorrelationModel() { }
@@ -50,7 +52,7 @@ double local::XiCorrelationModel::_evaluate(double r, double mu, double z, bool 
     int index(_rbins->getBinIndex(r));
     int nbins(_rbins->getNBins());
     // Combine the multipoles.
-    return 1e-6*bias*bias*zfactor*
+    return _normScale*bias*bias*zfactor*
         (C0*getParameterValue(index) + C2*P2*getParameterValue(index+nbins) +
         C4*P4*getParameterValue(index+2*nbins));
 }
@@ -67,7 +69,7 @@ bool anyChanged) const {
     double zfactor = std::pow((1+z)/(1+_zref),alpha);
     // Find which radial bin we are in and calculate the appropriate normalization factor.
     int index = _rbins->getBinIndex(r);
-    double norm = 1e-6*bias*bias*zfactor;
+    double norm = _normScale*bias*bias*zfactor;
     if(multipole == cosmo::Quadrupole) {
         index += _rbins->getNBins();
         norm *= (8./35.)*beta*beta;

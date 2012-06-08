@@ -24,7 +24,7 @@ namespace baofit {
         virtual double _evaluate(double r, cosmo::Multipole multipole, double z, bool anyChanged) const;
 	private:
         likely::AbsBinningCPtr _rbins;
-        double _zref;
+        double _zref, _normScale;
 	}; // XiCorrelationModel
 } // baofit
 
