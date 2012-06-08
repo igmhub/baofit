@@ -188,7 +188,7 @@ int main(int argc, char **argv) {
         
         if(xiModel) {
             likely::AbsBinningCPtr rbins(new likely::UniformBinning(60.,150.,9));
-            model.reset(new baofit::XiCorrelationModel(rbins));
+            model.reset(new baofit::XiCorrelationModel(rbins,zref));
         }
         else {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.

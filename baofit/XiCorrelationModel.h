@@ -10,7 +10,7 @@
 namespace baofit {
 	class XiCorrelationModel : public AbsCorrelationModel {
 	public:
-		XiCorrelationModel(likely::AbsBinningCPtr rbins);
+		XiCorrelationModel(likely::AbsBinningCPtr rbins, double zref);
 		virtual ~XiCorrelationModel();
 		// Returns the correlation function evaluated in redshift space where (r,mu) is
 		// the pair separation and z is their average redshift. The separation r should
@@ -21,8 +21,11 @@ namespace baofit {
         // r and average pair redshift z.
         virtual double evaluate(double r, cosmo::Multipole multipole, double z,
             std::vector<double> const &params) const;
+        // Prints a multi-line description of this object to the specified output stream.
+        virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
 	private:
         likely::AbsBinningCPtr _rbins;
+        double _zref;
 	}; // XiCorrelationModel
 } // baofit
 
