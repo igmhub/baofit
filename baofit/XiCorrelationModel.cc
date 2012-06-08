@@ -32,11 +32,12 @@ local::XiCorrelationModel::XiCorrelationModel(likely::AbsBinningCPtr rbins, doub
 
 local::XiCorrelationModel::~XiCorrelationModel() { }
 
-double local::XiCorrelationModel::evaluate(double r, double mu, double z,
-std::vector<double> const &params) const {
+double local::XiCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
     // Fetch linear bias parameters.
-    int nbins(_rbins->getNBins());
-    double alpha(params[3*nbins]), beta(params[3*nbins+1]), bb(params[3*nbins+2]);
+    double alpha = getParameterValue("alpha");
+    double beta = getParameterValue("beta");
+    double bb = getParameterValue("(1+beta)*bias");
+    // Calculate bias from beta and bb.
     double bias = bb/(1+beta);
     // Calculate redshift evolution factor.
     double zfactor = std::pow((1+z)/(1+_zref),alpha);
@@ -46,17 +47,21 @@ std::vector<double> const &params) const {
     // Calculate the beta functions for each multipole.
     double C0(1 + beta*((2./3.) + beta/5.)), C2(4*beta*((1./3.) + beta/7.)), C4((8./35.)*beta*beta);
     // Find which radial bin we are in.
-    int index = _rbins->getBinIndex(r);
+    int index(_rbins->getBinIndex(r));
+    int nbins(_rbins->getNBins());
     // Combine the multipoles.
     return 1e-6*bias*bias*zfactor*
-        (C0*params[index] + C2*P2*params[index+nbins] + C4*P4*params[index+2*nbins]);
+        (C0*getParameterValue(index) + C2*P2*getParameterValue(index+nbins) +
+        C4*P4*getParameterValue(index+2*nbins));
 }
 
-double local::XiCorrelationModel::evaluate(double r, cosmo::Multipole multipole, double z,
-std::vector<double> const &params) const {
+double local::XiCorrelationModel::_evaluate(double r, cosmo::Multipole multipole, double z,
+bool anyChanged) const {
     // Fetch linear bias parameters.
-    int nbins(_rbins->getNBins());
-    double alpha(params[3*nbins]), beta(params[3*nbins+1]), bb(params[3*nbins+2]);
+    double alpha = getParameterValue("alpha");
+    double beta = getParameterValue("beta");
+    double bb = getParameterValue("(1+beta)*bias");
+    // Calculate bias from beta and bb.
     double bias = bb/(1+beta);
     // Calculate redshift evolution factor.
     double zfactor = std::pow((1+z)/(1+_zref),alpha);
@@ -74,7 +79,7 @@ std::vector<double> const &params) const {
     else {
         norm *= 1 + beta*((2./3.) + beta/5.);
     }
-    return norm*params[index];
+    return norm*getParameterValue(index);
 }
 
 void  local::XiCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {

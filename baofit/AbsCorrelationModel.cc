@@ -9,3 +9,19 @@ local::AbsCorrelationModel::AbsCorrelationModel(std::string const &name)
 { }
 
 local::AbsCorrelationModel::~AbsCorrelationModel() { }
+
+double local::AbsCorrelationModel::evaluate(double r, double mu, double z,
+likely::Parameters const &params) {
+    bool anyChanged = updateParameterValues(params);
+    double result = _evaluate(r,mu,z,anyChanged);
+    resetParameterValuesChanged();
+    return result;
+}
+
+double local::AbsCorrelationModel::evaluate(double r, cosmo::Multipole multipole, double z,
+likely::Parameters const &params) {
+    bool anyChanged = updateParameterValues(params);
+    double result = _evaluate(r,multipole,z,anyChanged);
+    resetParameterValuesChanged();
+    return result;
+}

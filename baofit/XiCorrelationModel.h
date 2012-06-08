@@ -12,17 +12,16 @@ namespace baofit {
 	public:
 		XiCorrelationModel(likely::AbsBinningCPtr rbins, double zref);
 		virtual ~XiCorrelationModel();
+        // Prints a multi-line description of this object to the specified output stream.
+        virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
+	protected:
 		// Returns the correlation function evaluated in redshift space where (r,mu) is
 		// the pair separation and z is their average redshift. The separation r should
 		// be provided in Mpc/h.
-        virtual double evaluate(double r, double mu, double z,
-            std::vector<double> const &params) const;
+        virtual double _evaluate(double r, double mu, double z, bool anyChanged) const;
         // Returns the correlation function for the specified multipole at co-moving pair separation
         // r and average pair redshift z.
-        virtual double evaluate(double r, cosmo::Multipole multipole, double z,
-            std::vector<double> const &params) const;
-        // Prints a multi-line description of this object to the specified output stream.
-        virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
+        virtual double _evaluate(double r, cosmo::Multipole multipole, double z, bool anyChanged) const;
 	private:
         likely::AbsBinningCPtr _rbins;
         double _zref;

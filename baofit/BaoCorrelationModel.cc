@@ -76,11 +76,18 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
 
 local::BaoCorrelationModel::~BaoCorrelationModel() { }
 
-double local::BaoCorrelationModel::evaluate(double r, double mu, double z,
-std::vector<double> const &params) const {
-    double alpha(params[0]), beta(params[1]), bb(params[2]), ampl(params[3]), scale(params[4]);
+double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
+    double alpha = getParameterValue("alpha");
+    double beta = getParameterValue("beta");
+    double bb = getParameterValue("(1+beta)*bias");
+    double ampl = getParameterValue("BAO amplitude");
+    double scale = getParameterValue("BAO scale");
+    double xio = getParameterValue("BBand xio");
+    double a0 = getParameterValue("BBand a0");
+    double a1 = getParameterValue("BBand a1");
+    double a2 = getParameterValue("BBand a2");
+    // Calculate bias from beta and bb.
     double bias = bb/(1+beta);
-    double xio(params[5]), a0(params[6]), a1(params[7]), a2(params[8]);
     // Calculate redshift evolution factor.
     double zfactor = std::pow((1+z)/(1+_zref),alpha);
     // Apply redshift-space distortion to each model component.
@@ -105,11 +112,19 @@ std::vector<double> const &params) const {
     return bias*bias*zfactor*(peak + broadband);
 }
 
-double local::BaoCorrelationModel::evaluate(double r, cosmo::Multipole multipole, double z,
-std::vector<double> const &params) const {
-    double alpha(params[0]), beta(params[1]), bb(params[2]), ampl(params[3]), scale(params[4]);
+double local::BaoCorrelationModel::_evaluate(double r, cosmo::Multipole multipole, double z,
+bool anyChanged) const {
+    double alpha = getParameterValue("alpha");
+    double beta = getParameterValue("beta");
+    double bb = getParameterValue("(1+beta)*bias");
+    double ampl = getParameterValue("BAO amplitude");
+    double scale = getParameterValue("BAO scale");
+    double xio = getParameterValue("BBand xio");
+    double a0 = getParameterValue("BBand a0");
+    double a1 = getParameterValue("BBand a1");
+    double a2 = getParameterValue("BBand a2");
+    // Calculate bias from beta and bb.
     double bias = bb/(1+beta);
-    double xio(params[5]), a0(params[6]), a1(params[7]), a2(params[8]);
     // Calculate redshift evolution factor.
     double zfactor = std::pow((1+z)/(1+_zref),alpha);
     // Calculate the redshift-space distortion scale factor for this multipole.

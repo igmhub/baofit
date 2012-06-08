@@ -19,13 +19,17 @@ namespace baofit {
 		virtual ~AbsCorrelationModel();
 		// Returns the correlation function evaluated in redshift space where (r,mu) is
 		// the pair separation and z is their average redshift. The separation r should
-		// be provided in Mpc/h.
-        virtual double evaluate(double r, double mu, double z,
-            std::vector<double> const &params) const = 0;
+		// be provided in Mpc/h. Updates our current parameter values.
+        double evaluate(double r, double mu, double z, likely::Parameters const &params);
         // Returns the correlation function for the specified multipole at co-moving pair separation
-        // r and average pair redshift z.
-        virtual double evaluate(double r, cosmo::Multipole multipole, double z,
-            std::vector<double> const &params) const = 0;
+        // r and average pair redshift z. Updates our current parameter values.
+        double evaluate(double r, cosmo::Multipole multipole, double z, likely::Parameters const &params);
+    protected:
+        // The public methods above call these protected methods after making parameter values
+        // and changes available via our base class' getParameterValue() and isParameterValueChanged()
+        // methods. Any registered changes to parameter values are reset after calling either of these.
+        virtual double _evaluate(double r, double mu, double z, bool changed) const = 0;
+        virtual double _evaluate(double r, cosmo::Multipole multipole, double z, bool changed) const = 0;
 	}; // AbsCorrelationModel
 } // baofit
 
