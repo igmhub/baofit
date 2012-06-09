@@ -294,7 +294,7 @@ double rmin, double rmax, double llmin, cosmo::AbsHomogeneousUniversePtr cosmolo
 
 // Loads a binned correlation function in cosmolib format and returns a BinnedData object.
 baofit::AbsCorrelationDataPtr local::loadCosmolib(std::string const &dataName,
-baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool checkPosDef) {
+baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted, bool checkPosDef) {
 
     // Create the new AbsCorrelationData that we will fill.
     baofit::AbsCorrelationDataPtr binnedData((baofit::QuasarCorrelationData *)(prototype->clone(true)));
@@ -315,14 +315,14 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool checkPos
     std::ifstream paramsIn(paramsName.c_str());
     if(!paramsIn.good()) throw RuntimeError("loadCosmolib: Unable to open " + paramsName);
     lines = 0;
-    double xi;
+    double data,cinvData;
     std::vector<double> bin(3);
     while(std::getline(paramsIn,line)) {
         lines++;
         bin.resize(0);
         bool ok = qi::phrase_parse(line.begin(),line.end(),
             (
-                double_[ref(xi) = _1] >> double_ >> "| Lya covariance 3D (" >>
+                double_[ref(data) = _1] >> double_[ref(cinvData) = _1] >> "| Lya covariance 3D (" >>
                 double_[push_back(ref(bin),_1)] >> ',' >> double_[push_back(ref(bin),_1)] >>
                 ',' >> double_[push_back(ref(bin),_1)] >> ')'
             ),
@@ -332,7 +332,7 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool checkPos
                 boost::lexical_cast<std::string>(lines) + " of " + paramsName);
         }
         int index = binnedData->getIndex(bin);
-        binnedData->setData(index,xi);        
+        binnedData->setData(index, weighted ? cinvData : data, weighted);        
     }
     paramsIn.close();
     if(verbose) {

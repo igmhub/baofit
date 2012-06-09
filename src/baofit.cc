@@ -72,6 +72,7 @@ int main(int argc, char **argv) {
         ("check-posdef", "Checks that each covariance is positive-definite (slow).")
         ;
     cosmolibOptions.add_options()
+        ("weighted", "Data vectors are inverse-covariance weighted.")
         ("minll", po::value<double>(&minll)->default_value(0.0002,"0.0002"),
             "Minimum log(lam2/lam1).")
         ("dll", po::value<double>(&dll)->default_value(0.004,"0.004"),
@@ -140,7 +141,7 @@ int main(int argc, char **argv) {
     }
     
     // Extract boolean options.
-    bool verbose(0 == vm.count("quiet")), french(vm.count("french")),
+    bool verbose(0 == vm.count("quiet")), french(vm.count("french")), weighted(vm.count("weighted")),
         checkPosDef(vm.count("check-posdef")), fixCovariance(0 == vm.count("naive-covariance")),
         xiModel(vm.count("xi-model")), dr9lrg(vm.count("dr9lrg"));
 
@@ -262,8 +263,9 @@ int main(int argc, char **argv) {
             }
             else {
                 // Add a cosmolib dataset, assumed to provided icov instead of cov.
-                analyzer.addData(baofit::boss::loadCosmolib(*filename,prototype,verbose,true,checkPosDef));
-            }            
+                analyzer.addData(baofit::boss::loadCosmolib(*filename,prototype,
+                    verbose,true,weighted,checkPosDef));
+            }
         }
     }
     catch(baofit::RuntimeError const &e) {
