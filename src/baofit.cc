@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
         cosmolibOptions("Cosmolib data options"), analysisOptions("Analysis options");
 
     double OmegaMatter,hubbleConstant,zref,minll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin;
-    int nll,nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed;
+    int nll,nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,numXi;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,
         platelistName,platerootName,modelConfig,iniName;
 
@@ -53,6 +53,8 @@ int main(int argc, char **argv) {
         ("zref", po::value<double>(&zref)->default_value(2.25),
             "Reference redshift used by model correlation functions.")
         ("xi-model", "Uses experimental binned correlation model.")
+        ("num-xi", po::value<int>(&numXi)->default_value(9),
+            "Number of points from rmin-rmax to use for interpolating xi(r)")
         ("model-config", po::value<std::string>(&modelConfig)->default_value(""),
             "Model parameters configuration script.")
         ;
@@ -171,8 +173,8 @@ int main(int argc, char **argv) {
         cosmology.reset(new cosmo::LambdaCdmRadiationUniverse(OmegaMatter,0,hubbleConstant));
         
         if(xiModel) {
-            likely::AbsBinningCPtr rbins(new likely::UniformBinning(60.,150.,9));
-            model.reset(new baofit::XiCorrelationModel(rbins,zref));
+            likely::AbsBinningCPtr rbins(new likely::UniformSampling(rmin,rmax,numXi));
+            model.reset(new baofit::XiCorrelationModel(rbins,zref,"cspline"));
         }
         else {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
