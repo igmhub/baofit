@@ -13,7 +13,7 @@ namespace local = baofit;
 
 local::XiCorrelationModel::XiCorrelationModel(likely::AbsBinningCPtr rbins, double zref,
 std::string const &method)
-: AbsCorrelationModel("Xi Correlation Model"), _rbins(rbins), _method(method), _zref(zref)
+: AbsCorrelationModel("Xi Correlation Model"), _method(method), _zref(zref)
 {
     // Create parameters at the center of each radial bin.
     boost::format pname("xi%d-%d");
@@ -21,8 +21,8 @@ std::string const &method)
         double perror = 1;
         if(2 == ell) perror = 0.1;
         else if(4 == ell) perror = 0.01;
-        for(int index = 0; index < _rbins->getNBins(); ++index) {
-            double rval(_rbins->getBinCenter(index));
+        for(int index = 0; index < rbins->getNBins(); ++index) {
+            double rval(rbins->getBinCenter(index));
             defineParameter(boost::str(pname % ell % index),0,perror);
             if(0 == ell) _rValues.push_back(rval);
         }
@@ -38,42 +38,36 @@ std::string const &method)
 local::XiCorrelationModel::~XiCorrelationModel() { }
 
 void local::XiCorrelationModel::_initializeInterpolators() const {
-    int index, nbins(_rbins->getNBins());
+    int index, npoints(_rValues.size());
     // Do we need to (re)initialize our xi0 interpolator?
-    for(index = 0; index < nbins; ++index) {
+    for(index = 0; index < npoints; ++index) {
         if(isParameterValueChanged(index)) break;
     }
-    if(index < nbins) {
-        static int n0(0);
-        std::cout << "xi0 " << ++n0 << std::endl;
+    if(index < npoints) {
         _xiValues.resize(0);
-        for(index = 0; index < nbins; ++index) {
+        for(index = 0; index < npoints; ++index) {
             _xiValues.push_back(getParameterValue(index));
         }
         _xi0.reset(new likely::Interpolator(_rValues,_xiValues,_method));
     }
     // Do we need to (re)initialize our xi2 interpolator?
-    for(index = nbins; index < 2*nbins; ++index) {
+    for(index = npoints; index < 2*npoints; ++index) {
         if(isParameterValueChanged(index)) break;
     }
-    if(index < 2*nbins) {
-        static int n2(0);
-        std::cout << "xi2 " << ++n2 << std::endl;
+    if(index < 2*npoints) {
         _xiValues.resize(0);
-        for(index = nbins; index < 2*nbins; ++index) {
+        for(index = npoints; index < 2*npoints; ++index) {
             _xiValues.push_back(getParameterValue(index));
         }
         _xi2.reset(new likely::Interpolator(_rValues,_xiValues,_method));
     }
     // Do we need to (re)initialize our xi4 interpolator?
-    for(index = 2*nbins; index < 3*nbins; ++index) {
+    for(index = 2*npoints; index < 3*npoints; ++index) {
         if(isParameterValueChanged(index)) break;
     }
-    if(index < 3*nbins) {
-        static int n4(0);
-        std::cout << "xi4 " << ++n4 << std::endl;
+    if(index < 3*npoints) {
         _xiValues.resize(0);
-        for(index = 2*nbins; index < 3*nbins; ++index) {
+        for(index = 2*npoints; index < 3*npoints; ++index) {
             _xiValues.push_back(getParameterValue(index));
         }
         _xi4.reset(new likely::Interpolator(_rValues,_xiValues,_method));
@@ -128,4 +122,6 @@ bool anyChanged) const {
 void  local::XiCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
     AbsCorrelationModel::printToStream(out,formatSpec);
     out << std::endl << "Reference redshift = " << _zref << std::endl;
+    out << "Interpolating with " << _rValues.size() << " points covering " << _rValues[0] << " to "
+        << _rValues[_rValues.size()-1] << " Mpc/h" << std::endl;
 }

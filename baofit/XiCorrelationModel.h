@@ -24,7 +24,6 @@ namespace baofit {
         // r and average pair redshift z.
         virtual double _evaluate(double r, cosmo::Multipole multipole, double z, bool anyChanged) const;
 	private:
-        likely::AbsBinningCPtr _rbins;
         std::string _method;
         double _zref, _normScale;
         std::vector<double> _rValues;
