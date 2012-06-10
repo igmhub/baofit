@@ -12,9 +12,11 @@
 #include <iosfwd>
 
 namespace baofit {
+    // Accumulates correlation data and manages its analysis.
 	class CorrelationAnalyzer {
 	public:
-		CorrelationAnalyzer(int randomSeed, bool verbose = true);
+	    // Creates a new analyzer using the specified random seed and minimization method.
+		CorrelationAnalyzer(int randomSeed, std::string const &method, bool verbose = true);
 		virtual ~CorrelationAnalyzer();
 		// Set the verbose level during analysis.
         void setVerbose(bool value);
@@ -32,11 +34,10 @@ namespace baofit {
         // the estimated function minimum. Use the optional config script to modify
         // the initial parameter configuration used for the fit (any changes do not
         // propagate back to the model or modify subsequent fits).
-        likely::FunctionMinimumPtr fitCombined(std::string const &method,
-            std::string const &config = "") const;
+        likely::FunctionMinimumPtr fitCombined(std::string const &config = "") const;
         // Performs a bootstrap analysis and returns the number of fits to bootstrap
         // samples that failed.
-        int doBootstrapAnalysis(std::string const &method,likely::FunctionMinimumPtr fmin,
+        int doBootstrapAnalysis(likely::FunctionMinimumPtr fmin,
             int bootstrapTrials, int bootstrapSize = 0, bool fixCovariance = true) const;
         // Dumps the data, prediction, and diagonal error for each bin of the combined
         // data set to the specified output stream. The fit result is assumed to correspond
@@ -53,6 +54,7 @@ namespace baofit {
             std::string const &script = "") const;
         
 	private:
+        std::string _method;
         bool _verbose;
         likely::BinnedDataResampler _resampler;
         AbsCorrelationModelPtr _model;

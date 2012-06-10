@@ -21,8 +21,8 @@
 
 namespace local = baofit;
 
-local::CorrelationAnalyzer::CorrelationAnalyzer(int randomSeed, bool verbose)
-: _resampler(randomSeed), _verbose(verbose)
+local::CorrelationAnalyzer::CorrelationAnalyzer(int randomSeed, std::string const &method, bool verbose)
+: _resampler(randomSeed), _method(method), _verbose(verbose)
 { }
 
 local::CorrelationAnalyzer::~CorrelationAnalyzer() { }
@@ -44,11 +44,10 @@ local::AbsCorrelationDataPtr local::CorrelationAnalyzer::getCombined(bool verbos
     return combined;    
 }
 
-likely::FunctionMinimumPtr local::CorrelationAnalyzer::fitCombined(std::string const &method,
-std::string const &config) const {
+likely::FunctionMinimumPtr local::CorrelationAnalyzer::fitCombined(std::string const &config) const {
     AbsCorrelationDataCPtr combined = getCombined(true);
     CorrelationFitter fitter(combined,_model);
-    likely::FunctionMinimumPtr fmin = fitter.fit(method,config);
+    likely::FunctionMinimumPtr fmin = fitter.fit(_method,config);
     if(_verbose) {
         double chisq = 2*fmin->getMinValue();
         int nbins = combined->getNBinsWithData();
@@ -61,8 +60,8 @@ std::string const &config) const {
     return fmin;
 }
 
-int local::CorrelationAnalyzer::doBootstrapAnalysis(std::string const &method,
-likely::FunctionMinimumPtr fmin, int bootstrapTrials, int bootstrapSize, bool fixCovariance) const {
+int local::CorrelationAnalyzer::doBootstrapAnalysis(likely::FunctionMinimumPtr fmin,
+int bootstrapTrials, int bootstrapSize, bool fixCovariance) const {
     if(getNData() <= 1) {
         throw RuntimeError("CorrelationAnalyzer::doBootstrapAnalysis: need > 1 observation.");
     }
@@ -83,7 +82,7 @@ likely::FunctionMinimumPtr fmin, int bootstrapTrials, int bootstrapSize, bool fi
         bsData->finalize();
         // Fit the sample.
         baofit::CorrelationFitter bsFitEngine(bsData,_model);
-        likely::FunctionMinimumPtr bsMin = bsFitEngine.fit(method);
+        likely::FunctionMinimumPtr bsMin = bsFitEngine.fit(_method);
         // Accumulate the fit results.
         if(bsMin->getStatus() == likely::FunctionMinimum::OK) {
             // Lookup the fitted values of floating parameters.
