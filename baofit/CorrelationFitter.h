@@ -11,7 +11,7 @@ namespace baofit {
 	class CorrelationFitter {
 	// Manages a correlation function fit.
 	public:
-	    // Creates a new fit manager for the specified data and model.
+	    // Creates a new fitter for the specified data and model.
 		CorrelationFitter(AbsCorrelationDataCPtr data, AbsCorrelationModelPtr model);
 		virtual ~CorrelationFitter();
 		// Changes the error scale definition. The default value of 1 corresponds to the
@@ -19,8 +19,10 @@ namespace baofit {
         void setErrorScale(double scale);
         // Returns chiSquare/2 for the specified model parameter values.
         double operator()(likely::Parameters const &params) const;
-        // Performs the fit and returns an estimate of the function minimum.
-        likely::FunctionMinimumPtr fit(std::string const &methodName) const;
+        // Performs the fit and returns an estimate of the function minimum. Use the optional
+        // config parameter to provide a script that will modify the initial parameter values
+        // and errors (including fixed/floating) for this fit only.
+        likely::FunctionMinimumPtr fit(std::string const &methodName, std::string const &config = "") const;
 	private:
         AbsCorrelationData::TransverseBinningType _type;
         AbsCorrelationDataCPtr _data;

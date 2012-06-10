@@ -52,7 +52,8 @@ double local::CorrelationFitter::operator()(likely::Parameters const &params) co
     return 0.5*_data->chiSquare(pred)/_errorScale;
 }
 
-likely::FunctionMinimumPtr local::CorrelationFitter::fit(std::string const &methodName) const {
+likely::FunctionMinimumPtr local::CorrelationFitter::fit(std::string const &methodName,
+std::string const &config) const {
     likely::FunctionPtr fptr(new likely::Function(*this));
-    return _model->findMinimum(fptr,methodName);
+    return _model->findMinimum(fptr,methodName,config);
 }
