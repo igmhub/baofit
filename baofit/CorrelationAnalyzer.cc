@@ -44,14 +44,15 @@ local::AbsCorrelationDataPtr local::CorrelationAnalyzer::getCombined(bool verbos
     return combined;    
 }
 
-likely::FunctionMinimumPtr local::CorrelationAnalyzer::fitCombined(std::string const &method) const {
+likely::FunctionMinimumPtr local::CorrelationAnalyzer::fitCombined(std::string const &method,
+std::string const &config) const {
     AbsCorrelationDataCPtr combined = getCombined(true);
     CorrelationFitter fitter(combined,_model);
-    likely::FunctionMinimumPtr fmin = fitter.fit(method);
+    likely::FunctionMinimumPtr fmin = fitter.fit(method,config);
     if(_verbose) {
         double chisq = 2*fmin->getMinValue();
         int nbins = combined->getNBinsWithData();
-        int npar = _model->getNParameters(true);
+        int npar = fmin->getNParameters(true);
         double prob = 1 - boost::math::gamma_p((nbins-npar)/2,chisq/2);
         std::cout << std::endl << "Results of combined fit: chiSquare / dof = " << chisq << " / ("
             << nbins << '-' << npar << "), prob = " << prob << std::endl << std::endl;

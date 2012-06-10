@@ -29,8 +29,11 @@ namespace baofit {
         // of bins with data before and after finalizing the data.
         AbsCorrelationDataPtr getCombined(bool verbose = false) const;
         // Fits the combined correlation data aadded to this analyzer and returns
-        // the estimated function minimum.
-        likely::FunctionMinimumPtr fitCombined(std::string const &method) const;
+        // the estimated function minimum. Use the optional config script to modify
+        // the initial parameter configuration used for the fit (any changes do not
+        // propagate back to the model or modify subsequent fits).
+        likely::FunctionMinimumPtr fitCombined(std::string const &method,
+            std::string const &config = "") const;
         // Performs a bootstrap analysis and returns the number of fits to bootstrap
         // samples that failed.
         int doBootstrapAnalysis(std::string const &method,likely::FunctionMinimumPtr fmin,
