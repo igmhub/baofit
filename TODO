@@ -2,8 +2,6 @@ Add option to load/save data using new BinnedData virtual methods.
 
 Add CorrelationAnalyzer::fitEach() method.
 
-Add optional refitScript parameter to analysis methods (which generates deltaChiSq values).
-
 Generate and save/fit MC samples from a model and data covariance matrix.
 
 Add structured (json?) logging of analysis outputs.
@@ -16,8 +14,12 @@ Test/fix jackknife resampling.
 
 Create PkCorrelationModel.
 
-Save bootstrap parameter distributions.
+Save bootstrap parameter distributions and curves.
 
 Add option to include quadrupole in loadFrench().
 
 Test bootstrapping when input data has no covariance info.
+
+Implement MCMC marginalization of nuisance parameters.
+
+Implement likelihood refit marginalization of nuisance parameters.
