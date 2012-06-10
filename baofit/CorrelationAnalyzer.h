@@ -54,10 +54,12 @@ namespace baofit {
         // Dumps the model predictions for the specified fit result to the specified
         // output stream. The fit result is assumed to correspond to model that is
         // currently associated with this analyzer. Use the optional script to modify
-        // the parameters used in the model.
+        // the parameters used in the model. By default, values are output as
+        // "rval mono quad hexa" on separate lines. With oneLine = true, values of
+        // "mono quad hexa" are concatenated onto a single line.
         void dumpModel(std::ostream &out, likely::FunctionMinimumPtr fmin,
-            cosmo::Multipole multipole, int nr, double rmin, double rmax, double zval,
-            std::string const &script = "") const;
+            int nr, double rmin, double rmax, double zval, std::string const &script = "",
+            bool oneLine = false) const;
         
 	private:
         std::string _method;

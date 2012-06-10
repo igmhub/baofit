@@ -159,8 +159,7 @@ std::string const &script) const {
 }
 
 void local::CorrelationAnalyzer::dumpModel(std::ostream &out, likely::FunctionMinimumPtr fmin,
-cosmo::Multipole multipole, int nr, double rmin, double rmax, double zval,
-std::string const &script) const {
+int nr, double rmin, double rmax, double zval, std::string const &script, bool oneLine) const {
     if(rmin >= rmax || nr < 2) {
         throw RuntimeError("CorrelationAnalyzer::dump: invalid radial parameters.");
     }
@@ -177,7 +176,13 @@ std::string const &script) const {
     double dr((rmax-rmin)/(nr-1));
     for(int rIndex = 0; rIndex < nr; ++rIndex) {
         double rval(rmin+dr*rIndex);
-        double pred = _model->evaluate(rval,multipole,zval,parameterValues);
-        out << rval << ' ' << pred << std::endl;
+        double mono = _model->evaluate(rval,cosmo::Monopole,zval,parameterValues);
+        double quad = _model->evaluate(rval,cosmo::Quadrupole,zval,parameterValues);
+        double hexa = _model->evaluate(rval,cosmo::Hexadecapole,zval,parameterValues);
+        // Output the model predictions for this radius in the requested format.
+        if(!oneLine) out << rval;
+        out << ' ' << mono << ' ' << quad << ' ' << hexa;
+        if(!oneLine) out << std::endl;
     }
+    if(oneLine) out << std::endl;
 }

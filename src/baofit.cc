@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
         cosmolibOptions("Cosmolib data options"), analysisOptions("Analysis options");
 
     double OmegaMatter,hubbleConstant,zref,minll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin;
-    int nll,nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,numXi;
+    int nll,nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,numXi,ndump;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,
         platelistName,platerootName,modelConfig,iniName,refitConfig,minMethod;
 
@@ -101,6 +101,8 @@ int main(int argc, char **argv) {
             "Maximum 3D comoving separation (Mpc/h) to use in fit.")
         ("llmin", po::value<double>(&llmin)->default_value(0),
             "Minimum value of log(lam2/lam1) to use in fit (cosmolib only).")
+        ("ndump", po::value<int>(&ndump)->default_value(100),
+            "Number of points spanning [rmin,rmax] to use for dumping models (zero for no dumps).")
         ("refit-config", po::value<std::string>(&refitConfig)->default_value(""),
             "Script to modify parameters for refits.")
         ("bootstrap-trials", po::value<int>(&bootstrapTrials)->default_value(0),
@@ -289,16 +291,16 @@ int main(int argc, char **argv) {
     try {
         // Always fit the combined sample.
         lk::FunctionMinimumPtr fmin = analyzer.fitCombined();
-        {
+        if(ndump > 0) {
             // Dump the best-fit monopole model.
-            std::ofstream out("fitmono.dat");
-            analyzer.dumpModel(out,fmin,cosmo::Monopole,100,rmin,rmax,zdata);
+            std::ofstream out("fit.dat");
+            analyzer.dumpModel(out,fmin,ndump,rmin,rmax,zdata);
             out.close();
         }
-        if(!xiModel) {
+        if(!xiModel && ndump > 0) {
             // Dump the best-fit monopole model with its peak contribution forced to zero.
-            std::ofstream out("fitmono-smooth.dat");
-            analyzer.dumpModel(out,fmin,cosmo::Monopole,100,rmin,rmax,zdata,"value[BAO amplitude]=0");
+            std::ofstream out("fit-smooth.dat");
+            analyzer.dumpModel(out,fmin,ndump,rmin,rmax,zdata,"value[BAO amplitude]=0");
             out.close();
         }
         {
@@ -313,10 +315,12 @@ int main(int argc, char **argv) {
                 std::cout << std::endl << "Re-fitting combined with: " << refitConfig << std::endl;
             }
             lk::FunctionMinimumPtr fmin2 = analyzer.fitCombined(refitConfig);
-            // Dump the best-fit monopole model.
-            std::ofstream out("refitmono.dat");
-            analyzer.dumpModel(out,fmin2,cosmo::Monopole,100,rmin,rmax,zdata);
-            out.close();
+            if(ndump > 0) {
+                // Dump the best-fit monopole model.
+                std::ofstream out("refit.dat");
+                analyzer.dumpModel(out,fmin2,ndump,rmin,rmax,zdata);
+                out.close();
+            }
         }
         // Perform a bootstrap analysis, if requested.
         if(bootstrapTrials > 0) {
