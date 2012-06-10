@@ -11,6 +11,12 @@ namespace local = baofit;
 local::CorrelationFitter::CorrelationFitter(AbsCorrelationDataCPtr data, AbsCorrelationModelPtr model)
 : _data(data), _model(model), _errorScale(1), _type(data->getTransverseBinningType())
 {
+    if(!data || 0 == data->getNBinsWithData()) {
+        throw RuntimeError("CorrelationFitter: need some data to fit.");
+    }
+    if(!model) {
+        throw RuntimeError("CorrelationFitter: need a model to fit.");
+    }
 }
 
 local::CorrelationFitter::~CorrelationFitter() { }
