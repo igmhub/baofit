@@ -27,7 +27,7 @@ int main(int argc, char **argv) {
     double OmegaMatter,hubbleConstant,zref,minll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin;
     int nll,nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,numXi;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,
-        platelistName,platerootName,modelConfig,iniName;
+        platelistName,platerootName,modelConfig,iniName,refitConfig;
 
     // Default values in quotes below are to avoid roundoff errors leading to ugly --help
     // messages. See http://stackoverflow.com/questions/1734916/
@@ -100,7 +100,9 @@ int main(int argc, char **argv) {
         ("rmax", po::value<double>(&rmax)->default_value(200),
             "Maximum 3D comoving separation (Mpc/h) to use in fit.")
         ("llmin", po::value<double>(&llmin)->default_value(0),
-            "Minimum value of log(lam2/lam1) to use in fit.")
+            "Minimum value of log(lam2/lam1) to use in fit (cosmolib only).")
+        ("refit-config", po::value<std::string>(&refitConfig)->default_value(""),
+            "Script to modify parameters for refits.")
         ("bootstrap-trials", po::value<int>(&bootstrapTrials)->default_value(0),
             "Number of bootstrap trials to run if a platelist was provided.")
         ("bootstrap-size", po::value<int>(&bootstrapSize)->default_value(0),
@@ -281,12 +283,10 @@ int main(int argc, char **argv) {
         out.close();
     }
     
-    // Do the requested analysis.
+    // Do the requested analyses...
     try {
-        lk::FunctionMinimumPtr fmin = analyzer.fitCombined("mn2::vmetric");        
-        if(bootstrapTrials > 0) {
-            analyzer.doBootstrapAnalysis("mn2::vmetric",fmin,bootstrapTrials,bootstrapSize,fixCovariance);
-        }
+        // Always fit the combined sample.
+        lk::FunctionMinimumPtr fmin = analyzer.fitCombined("mn2::vmetric");
         {
             // Dump the best-fit monopole model.
             std::ofstream out("fitmono.dat");
@@ -304,6 +304,21 @@ int main(int argc, char **argv) {
             std::ofstream out("residuals.dat");
             analyzer.dumpResiduals(out,fmin);
             out.close();
+        }
+        // Refit the combined sample, if requested.
+        if(0 < refitConfig.size()) {
+            if(verbose) {
+                std::cout << std::endl << "Re-fitting combined with: " << refitConfig << std::endl;
+            }
+            lk::FunctionMinimumPtr fmin2 = analyzer.fitCombined("mn2::vmetric",refitConfig);
+            // Dump the best-fit monopole model.
+            std::ofstream out("refitmono.dat");
+            analyzer.dumpModel(out,fmin2,cosmo::Monopole,100,rmin,rmax,zdata);
+            out.close();
+        }
+        // Perform a bootstrap analysis, if requested.
+        if(bootstrapTrials > 0) {
+            analyzer.doBootstrapAnalysis("mn2::vmetric",fmin,bootstrapTrials,bootstrapSize,fixCovariance);
         }
     }
     catch(cosmo::RuntimeError const &e) {
