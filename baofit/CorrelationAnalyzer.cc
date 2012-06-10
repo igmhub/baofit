@@ -6,10 +6,8 @@
 #include "baofit/AbsCorrelationModel.h"
 #include "baofit/CorrelationFitter.h"
 
-#include "likely/CovarianceAccumulator.h"
-#include "likely/WeightedAccumulator.h"
 #include "likely/FunctionMinimum.h"
-#include "likely/CovarianceMatrix.h"
+#include "likely/FitParameterStatistics.h"
 
 #include "boost/smart_ptr.hpp"
 #include "boost/format.hpp"
@@ -61,20 +59,21 @@ likely::FunctionMinimumPtr local::CorrelationAnalyzer::fitCombined(std::string c
 }
 
 int local::CorrelationAnalyzer::doBootstrapAnalysis(likely::FunctionMinimumPtr fmin,
-int bootstrapTrials, int bootstrapSize, bool fixCovariance) const {
+int bootstrapTrials, int bootstrapSize, std::string const &refitConfig, bool fixCovariance) const {
     if(getNData() <= 1) {
         throw RuntimeError("CorrelationAnalyzer::doBootstrapAnalysis: need > 1 observation.");
     }
     if(0 == bootstrapSize) bootstrapSize = getNData();
     baofit::AbsCorrelationDataPtr bsData;
-    // Lookup the values of floating parameters from the combined fit.
-    std::vector<double> baseline = fmin->getParameters(true);
-    // Initialize statistics accumulators.
-    int nstats = baseline.size()+1;
-    boost::scoped_array<likely::WeightedAccumulator> stats(new likely::WeightedAccumulator[nstats]);
-    likely::CovarianceAccumulator accumulator(nstats);
+    // Initialize the parameter value statistics accumulators we will need.
+    likely::FitParameters params(fmin->getFitParameters());
+    likely::FitParameterStatisticsPtr refitStats,fitStats(new likely::FitParameterStatistics(params));
+    if(0 < refitConfig.size()) {
+        modifyFitParameters(params,refitConfig);
+        refitStats.reset(new likely::FitParameterStatistics(params));
+    }
     int nInvalid(0);
-
+    // Loop over the requested bootstrap trials.
     for(int trial = 0; trial < bootstrapTrials; ++trial) {
         // Generate the next boostrap sample.
         bsData = boost::dynamic_pointer_cast<baofit::AbsCorrelationData>(
@@ -83,22 +82,18 @@ int bootstrapTrials, int bootstrapSize, bool fixCovariance) const {
         // Fit the sample.
         baofit::CorrelationFitter bsFitEngine(bsData,_model);
         likely::FunctionMinimumPtr bsMin = bsFitEngine.fit(_method);
+        bool ok = (bsMin->getStatus() == likely::FunctionMinimum::OK);
+        // Refit the sample if requested and the first fit succeeded.
+        likely::FunctionMinimumPtr bsMinRefit;
+        if(ok && 0 < refitConfig.size()) {
+            bsMinRefit = bsFitEngine.fit(_method,refitConfig);
+            // Did this fit succeed also?
+            if(bsMinRefit->getStatus() != likely::FunctionMinimum::OK) ok = false;
+        }
         // Accumulate the fit results.
-        if(bsMin->getStatus() == likely::FunctionMinimum::OK) {
-            // Lookup the fitted values of floating parameters.
-            std::vector<double> pvalues = bsMin->getParameters(true);
-            for(int par = 0; par < pvalues.size(); ++par) {
-                // Accumulate statistics for this parameter.
-                stats[par].accumulate(pvalues[par]);
-                // Calculate differences from the baseline fit result (to minimize
-                // roundoff error when accumulating covariance statistics).
-                pvalues[par] -= baseline[par];
-            }
-            // Include the fit chiSquare = 2*FMIN (relative to the baseline value) in
-            // our statistics.
-            stats[nstats-1].accumulate(2*bsMin->getMinValue());
-            pvalues.push_back(2*(bsMin->getMinValue() - fmin->getMinValue()));
-            accumulator.accumulate(pvalues);
+        if(ok) {
+            fitStats->update(bsMin);
+            if(refitStats) refitStats->update(bsMinRefit);
         }
         else {
             nInvalid++;
@@ -110,16 +105,12 @@ int bootstrapTrials, int bootstrapSize, bool fixCovariance) const {
         }
     }
     // Print a summary of the analysis results.
-    std::vector<std::string> labels(fmin->getNames(true));
-    labels.push_back("chiSquare");
-    boost::format resultFormat("%20s = %12.6f +/- %12.6f\n");
-    std::cout << std::endl << "Bootstrap Results:" << std::endl;
-    for(int stat = 0; stat < nstats; ++stat) {
-        std::cout << resultFormat % labels[stat] % stats[stat].mean() % stats[stat].error();
+    std::cout << std::endl << "== Bootstrap Fit Results:" << std::endl;
+    fitStats->printToStream(std::cout);
+    if(refitStats) {
+        std::cout << std::endl << "== Bootstrap Re-Fit Results:" << std::endl;
+        refitStats->printToStream(std::cout);        
     }
-    std::cout << std::endl << "Bootstrap Errors & Correlations:" << std::endl;
-    accumulator.getCovariance()->printToStream(std::cout,true,"%12.6f",labels);
-    
     return nInvalid;
 }
 

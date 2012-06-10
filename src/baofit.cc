@@ -320,7 +320,7 @@ int main(int argc, char **argv) {
         }
         // Perform a bootstrap analysis, if requested.
         if(bootstrapTrials > 0) {
-            analyzer.doBootstrapAnalysis(fmin,bootstrapTrials,bootstrapSize,fixCovariance);
+            analyzer.doBootstrapAnalysis(fmin,bootstrapTrials,bootstrapSize,refitConfig,fixCovariance);
         }
     }
     catch(cosmo::RuntimeError const &e) {

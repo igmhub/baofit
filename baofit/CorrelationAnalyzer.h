@@ -36,9 +36,15 @@ namespace baofit {
         // propagate back to the model or modify subsequent fits).
         likely::FunctionMinimumPtr fitCombined(std::string const &config = "") const;
         // Performs a bootstrap analysis and returns the number of fits to bootstrap
-        // samples that failed.
-        int doBootstrapAnalysis(likely::FunctionMinimumPtr fmin,
-            int bootstrapTrials, int bootstrapSize = 0, bool fixCovariance = true) const;
+        // samples that failed. Specify a non-zero bootstrapSize to generate trials with
+        // a number of observations different than getNData(). Specify a refitConfig script
+        // to fit each bootstrap sample twice: first with the default model config, then
+        // with the refit config script applied. In this case, a trial is only considered
+        // successful if both fits succeed. Setting fixCovariance to false means that
+        // fits will use a covariance matrix that does not correctly account for double
+        // counting. See likely::BinnedDataResampler::bootstrap for details.
+        int doBootstrapAnalysis(likely::FunctionMinimumPtr fmin, int bootstrapTrials,
+            int bootstrapSize = 0, std::string const &refitConfig = "", bool fixCovariance = true) const;
         // Dumps the data, prediction, and diagonal error for each bin of the combined
         // data set to the specified output stream. The fit result is assumed to correspond
         // to model that is currently associated with this analyzer. Use the optional script
