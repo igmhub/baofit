@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
             "Size of each bootstrap trial or zero to use the number of plates.")
         ("random-seed", po::value<int>(&randomSeed)->default_value(1966),
             "Random seed to use for generating bootstrap samples.")
-        ("min-method", po::value<std::string>(&minMethod)->default_value("gsl::nmsimplex"),
+        ("min-method", po::value<std::string>(&minMethod)->default_value("mn2::vmetric"),
             "Minimization method to use for fitting.")
         ;
 
