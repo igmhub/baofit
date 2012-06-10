@@ -13,6 +13,7 @@
 
 #include "boost/smart_ptr.hpp"
 #include "boost/format.hpp"
+#include "boost/foreach.hpp"
 #include "boost/math/special_functions/gamma.hpp"
 
 #include <iostream>
@@ -139,9 +140,14 @@ std::string const &script) const {
     likely::Parameters parameterValues;
     likely::getFitParameterValues(parameters,parameterValues);
     // Loop over 3D bins in the combined dataset.
-    std::vector<int> bin(3);
+    std::vector<double> centers;
     for(likely::BinnedData::IndexIterator iter = combined->begin(); iter != combined->end(); ++iter) {
         int index(*iter);
+        out << index;
+        combined->getBinCenters(index,centers);
+        BOOST_FOREACH(double center, centers) {
+            out << ' ' << center;
+        }
         double data = combined->getData(index);
         double error = std::sqrt(combined->getCovariance(index,index));
         double z = combined->getRedshift(index);
@@ -150,19 +156,14 @@ std::string const &script) const {
         if(type == AbsCorrelationData::Coordinate) {
             double mu = combined->getCosAngle(index);
             predicted = _model->evaluate(r,mu,z,parameterValues);
-            out << r << ' ' << mu << ' ' << z;
+            out  << ' ' << r << ' ' << mu << ' ' << z;
         }
         else {
             cosmo::Multipole multipole = combined->getMultipole(index);
             predicted = _model->evaluate(r,multipole,z,parameterValues);
-            out << r << ' ' << (int)multipole << ' ' << z;
+            out  << ' ' << r << ' ' << (int)multipole << ' ' << z;
         }
-        combined->getBinIndices(index,bin);
-        out << ' ' << index;
-        for(int axis = 0; axis < 3; ++axis) {
-            out << ' ' << bin[axis];
-        }
-        out << ' ' << data << ' ' << predicted << ' ' << error << std::endl;
+        out << ' ' << predicted << ' ' << data << ' ' << error << std::endl;
     }
 }
 
