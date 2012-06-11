@@ -170,7 +170,7 @@ int main(int argc, char **argv) {
     }
 
     // Initialize our analyzer.
-    baofit::CorrelationAnalyzer analyzer(randomSeed,minMethod,verbose);
+    baofit::CorrelationAnalyzer analyzer(randomSeed,minMethod,rmin,rmax,verbose);
 
     // Initialize the models we will use.
     cosmo::AbsHomogeneousUniversePtr cosmology;
@@ -278,6 +278,7 @@ int main(int argc, char **argv) {
         std::cerr << "ERROR while reading data:\n  " << e.what() << std::endl;
         return -2;
     }
+    analyzer.setZData(zdata);
 
     if(french || dr9lrg) {
         std::ofstream out("monopole.dat");
@@ -286,7 +287,7 @@ int main(int argc, char **argv) {
         combined->dump(out,cosmo::Monopole);
         out.close();
     }
-    
+
     // Do the requested analyses...
     try {
         // Always fit the combined sample.
@@ -294,13 +295,13 @@ int main(int argc, char **argv) {
         if(ndump > 0) {
             // Dump the best-fit monopole model.
             std::ofstream out("fit.dat");
-            analyzer.dumpModel(out,fmin,ndump,rmin,rmax,zdata);
+            analyzer.dumpModel(out,fmin,ndump);
             out.close();
         }
         if(!xiModel && ndump > 0) {
             // Dump the best-fit monopole model with its peak contribution forced to zero.
             std::ofstream out("fit-smooth.dat");
-            analyzer.dumpModel(out,fmin,ndump,rmin,rmax,zdata,"value[BAO amplitude]=0");
+            analyzer.dumpModel(out,fmin,ndump,"value[BAO amplitude]=0");
             out.close();
         }
         {
@@ -318,13 +319,14 @@ int main(int argc, char **argv) {
             if(ndump > 0) {
                 // Dump the best-fit monopole model.
                 std::ofstream out("refit.dat");
-                analyzer.dumpModel(out,fmin2,ndump,rmin,rmax,zdata);
+                analyzer.dumpModel(out,fmin2,ndump);
                 out.close();
             }
         }
         // Perform a bootstrap analysis, if requested.
         if(bootstrapTrials > 0) {
-            analyzer.doBootstrapAnalysis(fmin,bootstrapTrials,bootstrapSize,refitConfig,fixCovariance);
+            analyzer.doBootstrapAnalysis(fmin,bootstrapTrials,bootstrapSize,refitConfig,
+                "bs.dat",ndump,fixCovariance);
         }
     }
     catch(cosmo::RuntimeError const &e) {

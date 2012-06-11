@@ -15,15 +15,28 @@
 #include "boost/math/special_functions/gamma.hpp"
 
 #include <iostream>
+#include <fstream>
 #include <cmath>
 
 namespace local = baofit;
 
-local::CorrelationAnalyzer::CorrelationAnalyzer(int randomSeed, std::string const &method, bool verbose)
-: _resampler(randomSeed), _method(method), _verbose(verbose)
-{ }
+local::CorrelationAnalyzer::CorrelationAnalyzer(int randomSeed, std::string const &method,
+double rmin, double rmax, bool verbose)
+: _resampler(randomSeed), _method(method), _rmin(rmin), _rmax(rmax), _verbose(verbose)
+{
+    if(rmin >= rmax) {
+        throw RuntimeError("CorrelationAnalyzer: expected rmin < rmax.");
+    }
+}
 
 local::CorrelationAnalyzer::~CorrelationAnalyzer() { }
+
+void local::CorrelationAnalyzer::setZData(double zdata) {
+    if(zdata < 0) {
+        throw RuntimeError("CorrelationAnalyzer: expected zdata >= 0.");        
+    }
+    _zdata = zdata;
+}
 
 void local::CorrelationAnalyzer::addData(AbsCorrelationDataCPtr data) {
     _resampler.addObservation(boost::dynamic_pointer_cast<const likely::BinnedData>(data));
@@ -59,10 +72,23 @@ likely::FunctionMinimumPtr local::CorrelationAnalyzer::fitCombined(std::string c
 }
 
 int local::CorrelationAnalyzer::doBootstrapAnalysis(likely::FunctionMinimumPtr fmin,
-int bootstrapTrials, int bootstrapSize, std::string const &refitConfig, bool fixCovariance) const {
+int bootstrapTrials, int bootstrapSize, std::string const &refitConfig,
+std::string const &saveName, int nsave, bool fixCovariance) const {
     if(getNData() <= 1) {
         throw RuntimeError("CorrelationAnalyzer::doBootstrapAnalysis: need > 1 observation.");
     }
+    if(bootstrapTrials <= 0) {
+        throw RuntimeError("CorrelationAnalyzer::doBootstrapAnalysis: expected bootstrapTrials > 0.");
+    }
+    if(bootstrapSize < 0) {
+        throw RuntimeError("CorrelationAnalyzer::doBootstrapAnalysis: expected bootstrapSize >= 0.");
+    }
+    if(nsave < 0) {
+        throw RuntimeError("CorrelationAnalyzer::doBootstrapAnalysis: expected nsave >= 0.");
+    }
+    // Try to open the specified save file.
+    boost::scoped_ptr<std::ofstream> save;
+    if(0 < saveName.length()) save.reset(new std::ofstream(saveName.c_str()));
     if(0 == bootstrapSize) bootstrapSize = getNData();
     baofit::AbsCorrelationDataPtr bsData;
     // Initialize the parameter value statistics accumulators we will need.
@@ -90,10 +116,31 @@ int bootstrapTrials, int bootstrapSize, std::string const &refitConfig, bool fix
             // Did this fit succeed also?
             if(bsMinRefit->getStatus() != likely::FunctionMinimum::OK) ok = false;
         }
-        // Accumulate the fit results.
         if(ok) {
+            // Accumulate the fit results.
             fitStats->update(bsMin);
             if(refitStats) refitStats->update(bsMinRefit);
+            // Save the fit results, if requested.
+            if(save) {
+                // Save fit parameter values and chisq.
+                BOOST_FOREACH(double pvalue, bsMin->getParameters()) {
+                    *save << pvalue << ' ';
+                }
+                *save << 2*bsMin->getMinValue() << ' ';
+                // Save any refit parameter values and chisq.
+                if(refitStats) {
+                    BOOST_FOREACH(double pvalue, bsMinRefit->getParameters()) {
+                        *save << pvalue << ' ';
+                    }
+                    *save << 2*bsMinRefit->getMinValue() << ' ';                    
+                }
+                // Save best-fit model multipoles, if requested.
+                if(nsave > 0) {
+                    dumpModel(*save,bsMin,nsave,"",true);
+                    if(refitStats) dumpModel(*save,bsMinRefit,nsave,"",true);
+                }
+                *save << std::endl;
+            }
         }
         else {
             nInvalid++;
@@ -111,6 +158,8 @@ int bootstrapTrials, int bootstrapSize, std::string const &refitConfig, bool fix
         std::cout << std::endl << "== Bootstrap Re-Fit Results:" << std::endl;
         refitStats->printToStream(std::cout);        
     }
+    // Close our save file if necessary.
+    if(save) save->close();
     return nInvalid;
 }
 
@@ -159,9 +208,9 @@ std::string const &script) const {
 }
 
 void local::CorrelationAnalyzer::dumpModel(std::ostream &out, likely::FunctionMinimumPtr fmin,
-int nr, double rmin, double rmax, double zval, std::string const &script, bool oneLine) const {
-    if(rmin >= rmax || nr < 2) {
-        throw RuntimeError("CorrelationAnalyzer::dump: invalid radial parameters.");
+int ndump, std::string const &script, bool oneLine) const {
+    if(ndump <= 1) {
+        throw RuntimeError("CorrelationAnalyzer::dump: expected ndump > 1.");
     }
     // Get a copy of the the parameters at this minimum.
     likely::FitParameters parameters(fmin->getFitParameters());
@@ -173,16 +222,15 @@ int nr, double rmin, double rmax, double zval, std::string const &script, bool o
     likely::Parameters parameterValues;
     likely::getFitParameterValues(parameters,parameterValues);
     // Loop over the specified radial grid.
-    double dr((rmax-rmin)/(nr-1));
-    for(int rIndex = 0; rIndex < nr; ++rIndex) {
-        double rval(rmin+dr*rIndex);
-        double mono = _model->evaluate(rval,cosmo::Monopole,zval,parameterValues);
-        double quad = _model->evaluate(rval,cosmo::Quadrupole,zval,parameterValues);
-        double hexa = _model->evaluate(rval,cosmo::Hexadecapole,zval,parameterValues);
+    double dr((_rmax - _rmin)/(ndump-1));
+    for(int rIndex = 0; rIndex < ndump; ++rIndex) {
+        double rval(_rmin + dr*rIndex);
+        double mono = _model->evaluate(rval,cosmo::Monopole,_zdata,parameterValues);
+        double quad = _model->evaluate(rval,cosmo::Quadrupole,_zdata,parameterValues);
+        double hexa = _model->evaluate(rval,cosmo::Hexadecapole,_zdata,parameterValues);
         // Output the model predictions for this radius in the requested format.
         if(!oneLine) out << rval;
         out << ' ' << mono << ' ' << quad << ' ' << hexa;
         if(!oneLine) out << std::endl;
     }
-    if(oneLine) out << std::endl;
 }
