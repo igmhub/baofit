@@ -218,7 +218,6 @@ bool verbose, bool unweighted, bool checkPosDef) {
         if(useQuadrupole) {
             bin[1] = cosmo::Quadrupole;
             int quadIndex = binnedData->getIndex(bin);
-            std::cout << "quad " << quadIndex << std::endl;
             binnedData->setData(quadIndex,quad);
         }
     }
@@ -261,8 +260,6 @@ bool verbose, bool unweighted, bool checkPosDef) {
             bin2[1] = index2/nrbins;
             // Ignore mono-quad covariances except at the same separation
             if(bin1[0] != bin2[0] && bin1[1] != bin2[1]) continue;
-            std::cout << "cov " << index1 << ' ' << index2 << ' ' << binnedData->getIndex(bin1) << ' '
-                << binnedData->getIndex(bin2) << std::endl;
             binnedData->setCovariance(binnedData->getIndex(bin1), binnedData->getIndex(bin2), cov);
         }
         covIn.close();
