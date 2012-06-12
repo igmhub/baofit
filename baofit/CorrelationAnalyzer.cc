@@ -189,7 +189,7 @@ std::string const &script) const {
             out << ' ' << center;
         }
         double data = combined->getData(index);
-        double error = std::sqrt(combined->getCovariance(index,index));
+        double error = combined->hasCovariance() ? std::sqrt(combined->getCovariance(index,index)) : 0;
         double z = combined->getRedshift(index);
         double r = combined->getRadius(index);
         double predicted;

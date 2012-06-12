@@ -109,7 +109,8 @@ std::ostream &out, cosmo::Multipole multipole, int zIndex) const {
         if(rval >= _rmax) break;
         bin[0] = rIndex;
         int index = getIndex(bin);
+        double obs = hasData(index) ? getData(index) : -1;
         double cov = hasCovariance() ? getCovariance(index,index) : 0;
-        out << rval << ' ' << getData(index) << ' ' << std::sqrt(cov) << std::endl;
+        out << rval << ' ' << obs << ' ' << std::sqrt(cov) << std::endl;
     }
 }
