@@ -15,7 +15,8 @@ namespace baofit {
         AbsCorrelationDataCPtr createFrenchPrototype(double zref, double rmin, double rmax);
 
         AbsCorrelationDataPtr loadFrench(std::string const &dataName,
-            AbsCorrelationDataCPtr prototype, bool verbose, bool checkPosDef = false);
+            AbsCorrelationDataCPtr prototype, bool verbose,
+            bool unweighted = false, bool checkPosDef = false);
             
         AbsCorrelationDataCPtr createDR9LRGPrototype(double zref, double rmin, double rmax,
             std::string const &covName, bool verbose);

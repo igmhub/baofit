@@ -160,7 +160,7 @@ baofit::AbsCorrelationDataCPtr local::createFrenchPrototype(double zref, double 
 // a MultipoleCorrelationData.
 baofit::AbsCorrelationDataPtr
 local::loadFrench(std::string const &dataName, baofit::AbsCorrelationDataCPtr prototype,
-bool verbose, bool checkPosDef) {
+bool verbose, bool unweighted, bool checkPosDef) {
 
     // Create the new AbsCorrelationData that we will fill.
     baofit::AbsCorrelationDataPtr binnedData((baofit::MultipoleCorrelationData *)(prototype->clone(true)));
@@ -208,41 +208,44 @@ bool verbose, bool checkPosDef) {
         std::cout << "Read " << lines << " data values from " << paramsName << std::endl;
     }
     
-    // Loop over lines in the covariance file.
-    std::string covName = paramsName;
-    int pos = covName.rfind('/',-1);
-    covName.insert(pos+1,"cov_");
-    std::ifstream covIn(covName.c_str());
-    if(!covIn.good()) throw RuntimeError("Unable to open " + covName);
-    lines = 0;
-    int index1,index2;
-    double cov;
-    while(std::getline(covIn,line)) {
-        lines++;
-        bool ok = qi::phrase_parse(line.begin(),line.end(),
-            (
-                int_[ref(index1) = _1] >> int_[ref(index2) = _1] >> double_[ref(cov) = _1]
-            ),
-            ascii::space);
-        if(!ok) {
-            throw RuntimeError("loadFrench: error reading line " +
-                boost::lexical_cast<std::string>(lines) + " of " + covName);
+    if(!unweighted) {
+        // Loop over lines in the covariance file.
+        std::string covName = paramsName;
+        int pos = covName.rfind('/',-1);
+        covName.insert(pos+1,"cov_");
+        std::ifstream covIn(covName.c_str());
+        if(!covIn.good()) throw RuntimeError("Unable to open " + covName);
+        lines = 0;
+        int index1,index2;
+        double cov;
+        while(std::getline(covIn,line)) {
+            lines++;
+            bool ok = qi::phrase_parse(line.begin(),line.end(),
+                (
+                    int_[ref(index1) = _1] >> int_[ref(index2) = _1] >> double_[ref(cov) = _1]
+                ),
+                ascii::space);
+            if(!ok) {
+                throw RuntimeError("loadFrench: error reading line " +
+                    boost::lexical_cast<std::string>(lines) + " of " + covName);
+            }
+            if(index1 <= index2 && index2 < 50) binnedData->setCovariance(index1,index2,cov);
         }
-        if(index1 <= index2 && index2 < 50) binnedData->setCovariance(index1,index2,cov);
-    }
-    covIn.close();
-    if(verbose) {
-        std::cout << "Read " << lines << " covariance values from " << covName << std::endl;
-    }
-    if(checkPosDef) {
-        // Check that the covariance is positive definite by triggering an inversion.
-        try {
-            binnedData->getInverseCovariance(0,0);
+        covIn.close();
+        if(verbose) {
+            std::cout << "Read " << lines << " covariance values from " << covName << std::endl;
         }
-        catch(likely::RuntimeError const &e) {
-            std::cerr << "### Inverse covariance not positive-definite: " << covName << std::endl;
+        if(checkPosDef) {
+            // Check that the covariance is positive definite by triggering an inversion.
+            try {
+                binnedData->getInverseCovariance(0,0);
+            }
+            catch(likely::RuntimeError const &e) {
+                std::cerr << "### Inverse covariance not positive-definite: " << covName << std::endl;
+            }
         }
     }
+
     return binnedData;
 }
 
