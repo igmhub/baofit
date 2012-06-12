@@ -71,17 +71,50 @@ likely::FunctionMinimumPtr local::CorrelationAnalyzer::fitCombined(std::string c
     return fmin;
 }
 
+namespace baofit {
+    class CorrelationAnalyzer::AbsSampler {
+    public:
+        virtual AbsCorrelationDataPtr nextSample() = 0;
+    };
+    class CorrelationAnalyzer::BootstrapSampler : public CorrelationAnalyzer::AbsSampler {
+    public:
+        BootstrapSampler(int trials, int size, bool fix, likely::BinnedDataResampler const &resampler)
+        : _trials(trials), _size(size), _fix(fix), _resampler(resampler), _next(0) { }
+        virtual AbsCorrelationDataPtr nextSample() {
+            AbsCorrelationDataPtr sample;
+            if(++_next <= _trials) {
+                sample = boost::dynamic_pointer_cast<baofit::AbsCorrelationData>(
+                    _resampler.bootstrap(_size,_fix));
+                sample->finalize();
+            }
+            return sample;
+        }
+    private:
+        int _trials, _size, _next;
+        bool _fix;
+        likely::BinnedDataResampler const &_resampler;
+    };
+}
+
 int local::CorrelationAnalyzer::doBootstrapAnalysis(likely::FunctionMinimumPtr fmin,
 int bootstrapTrials, int bootstrapSize, std::string const &refitConfig,
 std::string const &saveName, int nsave, bool fixCovariance) const {
-    if(getNData() <= 1) {
-        throw RuntimeError("CorrelationAnalyzer::doBootstrapAnalysis: need > 1 observation.");
-    }
     if(bootstrapTrials <= 0) {
         throw RuntimeError("CorrelationAnalyzer::doBootstrapAnalysis: expected bootstrapTrials > 0.");
     }
     if(bootstrapSize < 0) {
         throw RuntimeError("CorrelationAnalyzer::doBootstrapAnalysis: expected bootstrapSize >= 0.");
+    }
+    if(0 == bootstrapSize) bootstrapSize = getNData();
+    CorrelationAnalyzer::BootstrapSampler sampler(bootstrapTrials,bootstrapSize,fixCovariance,_resampler);
+    return doSamplingAnalysis(sampler, fmin, refitConfig, saveName, nsave);
+}
+
+int local::CorrelationAnalyzer::doSamplingAnalysis(CorrelationAnalyzer::AbsSampler &sampler,
+likely::FunctionMinimumPtr fmin, std::string const &refitConfig,
+std::string const &saveName, int nsave) const {
+    if(getNData() <= 1) {
+        throw RuntimeError("CorrelationAnalyzer::doBootstrapAnalysis: need > 1 observation.");
     }
     if(nsave < 0) {
         throw RuntimeError("CorrelationAnalyzer::doBootstrapAnalysis: expected nsave >= 0.");
@@ -89,7 +122,6 @@ std::string const &saveName, int nsave, bool fixCovariance) const {
     // Try to open the specified save file.
     boost::scoped_ptr<std::ofstream> save;
     if(0 < saveName.length()) save.reset(new std::ofstream(saveName.c_str()));
-    if(0 == bootstrapSize) bootstrapSize = getNData();
     baofit::AbsCorrelationDataPtr bsData;
     // Initialize the parameter value statistics accumulators we will need.
     likely::FitParameters params(fmin->getFitParameters());
@@ -99,12 +131,9 @@ std::string const &saveName, int nsave, bool fixCovariance) const {
         refitStats.reset(new likely::FitParameterStatistics(params));
     }
     int nInvalid(0);
-    // Loop over the requested bootstrap trials.
-    for(int trial = 0; trial < bootstrapTrials; ++trial) {
-        // Generate the next boostrap sample.
-        bsData = boost::dynamic_pointer_cast<baofit::AbsCorrelationData>(
-            _resampler.bootstrap(bootstrapSize,fixCovariance));
-        bsData->finalize();
+    // Loop over samples.
+    int nsamples(0);
+    while(bsData = sampler.nextSample()) {
         // Fit the sample.
         baofit::CorrelationFitter bsFitEngine(bsData,_model);
         likely::FunctionMinimumPtr bsMin = bsFitEngine.fit(_method);
@@ -146,9 +175,9 @@ std::string const &saveName, int nsave, bool fixCovariance) const {
             nInvalid++;
         }
         // Print periodic updates while the analysis is running.
-        if(trial == bootstrapTrials-1 || (_verbose && (0 == (trial+1)%10))) {
-            std::cout << "Completed " << (trial+1) << " bootstrap trials (" << nInvalid
-                << " invalid)" << std::endl;
+        nsamples++;
+        if(_verbose && (0 == nsamples%10)) {
+            std::cout << "Analyzed " << nsamples << " samples (" << nInvalid << " invalid)" << std::endl;
         }
     }
     // Print a summary of the analysis results.

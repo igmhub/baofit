@@ -68,13 +68,18 @@ namespace baofit {
         // "mono quad hexa" are concatenated onto a single line.
         void dumpModel(std::ostream &out, likely::FunctionMinimumPtr fmin,
             int ndump, std::string const &script = "", bool oneLine = false) const;
-        
 	private:
         std::string _method;
         double _rmin, _rmax, _zdata;
         bool _verbose;
         likely::BinnedDataResampler _resampler;
         AbsCorrelationModelPtr _model;
+        
+        class AbsSampler;
+        class BootstrapSampler;
+        int doSamplingAnalysis(AbsSampler &sampler, likely::FunctionMinimumPtr fmin,
+            std::string const &refitConfig, std::string const &saveName, int nsave) const;
+        
 	}; // CorrelationAnalyzer
 	
     inline void CorrelationAnalyzer::setVerbose(bool value) { _verbose = value; }
