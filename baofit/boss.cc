@@ -12,6 +12,7 @@
 #include "likely/UniformBinning.h"
 #include "likely/UniformSampling.h"
 #include "likely/NonUniformSampling.h"
+#include "likely/CovarianceMatrix.h"
 #include "likely/RuntimeError.h"
 
 #include "boost/lexical_cast.hpp"
@@ -145,12 +146,18 @@ local::loadDR9LRG(std::string const &dataName, baofit::AbsCorrelationDataCPtr pr
 }
 
 // Creates a prototype MultipoleCorrelationData with the specified binning.
-baofit::AbsCorrelationDataCPtr local::createFrenchPrototype(double zref, double rmin, double rmax) {
+baofit::AbsCorrelationDataCPtr local::createFrenchPrototype(double zref, double rmin, double rmax,
+bool useQuadrupole) {
     // Create the new BinnedData that we will fill.
-    likely::AbsBinningCPtr
+    likely::AbsBinningCPtr ellBins,
         rBins(new likely::UniformBinning(0,200,50)),
-        ellBins(new likely::UniformSampling(0,0,1)), // only monopole for now
         zBins(new likely::UniformSampling(zref,zref,1));
+    if(useQuadrupole) {
+        ellBins.reset(new likely::UniformSampling(cosmo::Monopole,cosmo::Quadrupole,2));
+    }
+    else {
+        ellBins.reset(new likely::UniformSampling(cosmo::Monopole,cosmo::Monopole,1));
+    }
     baofit::AbsCorrelationDataPtr
         prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins,rmin,rmax));
     return prototype;
@@ -165,9 +172,15 @@ bool verbose, bool unweighted, bool checkPosDef) {
     // Create the new AbsCorrelationData that we will fill.
     baofit::AbsCorrelationDataPtr binnedData((baofit::MultipoleCorrelationData *)(prototype->clone(true)));
     
+    // Lookup the number of radial bins.
+    int nrbins = prototype->getAxisBinning()[0]->getNBins();
+    
+    // Are we using the quadrupole?
+    bool useQuadrupole = (2 == prototype->getAxisBinning()[1]->getNBins());
+
     // Lookup our reference redshift.
     double zref = prototype->getAxisBinning()[2]->getBinCenter(0);
-
+    
     // General stuff we will need for reading both files.
     std::string line;
     int lines;
@@ -199,9 +212,15 @@ bool verbose, bool unweighted, bool checkPosDef) {
         }
         bin[0] = rval;
         bin[2] = zref;
-        bin[1] = 0;
+        bin[1] = cosmo::Monopole;
         int monoIndex = binnedData->getIndex(bin);
         binnedData->setData(monoIndex,mono);
+        if(useQuadrupole) {
+            bin[1] = cosmo::Quadrupole;
+            int quadIndex = binnedData->getIndex(bin);
+            std::cout << "quad " << quadIndex << std::endl;
+            binnedData->setData(quadIndex,quad);
+        }
     }
     paramsIn.close();
     if(verbose) {
@@ -218,6 +237,8 @@ bool verbose, bool unweighted, bool checkPosDef) {
         lines = 0;
         int index1,index2;
         double cov;
+        std::vector<int> bin1(3),bin2(3);
+        bin1[2] = bin2[2] = 0;
         while(std::getline(covIn,line)) {
             lines++;
             bool ok = qi::phrase_parse(line.begin(),line.end(),
@@ -229,11 +250,26 @@ bool verbose, bool unweighted, bool checkPosDef) {
                 throw RuntimeError("loadFrench: error reading line " +
                     boost::lexical_cast<std::string>(lines) + " of " + covName);
             }
-            if(index1 <= index2 && index2 < 50) binnedData->setCovariance(index1,index2,cov);
+            // Ignore entries above the diagonal since they are duplicates by symmetry.
+            if(index1 > index2) continue;
+            // Ignore quadrupole elements if requested.
+            if(!useQuadrupole && index2 >= nrbins) continue;
+            // Remap file indexing to a BinnedData global index.
+            bin1[0] = index1 % nrbins;
+            bin2[0] = index2 % nrbins;
+            bin1[1] = index1/nrbins;
+            bin2[1] = index2/nrbins;
+            // Ignore mono-quad covariances except at the same separation
+            if(bin1[0] != bin2[0] && bin1[1] != bin2[1]) continue;
+            std::cout << "cov " << index1 << ' ' << index2 << ' ' << binnedData->getIndex(bin1) << ' '
+                << binnedData->getIndex(bin2) << std::endl;
+            binnedData->setCovariance(binnedData->getIndex(bin1), binnedData->getIndex(bin2), cov);
         }
         covIn.close();
         if(verbose) {
-            std::cout << "Read " << lines << " covariance values from " << covName << std::endl;
+            std::cout << "Read " << lines << " and stored "
+                << binnedData->getCovarianceMatrix()->getNElements()
+                << " covariance values from " << covName << std::endl;
         }
         if(checkPosDef) {
             // Check that the covariance is positive definite by triggering an inversion.

@@ -22,7 +22,8 @@ int main(int argc, char **argv) {
     // Configure option processing
     po::options_description allOptions("Fits cosmological data to measure baryon acoustic oscillations"),
         genericOptions("Generic options"),modelOptions("Model options"), dataOptions("Data options"),
-        cosmolibOptions("Cosmolib data options"), analysisOptions("Analysis options");
+        frenchOptions("French data options"), cosmolibOptions("Cosmolib data options"),
+        analysisOptions("Analysis options");
 
     double OmegaMatter,hubbleConstant,zref,minll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin;
     int nll,nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,numXi,ndump;
@@ -69,8 +70,11 @@ int main(int argc, char **argv) {
         ("dr9lrg", "3D correlation data files are in the BOSS DR9 LRG galaxy format.")
         ("max-plates", po::value<int>(&maxPlates)->default_value(0),
             "Maximum number of plates to load (zero uses all available plates).")
-        ("unweighted", "Does not read covariance data.")
         ("check-posdef", "Checks that each covariance is positive-definite (slow).")
+        ;
+    frenchOptions.add_options()
+        ("unweighted", "Does not read covariance data.")
+        ("use-quad", "Uses quadrupole correlations.")
         ;
     cosmolibOptions.add_options()
         ("weighted", "Data vectors are inverse-covariance weighted.")
@@ -117,7 +121,7 @@ int main(int argc, char **argv) {
         ;
 
     allOptions.add(genericOptions).add(modelOptions).add(dataOptions)
-        .add(cosmolibOptions).add(analysisOptions);
+        .add(frenchOptions).add(cosmolibOptions).add(analysisOptions);
     po::variables_map vm;
 
     // Parse command line options first.
@@ -150,7 +154,8 @@ int main(int argc, char **argv) {
     // Extract boolean options.
     bool verbose(0 == vm.count("quiet")), french(vm.count("french")), weighted(vm.count("weighted")),
         checkPosDef(vm.count("check-posdef")), fixCovariance(0 == vm.count("naive-covariance")),
-        xiModel(vm.count("xi-model")), dr9lrg(vm.count("dr9lrg")), unweighted(vm.count("unweighted"));
+        xiModel(vm.count("xi-model")), dr9lrg(vm.count("dr9lrg")), unweighted(vm.count("unweighted")),
+        useQuad(vm.count("use-quad"));
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
@@ -214,7 +219,7 @@ int main(int argc, char **argv) {
         baofit::AbsCorrelationDataCPtr prototype;
         if(french) {
             zdata = 2.30;
-            prototype = baofit::boss::createFrenchPrototype(zdata,rmin,rmax);
+            prototype = baofit::boss::createFrenchPrototype(zdata,rmin,rmax,useQuad);
         }
         else if(dr9lrg) {
             zdata = 0.57;

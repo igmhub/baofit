@@ -12,7 +12,8 @@
 namespace baofit {
     namespace boss {
 
-        AbsCorrelationDataCPtr createFrenchPrototype(double zref, double rmin, double rmax);
+        AbsCorrelationDataCPtr createFrenchPrototype(double zref, double rmin, double rmax,
+            bool useQuadrupole = false);
 
         AbsCorrelationDataPtr loadFrench(std::string const &dataName,
             AbsCorrelationDataCPtr prototype, bool verbose,
