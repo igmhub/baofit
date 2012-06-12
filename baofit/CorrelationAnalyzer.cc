@@ -74,13 +74,13 @@ likely::FunctionMinimumPtr local::CorrelationAnalyzer::fitCombined(std::string c
 namespace baofit {
     class CorrelationAnalyzer::AbsSampler {
     public:
-        virtual AbsCorrelationDataPtr nextSample() = 0;
+        virtual AbsCorrelationDataCPtr nextSample() = 0;
     };
     class CorrelationAnalyzer::BootstrapSampler : public CorrelationAnalyzer::AbsSampler {
     public:
         BootstrapSampler(int trials, int size, bool fix, likely::BinnedDataResampler const &resampler)
         : _trials(trials), _size(size), _fix(fix), _resampler(resampler), _next(0) { }
-        virtual AbsCorrelationDataPtr nextSample() {
+        virtual AbsCorrelationDataCPtr nextSample() {
             AbsCorrelationDataPtr sample;
             if(++_next <= _trials) {
                 sample = boost::dynamic_pointer_cast<baofit::AbsCorrelationData>(
@@ -122,7 +122,7 @@ std::string const &saveName, int nsave) const {
     // Try to open the specified save file.
     boost::scoped_ptr<std::ofstream> save;
     if(0 < saveName.length()) save.reset(new std::ofstream(saveName.c_str()));
-    baofit::AbsCorrelationDataPtr bsData;
+    baofit::AbsCorrelationDataCPtr sample;
     // Initialize the parameter value statistics accumulators we will need.
     likely::FitParameters params(fmin->getFitParameters());
     likely::FitParameterStatisticsPtr refitStats,fitStats(new likely::FitParameterStatistics(params));
@@ -133,40 +133,40 @@ std::string const &saveName, int nsave) const {
     int nInvalid(0);
     // Loop over samples.
     int nsamples(0);
-    while(bsData = sampler.nextSample()) {
+    while(sample = sampler.nextSample()) {
         // Fit the sample.
-        baofit::CorrelationFitter bsFitEngine(bsData,_model);
-        likely::FunctionMinimumPtr bsMin = bsFitEngine.fit(_method);
-        bool ok = (bsMin->getStatus() == likely::FunctionMinimum::OK);
+        baofit::CorrelationFitter fitEngine(sample,_model);
+        likely::FunctionMinimumPtr sampleMin = fitEngine.fit(_method);
+        bool ok = (sampleMin->getStatus() == likely::FunctionMinimum::OK);
         // Refit the sample if requested and the first fit succeeded.
-        likely::FunctionMinimumPtr bsMinRefit;
+        likely::FunctionMinimumPtr sampleMinRefit;
         if(ok && 0 < refitConfig.size()) {
-            bsMinRefit = bsFitEngine.fit(_method,refitConfig);
+            sampleMinRefit = fitEngine.fit(_method,refitConfig);
             // Did this fit succeed also?
-            if(bsMinRefit->getStatus() != likely::FunctionMinimum::OK) ok = false;
+            if(sampleMinRefit->getStatus() != likely::FunctionMinimum::OK) ok = false;
         }
         if(ok) {
             // Accumulate the fit results.
-            fitStats->update(bsMin);
-            if(refitStats) refitStats->update(bsMinRefit);
+            fitStats->update(sampleMin);
+            if(refitStats) refitStats->update(sampleMinRefit);
             // Save the fit results, if requested.
             if(save) {
                 // Save fit parameter values and chisq.
-                BOOST_FOREACH(double pvalue, bsMin->getParameters()) {
+                BOOST_FOREACH(double pvalue, sampleMin->getParameters()) {
                     *save << pvalue << ' ';
                 }
-                *save << 2*bsMin->getMinValue() << ' ';
+                *save << 2*sampleMin->getMinValue() << ' ';
                 // Save any refit parameter values and chisq.
                 if(refitStats) {
-                    BOOST_FOREACH(double pvalue, bsMinRefit->getParameters()) {
+                    BOOST_FOREACH(double pvalue, sampleMinRefit->getParameters()) {
                         *save << pvalue << ' ';
                     }
-                    *save << 2*bsMinRefit->getMinValue() << ' ';                    
+                    *save << 2*sampleMinRefit->getMinValue() << ' ';                    
                 }
                 // Save best-fit model multipoles, if requested.
                 if(nsave > 0) {
-                    dumpModel(*save,bsMin,nsave,"",true);
-                    if(refitStats) dumpModel(*save,bsMinRefit,nsave,"",true);
+                    dumpModel(*save,sampleMin,nsave,"",true);
+                    if(refitStats) dumpModel(*save,sampleMinRefit,nsave,"",true);
                 }
                 *save << std::endl;
             }
