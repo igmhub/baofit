@@ -38,7 +38,7 @@ namespace baofit {
         // the estimated function minimum. Use the optional config script to modify
         // the initial parameter configuration used for the fit (any changes do not
         // propagate back to the model or modify subsequent fits).
-        likely::FunctionMinimumPtr fitCombined(std::string const &config = "") const;
+        likely::FunctionMinimumPtr fitCombined(std::string const &config = "") const;        
         // Performs a bootstrap analysis and returns the number of fits to bootstrap
         // samples that failed. Specify a non-zero bootstrapSize to generate trials with
         // a number of observations different than getNData(). Specify a refitConfig script
@@ -54,6 +54,11 @@ namespace baofit {
         int doBootstrapAnalysis(likely::FunctionMinimumPtr fmin, int bootstrapTrials,
             int bootstrapSize = 0, std::string const &refitConfig = "",
             std::string const &saveName = "", int nsave = 0, bool fixCovariance = true) const;
+        // Performs a jackknife analysis and returns the number of fits that failed. Set
+        // jackknifeDrop to the number of observations to drop from each sample. See
+        // doBootstrapAnalysis for a description of the other parameters.
+        int doJackknifeAnalysis(likely::FunctionMinimumPtr fmin, int jackknifeDrop = 1,
+            std::string const &refitConfig = "", std::string const &saveName = "", int nsave = 0) const;
         // Dumps the data, prediction, and diagonal error for each bin of the combined
         // data set to the specified output stream. The fit result is assumed to correspond
         // to model that is currently associated with this analyzer. Use the optional script
@@ -76,9 +81,11 @@ namespace baofit {
         AbsCorrelationModelPtr _model;
         
         class AbsSampler;
+        class JackknifeSampler;
         class BootstrapSampler;
-        int doSamplingAnalysis(AbsSampler &sampler, likely::FunctionMinimumPtr fmin,
-            std::string const &refitConfig, std::string const &saveName, int nsave) const;
+        int doSamplingAnalysis(AbsSampler &sampler, std::string const &method,
+            likely::FunctionMinimumPtr fmin, std::string const &refitConfig,
+            std::string const &saveName, int nsave) const;
         
 	}; // CorrelationAnalyzer
 	

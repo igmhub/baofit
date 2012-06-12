@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
         analysisOptions("Analysis options");
 
     double OmegaMatter,hubbleConstant,zref,minll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin;
-    int nll,nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,numXi,ndump;
+    int nll,nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,numXi,ndump,jackknifeDrop;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,
         platelistName,platerootName,modelConfig,iniName,refitConfig,minMethod;
 
@@ -114,6 +114,8 @@ int main(int argc, char **argv) {
             "Number of bootstrap trials to run if a platelist was provided.")
         ("bootstrap-size", po::value<int>(&bootstrapSize)->default_value(0),
             "Size of each bootstrap trial or zero to use the number of plates.")
+        ("jackknife-drop", po::value<int>(&jackknifeDrop)->default_value(0),
+            "Number of observations to drop from each jackknife sample (zero for no jackknife analysis)")
         ("random-seed", po::value<int>(&randomSeed)->default_value(1966),
             "Random seed to use for generating bootstrap samples.")
         ("min-method", po::value<std::string>(&minMethod)->default_value("mn2::vmetric"),
@@ -334,6 +336,10 @@ int main(int argc, char **argv) {
         if(bootstrapTrials > 0) {
             analyzer.doBootstrapAnalysis(fmin,bootstrapTrials,bootstrapSize,refitConfig,
                 "bs.dat",ndump,fixCovariance);
+        }
+        // Perform a jackknife analysis, if requested.
+        if(jackknifeDrop > 0) {
+            analyzer.doJackknifeAnalysis(fmin,jackknifeDrop,refitConfig,"jk.dat",ndump);
         }
     }
     catch(cosmo::RuntimeError const &e) {

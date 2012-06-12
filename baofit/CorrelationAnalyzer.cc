@@ -76,6 +76,20 @@ namespace baofit {
     public:
         virtual AbsCorrelationDataCPtr nextSample() = 0;
     };
+    class CorrelationAnalyzer::JackknifeSampler : public CorrelationAnalyzer::AbsSampler {
+    public:
+        JackknifeSampler(int ndrop, likely::BinnedDataResampler const &resampler)
+        : _ndrop(ndrop), _seqno(0), _resampler(resampler) { }
+        virtual AbsCorrelationDataCPtr nextSample() {
+            AbsCorrelationDataPtr sample = boost::dynamic_pointer_cast<baofit::AbsCorrelationData>(
+                _resampler.jackknife(_ndrop,_seqno++));
+            if(sample) sample->finalize();
+            return sample;
+        }
+    private:
+        int _ndrop, _seqno;
+        likely::BinnedDataResampler const &_resampler;
+    };
     class CorrelationAnalyzer::BootstrapSampler : public CorrelationAnalyzer::AbsSampler {
     public:
         BootstrapSampler(int trials, int size, bool fix, likely::BinnedDataResampler const &resampler)
@@ -96,6 +110,15 @@ namespace baofit {
     };
 }
 
+int local::CorrelationAnalyzer::doJackknifeAnalysis(likely::FunctionMinimumPtr fmin,
+int jackknifeDrop, std::string const &refitConfig, std::string const &saveName, int nsave) const {
+    if(jackknifeDrop <= 0) {
+        throw RuntimeError("CorrelationAnalyzer::doJackknifeAnalysis: expected jackknifeDrop > 0.");
+    }
+    CorrelationAnalyzer::JackknifeSampler sampler(jackknifeDrop,_resampler);
+    return doSamplingAnalysis(sampler, "Jackknife", fmin, refitConfig, saveName, nsave);
+}
+
 int local::CorrelationAnalyzer::doBootstrapAnalysis(likely::FunctionMinimumPtr fmin,
 int bootstrapTrials, int bootstrapSize, std::string const &refitConfig,
 std::string const &saveName, int nsave, bool fixCovariance) const {
@@ -107,17 +130,17 @@ std::string const &saveName, int nsave, bool fixCovariance) const {
     }
     if(0 == bootstrapSize) bootstrapSize = getNData();
     CorrelationAnalyzer::BootstrapSampler sampler(bootstrapTrials,bootstrapSize,fixCovariance,_resampler);
-    return doSamplingAnalysis(sampler, fmin, refitConfig, saveName, nsave);
+    return doSamplingAnalysis(sampler, "Bootstrap", fmin, refitConfig, saveName, nsave);
 }
 
 int local::CorrelationAnalyzer::doSamplingAnalysis(CorrelationAnalyzer::AbsSampler &sampler,
-likely::FunctionMinimumPtr fmin, std::string const &refitConfig,
+std::string const &method, likely::FunctionMinimumPtr fmin, std::string const &refitConfig,
 std::string const &saveName, int nsave) const {
     if(getNData() <= 1) {
-        throw RuntimeError("CorrelationAnalyzer::doBootstrapAnalysis: need > 1 observation.");
+        throw RuntimeError("CorrelationAnalyzer::doSamplingAnalysis: need > 1 observation.");
     }
     if(nsave < 0) {
-        throw RuntimeError("CorrelationAnalyzer::doBootstrapAnalysis: expected nsave >= 0.");
+        throw RuntimeError("CorrelationAnalyzer::doSamplingAnalysis: expected nsave >= 0.");
     }
     // Try to open the specified save file.
     boost::scoped_ptr<std::ofstream> save;
@@ -181,10 +204,10 @@ std::string const &saveName, int nsave) const {
         }
     }
     // Print a summary of the analysis results.
-    std::cout << std::endl << "== Bootstrap Fit Results:" << std::endl;
+    std::cout << std::endl << "== " << method << " Fit Results:" << std::endl;
     fitStats->printToStream(std::cout);
     if(refitStats) {
-        std::cout << std::endl << "== Bootstrap Re-Fit Results:" << std::endl;
+        std::cout << std::endl << "== " << method << " Re-Fit Results:" << std::endl;
         refitStats->printToStream(std::cout);        
     }
     // Close our save file if necessary.
