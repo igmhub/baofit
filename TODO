@@ -14,8 +14,6 @@ Test/fix jackknife resampling.
 
 Create PkCorrelationModel.
 
-Add option to include quadrupole in loadFrench().
-
 Test bootstrapping when input data has no covariance info.
 
 Implement MCMC marginalization of nuisance parameters.
