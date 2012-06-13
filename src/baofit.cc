@@ -321,11 +321,12 @@ int main(int argc, char **argv) {
             out.close();
         }
         // Refit the combined sample, if requested.
+        lk::FunctionMinimumPtr fmin2;
         if(0 < refitConfig.size()) {
             if(verbose) {
                 std::cout << std::endl << "Re-fitting combined with: " << refitConfig << std::endl;
             }
-            lk::FunctionMinimumPtr fmin2 = analyzer.fitCombined(refitConfig);
+            fmin2 = analyzer.fitCombined(refitConfig);
             if(ndump > 0) {
                 // Dump the best-fit monopole model.
                 std::ofstream out("refit.dat");
@@ -335,16 +336,16 @@ int main(int argc, char **argv) {
         }
         // Perform a bootstrap analysis, if requested.
         if(bootstrapTrials > 0) {
-            analyzer.doBootstrapAnalysis(fmin,bootstrapTrials,bootstrapSize,refitConfig,
-                "bs.dat",ndump,fixCovariance);
+            analyzer.doBootstrapAnalysis(bootstrapTrials,bootstrapSize,fixCovariance,
+                fmin,fmin2,refitConfig,"bs.dat",ndump);
         }
         // Perform a jackknife analysis, if requested.
         if(jackknifeDrop > 0) {
-            analyzer.doJackknifeAnalysis(fmin,jackknifeDrop,refitConfig,"jk.dat",ndump);
+            analyzer.doJackknifeAnalysis(jackknifeDrop,fmin,fmin2,refitConfig,"jk.dat",ndump);
         }
         // Fit each observation separately, if requested.
         if(fitEach) {
-            analyzer.fitEach(fmin, refitConfig, "each.dat", ndump);
+            analyzer.fitEach(fmin,fmin2,refitConfig,"each.dat",ndump);
         }
     }
     catch(cosmo::RuntimeError const &e) {

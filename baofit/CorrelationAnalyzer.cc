@@ -127,18 +127,19 @@ namespace baofit {
     };
 }
 
-int local::CorrelationAnalyzer::doJackknifeAnalysis(likely::FunctionMinimumPtr fmin,
-int jackknifeDrop, std::string const &refitConfig, std::string const &saveName, int nsave) const {
+int local::CorrelationAnalyzer::doJackknifeAnalysis(int jackknifeDrop, likely::FunctionMinimumPtr fmin,
+likely::FunctionMinimumPtr fmin2, std::string const &refitConfig, std::string const &saveName,
+int nsave) const {
     if(jackknifeDrop <= 0) {
         throw RuntimeError("CorrelationAnalyzer::doJackknifeAnalysis: expected jackknifeDrop > 0.");
     }
     CorrelationAnalyzer::JackknifeSampler sampler(jackknifeDrop,_resampler);
-    return doSamplingAnalysis(sampler, "Jackknife", fmin, refitConfig, saveName, nsave);
+    return doSamplingAnalysis(sampler, "Jackknife", fmin, fmin2, refitConfig, saveName, nsave);
 }
 
-int local::CorrelationAnalyzer::doBootstrapAnalysis(likely::FunctionMinimumPtr fmin,
-int bootstrapTrials, int bootstrapSize, std::string const &refitConfig,
-std::string const &saveName, int nsave, bool fixCovariance) const {
+int local::CorrelationAnalyzer::doBootstrapAnalysis(int bootstrapTrials, int bootstrapSize,
+bool fixCovariance, likely::FunctionMinimumPtr fmin, likely::FunctionMinimumPtr fmin2,
+std::string const &refitConfig, std::string const &saveName, int nsave) const {
     if(bootstrapTrials <= 0) {
         throw RuntimeError("CorrelationAnalyzer::doBootstrapAnalysis: expected bootstrapTrials > 0.");
     }
@@ -147,34 +148,67 @@ std::string const &saveName, int nsave, bool fixCovariance) const {
     }
     if(0 == bootstrapSize) bootstrapSize = getNData();
     CorrelationAnalyzer::BootstrapSampler sampler(bootstrapTrials,bootstrapSize,fixCovariance,_resampler);
-    return doSamplingAnalysis(sampler, "Bootstrap", fmin, refitConfig, saveName, nsave);
+    return doSamplingAnalysis(sampler, "Bootstrap", fmin, fmin2, refitConfig, saveName, nsave);
 }
 
-int local::CorrelationAnalyzer::fitEach(likely::FunctionMinimumPtr fmin, std::string const &refitConfig,
-std::string const &saveName, int nsave) const {
+int local::CorrelationAnalyzer::fitEach(likely::FunctionMinimumPtr fmin, likely::FunctionMinimumPtr fmin2,
+std::string const &refitConfig, std::string const &saveName, int nsave) const {
     CorrelationAnalyzer::EachSampler sampler(_resampler);
-    return doSamplingAnalysis(sampler, "Individual", fmin, refitConfig, saveName, nsave);    
+    return doSamplingAnalysis(sampler, "Individual", fmin, fmin2, refitConfig, saveName, nsave);    
 }
-    
+
 int local::CorrelationAnalyzer::doSamplingAnalysis(CorrelationAnalyzer::AbsSampler &sampler,
-std::string const &method, likely::FunctionMinimumPtr fmin, std::string const &refitConfig,
-std::string const &saveName, int nsave) const {
+std::string const &method, likely::FunctionMinimumPtr fmin, likely::FunctionMinimumPtr fmin2,
+std::string const &refitConfig, std::string const &saveName, int nsave) const {
     if(getNData() <= 1) {
         throw RuntimeError("CorrelationAnalyzer::doSamplingAnalysis: need > 1 observation.");
     }
     if(nsave < 0) {
         throw RuntimeError("CorrelationAnalyzer::doSamplingAnalysis: expected nsave >= 0.");
     }
+    if((!fmin2 && 0 < refitConfig.size()) || !!fmin2 && 0 == refitConfig.size()) {
+        throw RuntimeError("CorrelationAnalyzer::doSamplingAnalysis: inconsistent refit parameters.");
+    }
     // Try to open the specified save file.
     boost::scoped_ptr<std::ofstream> save;
-    if(0 < saveName.length()) save.reset(new std::ofstream(saveName.c_str()));
+    if(0 < saveName.length()) {
+        save.reset(new std::ofstream(saveName.c_str()));
+        // Print a header consisting of the number of parameters, the number of dump points,
+        // and the number of fits (1 = no-refit, 2 = with refit)
+        *save << fmin->getNParameters() << ' ' << nsave << ' ' << (fmin2 ? 2:1) << std::endl;
+        // Print the errors in fmin,fmin2.
+        BOOST_FOREACH(double pvalue, fmin->getErrors()) {
+            *save << pvalue << ' ';
+        }
+        if(fmin2) {
+            BOOST_FOREACH(double pvalue, fmin2->getErrors()) {
+                *save << pvalue << ' ';
+            }
+        }
+        *save << std::endl;
+        // The first line encodes the inputs fmin,fmin2 just like each sample below, for reference.
+        BOOST_FOREACH(double pvalue, fmin->getParameters()) {
+            *save << pvalue << ' ';
+        }
+        *save << 2*fmin->getMinValue() << ' ';
+        if(fmin2) {
+            BOOST_FOREACH(double pvalue, fmin2->getParameters()) {
+                *save << pvalue << ' ';
+            }
+            *save << 2*fmin2->getMinValue() << ' ';
+        }
+        if(nsave > 0) {
+            dumpModel(*save,fmin,nsave,"",true);
+            if(fmin2) dumpModel(*save,fmin2,nsave,"",true);
+        }
+        *save << std::endl;
+    }
     baofit::AbsCorrelationDataCPtr sample;
     // Initialize the parameter value statistics accumulators we will need.
-    likely::FitParameters params(fmin->getFitParameters());
-    likely::FitParameterStatisticsPtr refitStats,fitStats(new likely::FitParameterStatistics(params));
-    if(0 < refitConfig.size()) {
-        modifyFitParameters(params,refitConfig);
-        refitStats.reset(new likely::FitParameterStatistics(params));
+    likely::FitParameterStatisticsPtr refitStats,
+        fitStats(new likely::FitParameterStatistics(fmin->getFitParameters()));
+    if(fmin2) {
+        refitStats.reset(new likely::FitParameterStatistics(fmin2->getFitParameters()));
     }
     int nInvalid(0);
     // Loop over samples.
@@ -186,7 +220,7 @@ std::string const &saveName, int nsave) const {
         bool ok = (sampleMin->getStatus() == likely::FunctionMinimum::OK);
         // Refit the sample if requested and the first fit succeeded.
         likely::FunctionMinimumPtr sampleMinRefit;
-        if(ok && 0 < refitConfig.size()) {
+        if(ok && fmin2) {
             sampleMinRefit = fitEngine.fit(_method,refitConfig);
             // Did this fit succeed also?
             if(sampleMinRefit->getStatus() != likely::FunctionMinimum::OK) ok = false;

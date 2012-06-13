@@ -51,18 +51,21 @@ namespace baofit {
         // fits will be concatenated on each line. Setting fixCovariance to false means that
         // fits will use a covariance matrix that does not correctly account for double
         // counting. See likely::BinnedDataResampler::bootstrap for details.
-        int doBootstrapAnalysis(likely::FunctionMinimumPtr fmin, int bootstrapTrials,
-            int bootstrapSize = 0, std::string const &refitConfig = "",
-            std::string const &saveName = "", int nsave = 0, bool fixCovariance = true) const;
+        int doBootstrapAnalysis(int bootstrapTrials, int bootstrapSize, bool fixCovariance,
+            likely::FunctionMinimumPtr fmin,
+            likely::FunctionMinimumPtr fmin2 = likely::FunctionMinimumPtr(),
+            std::string const &refitConfig = "", std::string const &saveName = "", int nsave = 0) const;
         // Performs a jackknife analysis and returns the number of fits that failed. Set
         // jackknifeDrop to the number of observations to drop from each sample. See
         // doBootstrapAnalysis for a description of the other parameters.
-        int doJackknifeAnalysis(likely::FunctionMinimumPtr fmin, int jackknifeDrop = 1,
+        int doJackknifeAnalysis(int jackknifeDrop, likely::FunctionMinimumPtr fmin, 
+            likely::FunctionMinimumPtr fmin2 = likely::FunctionMinimumPtr(),
             std::string const &refitConfig = "", std::string const &saveName = "", int nsave = 0) const;
         // Fits each observation separately and returns the number of fits that failed.
         // See doBootstrapAnalysis for a description of the other parameters.
-        int fitEach(likely::FunctionMinimumPtr fmin, std::string const &refitConfig = "",
-            std::string const &saveName = "", int nsave = 0) const;
+        int fitEach(likely::FunctionMinimumPtr fmin,
+            likely::FunctionMinimumPtr fmin2 = likely::FunctionMinimumPtr(),
+            std::string const &refitConfig = "", std::string const &saveName = "", int nsave = 0) const;
         // Dumps the data, prediction, and diagonal error for each bin of the combined
         // data set to the specified output stream. The fit result is assumed to correspond
         // to model that is currently associated with this analyzer. Use the optional script
@@ -89,8 +92,8 @@ namespace baofit {
         class BootstrapSampler;
         class EachSampler;
         int doSamplingAnalysis(AbsSampler &sampler, std::string const &method,
-            likely::FunctionMinimumPtr fmin, std::string const &refitConfig,
-            std::string const &saveName, int nsave) const;
+            likely::FunctionMinimumPtr fmin, likely::FunctionMinimumPtr fmin2,
+            std::string const &refitConfig, std::string const &saveName, int nsave) const;
         
 	}; // CorrelationAnalyzer
 	
