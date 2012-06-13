@@ -108,6 +108,23 @@ namespace baofit {
         bool _fix;
         likely::BinnedDataResampler const &_resampler;
     };
+    class CorrelationAnalyzer::EachSampler : public CorrelationAnalyzer::AbsSampler {
+    public:
+        EachSampler(likely::BinnedDataResampler const &resampler)
+        : _resampler(resampler), _next(0) { }
+        virtual AbsCorrelationDataCPtr nextSample() {
+            AbsCorrelationDataPtr sample;
+            if(++_next <= _resampler.getNObservations()) {
+                sample = boost::dynamic_pointer_cast<baofit::AbsCorrelationData>(
+                    _resampler.getObservationCopy(_next-1));
+                sample->finalize();
+            }
+            return sample;
+        }
+    private:
+        int _next;
+        likely::BinnedDataResampler const &_resampler;
+    };
 }
 
 int local::CorrelationAnalyzer::doJackknifeAnalysis(likely::FunctionMinimumPtr fmin,
@@ -133,6 +150,12 @@ std::string const &saveName, int nsave, bool fixCovariance) const {
     return doSamplingAnalysis(sampler, "Bootstrap", fmin, refitConfig, saveName, nsave);
 }
 
+int local::CorrelationAnalyzer::fitEach(likely::FunctionMinimumPtr fmin, std::string const &refitConfig,
+std::string const &saveName, int nsave) const {
+    CorrelationAnalyzer::EachSampler sampler(_resampler);
+    return doSamplingAnalysis(sampler, "Individual", fmin, refitConfig, saveName, nsave);    
+}
+    
 int local::CorrelationAnalyzer::doSamplingAnalysis(CorrelationAnalyzer::AbsSampler &sampler,
 std::string const &method, likely::FunctionMinimumPtr fmin, std::string const &refitConfig,
 std::string const &saveName, int nsave) const {

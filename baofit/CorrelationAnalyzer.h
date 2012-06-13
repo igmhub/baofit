@@ -59,6 +59,10 @@ namespace baofit {
         // doBootstrapAnalysis for a description of the other parameters.
         int doJackknifeAnalysis(likely::FunctionMinimumPtr fmin, int jackknifeDrop = 1,
             std::string const &refitConfig = "", std::string const &saveName = "", int nsave = 0) const;
+        // Fits each observation separately and returns the number of fits that failed.
+        // See doBootstrapAnalysis for a description of the other parameters.
+        int fitEach(likely::FunctionMinimumPtr fmin, std::string const &refitConfig = "",
+            std::string const &saveName = "", int nsave = 0) const;
         // Dumps the data, prediction, and diagonal error for each bin of the combined
         // data set to the specified output stream. The fit result is assumed to correspond
         // to model that is currently associated with this analyzer. Use the optional script
@@ -83,6 +87,7 @@ namespace baofit {
         class AbsSampler;
         class JackknifeSampler;
         class BootstrapSampler;
+        class EachSampler;
         int doSamplingAnalysis(AbsSampler &sampler, std::string const &method,
             likely::FunctionMinimumPtr fmin, std::string const &refitConfig,
             std::string const &saveName, int nsave) const;

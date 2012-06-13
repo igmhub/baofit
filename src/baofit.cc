@@ -110,6 +110,7 @@ int main(int argc, char **argv) {
             "Number of points spanning [rmin,rmax] to use for dumping models (zero for no dumps).")
         ("refit-config", po::value<std::string>(&refitConfig)->default_value(""),
             "Script to modify parameters for refits.")
+        ("fit-each", "Fits each observation separately.")
         ("bootstrap-trials", po::value<int>(&bootstrapTrials)->default_value(0),
             "Number of bootstrap trials to run if a platelist was provided.")
         ("bootstrap-size", po::value<int>(&bootstrapSize)->default_value(0),
@@ -157,7 +158,7 @@ int main(int argc, char **argv) {
     bool verbose(0 == vm.count("quiet")), french(vm.count("french")), weighted(vm.count("weighted")),
         checkPosDef(vm.count("check-posdef")), fixCovariance(0 == vm.count("naive-covariance")),
         xiModel(vm.count("xi-model")), dr9lrg(vm.count("dr9lrg")), unweighted(vm.count("unweighted")),
-        useQuad(vm.count("use-quad"));
+        useQuad(vm.count("use-quad")), fitEach(vm.count("fit-each"));
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
@@ -340,6 +341,10 @@ int main(int argc, char **argv) {
         // Perform a jackknife analysis, if requested.
         if(jackknifeDrop > 0) {
             analyzer.doJackknifeAnalysis(fmin,jackknifeDrop,refitConfig,"jk.dat",ndump);
+        }
+        // Fit each observation separately, if requested.
+        if(fitEach) {
+            analyzer.fitEach(fmin, refitConfig, "each.dat", ndump);
         }
     }
     catch(cosmo::RuntimeError const &e) {
