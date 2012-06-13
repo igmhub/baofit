@@ -320,6 +320,11 @@ double rmin, double rmax, double llmin, cosmo::AbsHomogeneousUniversePtr cosmolo
     }
     else {
         llBins.reset(new likely::NonUniformSampling(twoStepSampling(nll,minll,dll,dll2)));
+        /*
+        for(int i = 0; i < nll; ++i) {
+            std::cout << "llbin " << i << ' ' << llBins->getBinCenter(i) << std::endl;
+        }
+        */
     }
 
     // Create the new BinnedData that we will fill.
