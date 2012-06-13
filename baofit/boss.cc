@@ -258,8 +258,9 @@ bool verbose, bool unweighted, bool checkPosDef) {
             bin2[0] = index2 % nrbins;
             bin1[1] = index1/nrbins;
             bin2[1] = index2/nrbins;
-            // Ignore mono-quad covariances except at the same separation
-            if(bin1[0] != bin2[0] && bin1[1] != bin2[1]) continue;
+            // Ignore mono-quad covariances (except at the same separation?)
+            if(bin1[1] != bin2[1]) continue;
+            //if(bin1[0] != bin2[0] && bin1[1] != bin2[1]) continue;
             binnedData->setCovariance(binnedData->getIndex(bin1), binnedData->getIndex(bin2), cov);
         }
         covIn.close();
