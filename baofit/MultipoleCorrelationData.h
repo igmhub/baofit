@@ -28,9 +28,9 @@ namespace baofit {
         // constructor. No further changes to our "shape" are possible after finalizing.
         // See the documentation for BinnedData::finalize() for details.
         virtual void finalize();
-        // Dumps the specified monopole to the specified output stream. zIndex specifies which
+        // Dumps all available multipoles to the specified output stream. zIndex specifies which
         // redshift slice to use in case there are several.
-        void dump(std::ostream &out, cosmo::Multipole multipole, int zIndex = 0) const;
+        void dump(std::ostream &out, int zIndex = 0) const;
 	private:
         void _initialize(double rmin, double rmax);
         double _rmin, _rmax;

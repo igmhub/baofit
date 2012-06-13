@@ -291,10 +291,10 @@ int main(int argc, char **argv) {
     analyzer.setZData(zdata);
 
     if(french || dr9lrg) {
-        std::ofstream out("monopole.dat");
+        std::ofstream out("combined.dat");
         boost::shared_ptr<baofit::MultipoleCorrelationData> combined =
             boost::dynamic_pointer_cast<baofit::MultipoleCorrelationData>(analyzer.getCombined());
-        combined->dump(out,cosmo::Monopole);
+        combined->dump(out);
         out.close();
     }
 
