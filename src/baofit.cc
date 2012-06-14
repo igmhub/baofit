@@ -334,6 +334,8 @@ int main(int argc, char **argv) {
                 analyzer.dumpModel(out,fmin2,ndump);
                 out.close();
             }
+            std::cout << "Delta ChiSquare = "
+                << 2*(fmin2->getMinValue() - fmin->getMinValue()) << std::endl;
         }
         // Perform a bootstrap analysis, if requested.
         if(bootstrapTrials > 0) {
