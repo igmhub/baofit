@@ -12,8 +12,10 @@
 #include "likely/UniformBinning.h"
 #include "likely/UniformSampling.h"
 #include "likely/NonUniformSampling.h"
+#include "likely/CovarianceMatrix.h"
 #include "likely/RuntimeError.h"
 
+#include "boost/regex.hpp"
 #include "boost/lexical_cast.hpp"
 #include "boost/spirit/include/qi.hpp"
 #include "boost/spirit/include/phoenix_core.hpp"
@@ -145,12 +147,18 @@ local::loadDR9LRG(std::string const &dataName, baofit::AbsCorrelationDataCPtr pr
 }
 
 // Creates a prototype MultipoleCorrelationData with the specified binning.
-baofit::AbsCorrelationDataCPtr local::createFrenchPrototype(double zref, double rmin, double rmax) {
+baofit::AbsCorrelationDataCPtr local::createFrenchPrototype(double zref, double rmin, double rmax,
+bool useQuadrupole) {
     // Create the new BinnedData that we will fill.
-    likely::AbsBinningCPtr
+    likely::AbsBinningCPtr ellBins,
         rBins(new likely::UniformBinning(0,200,50)),
-        ellBins(new likely::UniformSampling(0,0,1)), // only monopole for now
         zBins(new likely::UniformSampling(zref,zref,1));
+    if(useQuadrupole) {
+        ellBins.reset(new likely::UniformSampling(cosmo::Monopole,cosmo::Quadrupole,2));
+    }
+    else {
+        ellBins.reset(new likely::UniformSampling(cosmo::Monopole,cosmo::Monopole,1));
+    }
     baofit::AbsCorrelationDataPtr
         prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins,rmin,rmax));
     return prototype;
@@ -160,14 +168,20 @@ baofit::AbsCorrelationDataCPtr local::createFrenchPrototype(double zref, double 
 // a MultipoleCorrelationData.
 baofit::AbsCorrelationDataPtr
 local::loadFrench(std::string const &dataName, baofit::AbsCorrelationDataCPtr prototype,
-bool verbose, bool checkPosDef) {
+bool verbose, bool unweighted, bool checkPosDef) {
 
     // Create the new AbsCorrelationData that we will fill.
     baofit::AbsCorrelationDataPtr binnedData((baofit::MultipoleCorrelationData *)(prototype->clone(true)));
     
+    // Lookup the number of radial bins.
+    int nrbins = prototype->getAxisBinning()[0]->getNBins();
+    
+    // Are we using the quadrupole?
+    bool useQuadrupole = (2 == prototype->getAxisBinning()[1]->getNBins());
+
     // Lookup our reference redshift.
     double zref = prototype->getAxisBinning()[2]->getBinCenter(0);
-
+    
     // General stuff we will need for reading both files.
     std::string line;
     int lines;
@@ -199,50 +213,74 @@ bool verbose, bool checkPosDef) {
         }
         bin[0] = rval;
         bin[2] = zref;
-        bin[1] = 0;
+        bin[1] = cosmo::Monopole;
         int monoIndex = binnedData->getIndex(bin);
         binnedData->setData(monoIndex,mono);
+        if(useQuadrupole) {
+            bin[1] = cosmo::Quadrupole;
+            int quadIndex = binnedData->getIndex(bin);
+            binnedData->setData(quadIndex,quad);
+        }
     }
     paramsIn.close();
     if(verbose) {
         std::cout << "Read " << lines << " data values from " << paramsName << std::endl;
     }
     
-    // Loop over lines in the covariance file.
-    std::string covName = paramsName;
-    int pos = covName.rfind('/',-1);
-    covName.insert(pos+1,"cov_");
-    std::ifstream covIn(covName.c_str());
-    if(!covIn.good()) throw RuntimeError("Unable to open " + covName);
-    lines = 0;
-    int index1,index2;
-    double cov;
-    while(std::getline(covIn,line)) {
-        lines++;
-        bool ok = qi::phrase_parse(line.begin(),line.end(),
-            (
-                int_[ref(index1) = _1] >> int_[ref(index2) = _1] >> double_[ref(cov) = _1]
-            ),
-            ascii::space);
-        if(!ok) {
-            throw RuntimeError("loadFrench: error reading line " +
-                boost::lexical_cast<std::string>(lines) + " of " + covName);
+    if(!unweighted) {
+        // Loop over lines in the covariance file.
+        std::string covName = paramsName;
+        int pos = covName.rfind('/',-1);
+        covName.insert(pos+1,"cov_");
+        std::ifstream covIn(covName.c_str());
+        if(!covIn.good()) throw RuntimeError("Unable to open " + covName);
+        lines = 0;
+        int index1,index2;
+        double cov;
+        std::vector<int> bin1(3),bin2(3);
+        bin1[2] = bin2[2] = 0;
+        while(std::getline(covIn,line)) {
+            lines++;
+            bool ok = qi::phrase_parse(line.begin(),line.end(),
+                (
+                    int_[ref(index1) = _1] >> int_[ref(index2) = _1] >> double_[ref(cov) = _1]
+                ),
+                ascii::space);
+            if(!ok) {
+                throw RuntimeError("loadFrench: error reading line " +
+                    boost::lexical_cast<std::string>(lines) + " of " + covName);
+            }
+            // Ignore entries above the diagonal since they are duplicates by symmetry.
+            if(index1 > index2) continue;
+            // Ignore quadrupole elements if requested.
+            if(!useQuadrupole && index2 >= nrbins) continue;
+            // Remap file indexing to a BinnedData global index.
+            bin1[0] = index1 % nrbins;
+            bin2[0] = index2 % nrbins;
+            bin1[1] = index1/nrbins;
+            bin2[1] = index2/nrbins;
+            // Ignore mono-quad covariances (except at the same separation?)
+            if(bin1[1] != bin2[1]) continue;
+            //if(bin1[0] != bin2[0] && bin1[1] != bin2[1]) continue;
+            binnedData->setCovariance(binnedData->getIndex(bin1), binnedData->getIndex(bin2), cov);
         }
-        if(index1 <= index2 && index2 < 50) binnedData->setCovariance(index1,index2,cov);
-    }
-    covIn.close();
-    if(verbose) {
-        std::cout << "Read " << lines << " covariance values from " << covName << std::endl;
-    }
-    if(checkPosDef) {
-        // Check that the covariance is positive definite by triggering an inversion.
-        try {
-            binnedData->getInverseCovariance(0,0);
+        covIn.close();
+        if(verbose) {
+            std::cout << "Read " << lines << " and stored "
+                << binnedData->getCovarianceMatrix()->getNElements()
+                << " covariance values from " << covName << std::endl;
         }
-        catch(likely::RuntimeError const &e) {
-            std::cerr << "### Inverse covariance not positive-definite: " << covName << std::endl;
+        if(checkPosDef) {
+            // Check that the covariance is positive definite by triggering an inversion.
+            try {
+                binnedData->getInverseCovariance(0,0);
+            }
+            catch(likely::RuntimeError const &e) {
+                std::cerr << "### Inverse covariance not positive-definite: " << covName << std::endl;
+            }
         }
     }
+
     return binnedData;
 }
 
@@ -283,6 +321,11 @@ double rmin, double rmax, double llmin, cosmo::AbsHomogeneousUniversePtr cosmolo
     }
     else {
         llBins.reset(new likely::NonUniformSampling(twoStepSampling(nll,minll,dll,dll2)));
+        /*
+        for(int i = 0; i < nll; ++i) {
+            std::cout << "llbin " << i << ' ' << llBins->getBinCenter(i) << std::endl;
+        }
+        */
     }
 
     // Create the new BinnedData that we will fill.
@@ -294,7 +337,8 @@ double rmin, double rmax, double llmin, cosmo::AbsHomogeneousUniversePtr cosmolo
 
 // Loads a binned correlation function in cosmolib format and returns a BinnedData object.
 baofit::AbsCorrelationDataPtr local::loadCosmolib(std::string const &dataName,
-baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted, bool checkPosDef) {
+baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted, bool reuseCov,
+bool checkPosDef) {
 
     // Create the new AbsCorrelationData that we will fill.
     baofit::AbsCorrelationDataPtr binnedData((baofit::QuasarCorrelationData *)(prototype->clone(true)));
@@ -340,8 +384,24 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted
             << binnedData->getNBinsTotal() << " data values from " << paramsName << std::endl;
     }
     
+
+    // Do we need to reuse the covariance estimated for the first realization of this plate?
+    std::string covName;
+    if(reuseCov) {
+        // Parse the data name.
+        boost::regex namePattern("([a-zA-Z0-9/_\\.]+/)?([0-9]+_)([0-9]+)\\.cat\\.([0-9]+)");
+        boost::match_results<std::string::const_iterator> what;
+        if(!boost::regex_match(dataName,what,namePattern)) {
+            throw RuntimeError("loadCosmolib: cannot parse name \"" + dataName + "\"");
+        }
+        covName = what[1]+what[2]+"1.cat."+what[4];
+    }
+    else {
+        covName = dataName;
+    }
+    covName += (icov ? ".icov" : ".cov");
+
     // Loop over lines in the covariance file.
-    std::string covName(dataName + (icov ? ".icov" : ".cov"));
     std::ifstream covIn(covName.c_str());
     if(!covIn.good()) throw RuntimeError("Unable to open " + covName);
     lines = 0;

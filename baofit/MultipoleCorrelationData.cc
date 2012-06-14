@@ -97,19 +97,33 @@ void local::MultipoleCorrelationData::finalize() {
     AbsCorrelationData::finalize();
 }
 
-void local::MultipoleCorrelationData::dump(
-std::ostream &out, cosmo::Multipole multipole, int zIndex) const {
+void local::MultipoleCorrelationData::dump(std::ostream &out, int zIndex) const {
     std::vector<likely::AbsBinningCPtr> binning = getAxisBinning();
-    int nRadialBins(binning[0]->getNBins());
-    int ellIndex(binning[1]->getBinIndex((double)multipole));
+    int nRadialBins(binning[0]->getNBins()), nEllBins(binning[1]->getNBins());
     std::vector<int> bin(3);
+    bin[2] = 0;
     for(int rIndex = 0; rIndex < nRadialBins; ++rIndex) {
         double rval(binning[0]->getBinCenter(rIndex));
         if(rval < _rmin) continue;
         if(rval >= _rmax) break;
+        out << rval;
         bin[0] = rIndex;
-        int index = getIndex(bin);
-        double cov = hasCovariance() ? getCovariance(index,index) : 0;
-        out << rval << ' ' << getData(index) << ' ' << std::sqrt(cov) << std::endl;
+        for(int ellIndex = 0; ellIndex < nEllBins; ++ellIndex) {
+            bin[1] = ellIndex;
+            int index = getIndex(bin);
+            if(hasData(index)) {
+                out << ' ' << getData(index);
+                if(hasCovariance()) {
+                    out << ' ' << std::sqrt(getCovariance(index,index));
+                }
+                else {
+                    out << " 0";
+                }
+            }
+            else {
+                out << " 0 -1";
+            }
+        }
+        out << std::endl;
     }
 }

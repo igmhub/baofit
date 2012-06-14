@@ -12,9 +12,13 @@
 #include <iosfwd>
 
 namespace baofit {
+    // Accumulates correlation data and manages its analysis.
 	class CorrelationAnalyzer {
 	public:
-		CorrelationAnalyzer(int randomSeed, bool verbose = true);
+	    // Creates a new analyzer using the specified random seed and minimization method.
+	    // The range [rmin,rmax] will be used for dumping any model multipoles.
+		CorrelationAnalyzer(int randomSeed, std::string const &method,
+		    double rmin, double rmax, bool verbose = true);
 		virtual ~CorrelationAnalyzer();
 		// Set the verbose level during analysis.
         void setVerbose(bool value);
@@ -24,17 +28,44 @@ namespace baofit {
         int getNData() const;
         // Sets the correlation model to use.
         void setModel(AbsCorrelationModelPtr model);
+        // Sets the effective data redshift to use for dumping model predictions.
+        void setZData(double zdata);
         // Returns a shared pointer to the combined correlation data added to this
         // analyzer, after it has been finalized. If verbose, prints out the number
         // of bins with data before and after finalizing the data.
         AbsCorrelationDataPtr getCombined(bool verbose = false) const;
         // Fits the combined correlation data aadded to this analyzer and returns
-        // the estimated function minimum.
-        likely::FunctionMinimumPtr fitCombined(std::string const &method) const;
+        // the estimated function minimum. Use the optional config script to modify
+        // the initial parameter configuration used for the fit (any changes do not
+        // propagate back to the model or modify subsequent fits).
+        likely::FunctionMinimumPtr fitCombined(std::string const &config = "") const;        
         // Performs a bootstrap analysis and returns the number of fits to bootstrap
-        // samples that failed.
-        int doBootstrapAnalysis(std::string const &method,likely::FunctionMinimumPtr fmin,
-            int bootstrapTrials, int bootstrapSize = 0, bool fixCovariance = true) const;
+        // samples that failed. Specify a non-zero bootstrapSize to generate trials with
+        // a number of observations different than getNData(). Specify a refitConfig script
+        // to fit each bootstrap sample twice: first with the default model config, then
+        // with the refit config script applied. In this case, a trial is only considered
+        // successful if both fits succeed. If a saveFile is specified, the parameter
+        // values and chi-square value from each fit will be saved to the specified filename.
+        // If nsave > 0, then the best-fit model multipoles will be appended to each line
+        // using the oneLine option to dumpModel(). In case of refits, the output from both
+        // fits will be concatenated on each line. Setting fixCovariance to false means that
+        // fits will use a covariance matrix that does not correctly account for double
+        // counting. See likely::BinnedDataResampler::bootstrap for details.
+        int doBootstrapAnalysis(int bootstrapTrials, int bootstrapSize, bool fixCovariance,
+            likely::FunctionMinimumPtr fmin,
+            likely::FunctionMinimumPtr fmin2 = likely::FunctionMinimumPtr(),
+            std::string const &refitConfig = "", std::string const &saveName = "", int nsave = 0) const;
+        // Performs a jackknife analysis and returns the number of fits that failed. Set
+        // jackknifeDrop to the number of observations to drop from each sample. See
+        // doBootstrapAnalysis for a description of the other parameters.
+        int doJackknifeAnalysis(int jackknifeDrop, likely::FunctionMinimumPtr fmin, 
+            likely::FunctionMinimumPtr fmin2 = likely::FunctionMinimumPtr(),
+            std::string const &refitConfig = "", std::string const &saveName = "", int nsave = 0) const;
+        // Fits each observation separately and returns the number of fits that failed.
+        // See doBootstrapAnalysis for a description of the other parameters.
+        int fitEach(likely::FunctionMinimumPtr fmin,
+            likely::FunctionMinimumPtr fmin2 = likely::FunctionMinimumPtr(),
+            std::string const &refitConfig = "", std::string const &saveName = "", int nsave = 0) const;
         // Dumps the data, prediction, and diagonal error for each bin of the combined
         // data set to the specified output stream. The fit result is assumed to correspond
         // to model that is currently associated with this analyzer. Use the optional script
@@ -44,15 +75,26 @@ namespace baofit {
         // Dumps the model predictions for the specified fit result to the specified
         // output stream. The fit result is assumed to correspond to model that is
         // currently associated with this analyzer. Use the optional script to modify
-        // the parameters used in the model.
+        // the parameters used in the model. By default, values are output as
+        // "rval mono quad hexa" on separate lines. With oneLine = true, values of
+        // "mono quad hexa" are concatenated onto a single line.
         void dumpModel(std::ostream &out, likely::FunctionMinimumPtr fmin,
-            cosmo::Multipole multipole, int nr, double rmin, double rmax, double zval,
-            std::string const &script = "") const;
-        
+            int ndump, std::string const &script = "", bool oneLine = false) const;
 	private:
+        std::string _method;
+        double _rmin, _rmax, _zdata;
         bool _verbose;
         likely::BinnedDataResampler _resampler;
         AbsCorrelationModelPtr _model;
+        
+        class AbsSampler;
+        class JackknifeSampler;
+        class BootstrapSampler;
+        class EachSampler;
+        int doSamplingAnalysis(AbsSampler &sampler, std::string const &method,
+            likely::FunctionMinimumPtr fmin, likely::FunctionMinimumPtr fmin2,
+            std::string const &refitConfig, std::string const &saveName, int nsave) const;
+        
 	}; // CorrelationAnalyzer
 	
     inline void CorrelationAnalyzer::setVerbose(bool value) { _verbose = value; }

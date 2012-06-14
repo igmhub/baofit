@@ -11,6 +11,12 @@ namespace local = baofit;
 local::CorrelationFitter::CorrelationFitter(AbsCorrelationDataCPtr data, AbsCorrelationModelPtr model)
 : _data(data), _model(model), _errorScale(1), _type(data->getTransverseBinningType())
 {
+    if(!data || 0 == data->getNBinsWithData()) {
+        throw RuntimeError("CorrelationFitter: need some data to fit.");
+    }
+    if(!model) {
+        throw RuntimeError("CorrelationFitter: need a model to fit.");
+    }
 }
 
 local::CorrelationFitter::~CorrelationFitter() { }
@@ -52,7 +58,8 @@ double local::CorrelationFitter::operator()(likely::Parameters const &params) co
     return 0.5*_data->chiSquare(pred)/_errorScale;
 }
 
-likely::FunctionMinimumPtr local::CorrelationFitter::fit(std::string const &methodName) const {
+likely::FunctionMinimumPtr local::CorrelationFitter::fit(std::string const &methodName,
+std::string const &config) const {
     likely::FunctionPtr fptr(new likely::Function(*this));
-    return _model->findMinimum(fptr,methodName);
+    return _model->findMinimum(fptr,methodName,config);
 }
