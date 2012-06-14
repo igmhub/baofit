@@ -20,8 +20,6 @@ Implement likelihood refit marginalization of nuisance parameters.
 
 Add peak broadening parameter.
 
-Implement general way to specify priors and/or parameter limits.
-
 Dump results of XiCorrelationFit in some format to allow plotting like data.
 
 Implement output of correlated errors, with sharing of off-diagonal contributions.
