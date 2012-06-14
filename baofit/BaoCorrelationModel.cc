@@ -72,9 +72,28 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
     _bbc.reset(new cosmo::RsdCorrelationFunction(bbc0,bbc2,bbc4));
     _bb1.reset(new cosmo::RsdCorrelationFunction(bb10,bb12,bb14));
     _bb2.reset(new cosmo::RsdCorrelationFunction(bb20,bb22,bb24));
+    // Hardcode our scale parameter prior for a first test.
+    _scalePriorMin = 0.85;
+    _scalePriorMax = 1.15;
+    _scalePriorNorm = 2*0.01*0.01; // 2*sigma^2
 }
 
 local::BaoCorrelationModel::~BaoCorrelationModel() { }
+
+// Evaluates -log(prior(scale)) where the prior is Gaussian for scale < min or scale > max,
+// and equal to one for min < scale < max.
+double local::BaoCorrelationModel::_evaluatePrior(bool anyChanged) const {
+    double scale = getParameterValue("BAO scale");
+    if(scale < _scalePriorMin) {
+        double diff(scale - _scalePriorMin);
+        return diff*diff/_scalePriorNorm;
+    }
+    if(scale > _scalePriorMax) {
+        double diff(scale - _scalePriorMax);
+        return diff*diff/_scalePriorNorm;
+    }
+    return 0;
+}
 
 double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
     double alpha = getParameterValue("alpha");
