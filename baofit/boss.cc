@@ -15,6 +15,7 @@
 #include "likely/CovarianceMatrix.h"
 #include "likely/RuntimeError.h"
 
+#include "boost/regex.hpp"
 #include "boost/lexical_cast.hpp"
 #include "boost/spirit/include/qi.hpp"
 #include "boost/spirit/include/phoenix_core.hpp"
@@ -336,7 +337,8 @@ double rmin, double rmax, double llmin, cosmo::AbsHomogeneousUniversePtr cosmolo
 
 // Loads a binned correlation function in cosmolib format and returns a BinnedData object.
 baofit::AbsCorrelationDataPtr local::loadCosmolib(std::string const &dataName,
-baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted, bool checkPosDef) {
+baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted, bool reuseCov,
+bool checkPosDef) {
 
     // Create the new AbsCorrelationData that we will fill.
     baofit::AbsCorrelationDataPtr binnedData((baofit::QuasarCorrelationData *)(prototype->clone(true)));
@@ -382,8 +384,24 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted
             << binnedData->getNBinsTotal() << " data values from " << paramsName << std::endl;
     }
     
+
+    // Do we need to reuse the covariance estimated for the first realization of this plate?
+    std::string covName;
+    if(reuseCov) {
+        // Parse the data name.
+        boost::regex namePattern("([a-zA-Z0-9/_\\.]+/)?([0-9]+_)([0-9]+)\\.cat\\.([0-9]+)");
+        boost::match_results<std::string::const_iterator> what;
+        if(!boost::regex_match(dataName,what,namePattern)) {
+            throw RuntimeError("loadCosmolib: cannot parse name \"" + dataName + "\"");
+        }
+        covName = what[1]+what[2]+"1.cat."+what[4];
+    }
+    else {
+        covName = dataName;
+    }
+    covName += (icov ? ".icov" : ".cov");
+
     // Loop over lines in the covariance file.
-    std::string covName(dataName + (icov ? ".icov" : ".cov"));
     std::ifstream covIn(covName.c_str());
     if(!covIn.good()) throw RuntimeError("Unable to open " + covName);
     lines = 0;

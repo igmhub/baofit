@@ -78,6 +78,7 @@ int main(int argc, char **argv) {
         ;
     cosmolibOptions.add_options()
         ("weighted", "Data vectors are inverse-covariance weighted.")
+        ("reuse-cov", "Reuse covariance estimated for first-realization of each plate.")
         ("minll", po::value<double>(&minll)->default_value(0.0002,"0.0002"),
             "Minimum log(lam2/lam1).")
         ("dll", po::value<double>(&dll)->default_value(0.004,"0.004"),
@@ -158,7 +159,7 @@ int main(int argc, char **argv) {
     bool verbose(0 == vm.count("quiet")), french(vm.count("french")), weighted(vm.count("weighted")),
         checkPosDef(vm.count("check-posdef")), fixCovariance(0 == vm.count("naive-covariance")),
         xiModel(vm.count("xi-model")), dr9lrg(vm.count("dr9lrg")), unweighted(vm.count("unweighted")),
-        useQuad(vm.count("use-quad")), fitEach(vm.count("fit-each"));
+        useQuad(vm.count("use-quad")), fitEach(vm.count("fit-each")), reuseCov(vm.count("reuse-cov"));
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
@@ -280,7 +281,7 @@ int main(int argc, char **argv) {
             else {
                 // Add a cosmolib dataset, assumed to provided icov instead of cov.
                 analyzer.addData(baofit::boss::loadCosmolib(*filename,prototype,
-                    verbose,true,weighted,checkPosDef));
+                    verbose,true,weighted,reuseCov,checkPosDef));
             }
         }
     }
