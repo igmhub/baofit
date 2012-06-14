@@ -1,7 +1,5 @@
 Add option to load/save data using new BinnedData virtual methods.
 
-Add CorrelationAnalyzer::fitEach() method.
-
 Generate and save/fit MC samples from a model and data covariance matrix.
 
 Add structured (json?) logging of analysis outputs.
@@ -23,3 +21,9 @@ Implement likelihood refit marginalization of nuisance parameters.
 Add peak broadening parameter.
 
 Implement general way to specify priors and/or parameter limits.
+
+Dump results of XiCorrelationFit in some format to allow plotting like data.
+
+Implement output of correlated errors, with sharing of off-diagonal contributions.
+
+Implement re-use of first realization covariance for cosmolib.
