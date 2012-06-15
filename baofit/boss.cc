@@ -285,9 +285,8 @@ bool verbose, bool unweighted, bool checkPosDef) {
 }
 
 // Reproduce the hybrid linear-log binning of cosmolib's ForestCovariance3DTheory_Xi::BinToWavelength_3D
-std::vector<double> local::twoStepSampling(
-int nBins, double breakpoint,double dlog, double dlin) {
-    if(!(breakpoint > 0 && dlog > 0 && dlin > 0)) {
+std::vector<double> local::twoStepSampling(double breakpoint,double llmax,double dlog,double dlin) {
+    if(!(breakpoint > 0 && dlog > 0 && dlin > 0 && llmax > breakpoint)) {
         throw RuntimeError("twoStepSampling: invalid parameters.");
     }
     std::vector<double> samplePoints;
@@ -300,8 +299,13 @@ int nBins, double breakpoint,double dlog, double dlin) {
     }
     // remaining samples are logarithmically spaced, with log-weighted bin centers.
     double ratio = std::log((breakpoint+dlog)/breakpoint);
-    for(int k = 1; k < nBins-nUniform; ++k) {
-        samplePoints.push_back(breakpoint*std::exp(ratio*(k-0.5)));
+    int k = 1;
+    while(1) {
+        double llval = breakpoint*std::exp(ratio*(k-0.5));
+        // Stop when we pass llmax
+        if(llval > llmax) break;
+        samplePoints.push_back(llval);
+        k++;
     }
     return samplePoints;
 }
@@ -309,7 +313,7 @@ int nBins, double breakpoint,double dlog, double dlin) {
 // Creates a prototype QuasarCorrelationData with the specified binning and cosmology.
 baofit::AbsCorrelationDataCPtr local::createCosmolibPrototype(
 double minsep, double dsep, int nsep, double minz, double dz, int nz,
-double minll, double dll, double dll2, int nll,
+double minll, double maxll, double dll, double dll2,
 double rmin, double rmax, double llmin, cosmo::AbsHomogeneousUniversePtr cosmology) {
 
     // Initialize the (logLambda,separation,redshift) binning from command-line params.
@@ -317,15 +321,16 @@ double rmin, double rmax, double llmin, cosmo::AbsHomogeneousUniversePtr cosmolo
         sepBins(new likely::UniformBinning(minsep,minsep+nsep*dsep,nsep)),
         zBins(new likely::UniformSampling(minz+0.5*dz,minz+(nz-0.5)*dz,nz));
     if(0 == dll2) {
-        llBins.reset(new likely::UniformBinning(minll,minll+nll*dll,nll));
+        // If dll does not divide evenly into [minll,maxll], stick with minll,dll and adjust maxll.
+        int nll = std::floor((maxll-minll)/dll+0.5);
+        maxll = minll + dll*nll;
+        llBins.reset(new likely::UniformBinning(minll,maxll,nll));
     }
     else {
-        llBins.reset(new likely::NonUniformSampling(twoStepSampling(nll,minll,dll,dll2)));
-        /*
-        for(int i = 0; i < nll; ++i) {
+        llBins.reset(new likely::NonUniformSampling(twoStepSampling(minll,maxll,dll,dll2)));
+        for(int i = 0; i < llBins->getNBins(); ++i) {
             std::cout << "llbin " << i << ' ' << llBins->getBinCenter(i) << std::endl;
         }
-        */
     }
 
     // Create the new BinnedData that we will fill.

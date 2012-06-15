@@ -25,8 +25,8 @@ int main(int argc, char **argv) {
         frenchOptions("French data options"), cosmolibOptions("Cosmolib data options"),
         analysisOptions("Analysis options");
 
-    double OmegaMatter,hubbleConstant,zref,minll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin;
-    int nll,nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,numXi,ndump,jackknifeDrop;
+    double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin;
+    int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,numXi,ndump,jackknifeDrop;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,
         platelistName,platerootName,modelConfig,iniName,refitConfig,minMethod;
 
@@ -81,12 +81,12 @@ int main(int argc, char **argv) {
         ("reuse-cov", "Reuse covariance estimated for first-realization of each plate.")
         ("minll", po::value<double>(&minll)->default_value(0.0002,"0.0002"),
             "Minimum log(lam2/lam1).")
+        ("maxll", po::value<double>(&maxll)->default_value(0.02,"0.02"),
+            "Maximum log(lam2/lam1).")
         ("dll", po::value<double>(&dll)->default_value(0.004,"0.004"),
             "log(lam2/lam1) binsize.")
         ("dll2", po::value<double>(&dll2)->default_value(0),
             "log(lam2/lam1) second binsize parameter for two-step binning.")
-        ("nll", po::value<int>(&nll)->default_value(14),
-            "Maximum number of log(lam2/lam1) bins.")
         ("minsep", po::value<double>(&minsep)->default_value(0),
             "Minimum separation in arcmins.")
         ("dsep", po::value<double>(&dsep)->default_value(10),
@@ -233,7 +233,7 @@ int main(int argc, char **argv) {
         else {
             zdata = 2.25;
             prototype = baofit::boss::createCosmolibPrototype(
-                minsep,dsep,nsep,minz,dz,nz,minll,dll,dll2,nll,rmin,rmax,llmin,cosmology);
+                minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,rmin,rmax,llmin,cosmology);
         }
         
         // Build a list of the data files we will read.
