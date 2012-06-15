@@ -328,9 +328,6 @@ double rmin, double rmax, double llmin, cosmo::AbsHomogeneousUniversePtr cosmolo
     }
     else {
         llBins.reset(new likely::NonUniformSampling(twoStepSampling(minll,maxll,dll,dll2)));
-        for(int i = 0; i < llBins->getNBins(); ++i) {
-            std::cout << "llbin " << i << ' ' << llBins->getBinCenter(i) << std::endl;
-        }
     }
 
     // Create the new BinnedData that we will fill.
@@ -384,7 +381,7 @@ bool checkPosDef) {
         binnedData->setData(index, weighted ? cinvData : data, weighted);        
     }
     paramsIn.close();
-    if(verbose) {
+    if(false) {
         std::cout << "Read " << binnedData->getNBinsWithData() << " of "
             << binnedData->getNBinsTotal() << " data values from " << paramsName << std::endl;
     }
@@ -435,7 +432,7 @@ bool checkPosDef) {
         }
     }
     covIn.close();
-    if(verbose) {
+    if(false) {
         int ndata = binnedData->getNBinsWithData();
         int ncov = (ndata*(ndata+1))/2;
         std::cout << "Read " << lines << " of " << ncov
