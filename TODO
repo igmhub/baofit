@@ -25,3 +25,7 @@ Dump results of XiCorrelationFit in some format to allow plotting like data.
 Implement output of correlated errors, with sharing of off-diagonal contributions.
 
 Implement re-use of first realization covariance for cosmolib.
+
+Provide option to split BAO scale into separate transverse, perpendicular components.
+
+Implement options for integrating theory over bins with finite size.
