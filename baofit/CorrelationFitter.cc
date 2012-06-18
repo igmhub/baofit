@@ -52,10 +52,10 @@ double local::CorrelationFitter::operator()(likely::Parameters const &params) co
         }
         pred.push_back(predicted);
     }
-    // UP=0.5 is already hardcoded so we need a factor of 2 here since we are
-    // calculating a chi-square. Apply an additional factor of _errorScale to
-    // allow different error contours to be calculated.
-    return 0.5*_data->chiSquare(pred)/_errorScale;
+    // Scale chiSquare by 0.5 since the likely minimizer expects a -log(likelihood).
+    // Add any model prior on the parameters. The additional factor of _errorScale
+    // is to allow arbitrary error contours to be calculated a la MNCONTOUR.
+    return (0.5*_data->chiSquare(pred) + _model->evaluatePrior(params))/_errorScale;
 }
 
 likely::FunctionMinimumPtr local::CorrelationFitter::fit(std::string const &methodName,

@@ -15,10 +15,9 @@ namespace baofit {
     // Accumulates correlation data and manages its analysis.
 	class CorrelationAnalyzer {
 	public:
-	    // Creates a new analyzer using the specified random seed and minimization method.
+	    // Creates a new analyzer using the specified minimization method.
 	    // The range [rmin,rmax] will be used for dumping any model multipoles.
-		CorrelationAnalyzer(int randomSeed, std::string const &method,
-		    double rmin, double rmax, bool verbose = true);
+		CorrelationAnalyzer(std::string const &method, double rmin, double rmax, bool verbose = true);
 		virtual ~CorrelationAnalyzer();
 		// Set the verbose level during analysis.
         void setVerbose(bool value);

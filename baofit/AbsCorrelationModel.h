@@ -24,12 +24,16 @@ namespace baofit {
         // Returns the correlation function for the specified multipole at co-moving pair separation
         // r and average pair redshift z. Updates our current parameter values.
         double evaluate(double r, cosmo::Multipole multipole, double z, likely::Parameters const &params);
+        // Returns the -log(prior-likelihood) for the specified parameter values. The default
+        // implementation returns zero, which corresponds to no priors on any parameters.
+        double evaluatePrior(likely::Parameters const &params);
     protected:
         // The public methods above call these protected methods after making parameter values
         // and changes available via our base class' getParameterValue() and isParameterValueChanged()
-        // methods. Any registered changes to parameter values are reset after calling either of these.
+        // methods. Any registered changes to parameter values are reset after calling any of these.
         virtual double _evaluate(double r, double mu, double z, bool changed) const = 0;
         virtual double _evaluate(double r, cosmo::Multipole multipole, double z, bool changed) const = 0;
+        virtual double _evaluatePrior(bool anyChanged) const;
 	}; // AbsCorrelationModel
 } // baofit
 

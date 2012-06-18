@@ -26,10 +26,10 @@ namespace baofit {
             AbsCorrelationDataCPtr prototype, bool verbose);
 
         std::vector<double> twoStepSampling(
-            int nBins, double breakpoint, double dlog, double dlin);
+            double breakpoint, double llmax, double dlog, double dlin);
 
         AbsCorrelationDataCPtr createCosmolibPrototype(double minsep, double dsep, int nsep,
-            double minz, double dz, int nz, double minll, double dll, double dll2, int nll,
+            double minz, double dz, int nz, double minll, double maxll, double dll, double dll2,
             double rmin, double rmax, double llmin, cosmo::AbsHomogeneousUniversePtr cosmology);
 
         AbsCorrelationDataPtr loadCosmolib(std::string const &dataName,

@@ -20,9 +20,8 @@
 
 namespace local = baofit;
 
-local::CorrelationAnalyzer::CorrelationAnalyzer(int randomSeed, std::string const &method,
-double rmin, double rmax, bool verbose)
-: _resampler(randomSeed), _method(method), _rmin(rmin), _rmax(rmax), _verbose(verbose)
+local::CorrelationAnalyzer::CorrelationAnalyzer(std::string const &method, double rmin, double rmax, bool verbose)
+: _method(method), _rmin(rmin), _rmax(rmax), _verbose(verbose)
 {
     if(rmin >= rmax) {
         throw RuntimeError("CorrelationAnalyzer: expected rmin < rmax.");
