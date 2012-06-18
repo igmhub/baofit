@@ -180,7 +180,8 @@ int main(int argc, char **argv) {
     }
 
     // Initialize our analyzer.
-    baofit::CorrelationAnalyzer analyzer(randomSeed,minMethod,rmin,rmax,verbose);
+    likely::Random::instance()->setSeed(randomSeed);
+    baofit::CorrelationAnalyzer analyzer(minMethod,rmin,rmax,verbose);
 
     // Initialize the models we will use.
     cosmo::AbsHomogeneousUniversePtr cosmology;
