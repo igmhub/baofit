@@ -19,6 +19,9 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
     std::string const &broadbandName, double zref)
 : AbsCorrelationModel("BAO Correlation Model"), _zref(zref)
 {
+    if(zref < 0) {
+        throw RuntimeError("BaoCorrelationModel: expected zref >= 0.");
+    }
     // Define our parameters. The order here determines the order of elements in our
     // parameter vector for our evaluate(...) methods.
     defineParameter("alpha",3.8,0.3);
@@ -30,9 +33,15 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
     defineParameter("BBand a0",0,0.2);
     defineParameter("BBand a1",0,2);
     defineParameter("BBand a2",0,2);
-    defineParameter("BBand c0",0,0);
-    defineParameter("BBand c2",0,0);
-    defineParameter("BBand c4",0,0);
+    defineParameter("BBand mono const",0,1e-4);
+    defineParameter("BBand quad const",0,1e-4);
+    defineParameter("BBand hexa const",0,1e-4);
+    defineParameter("BBand mono 1/r",0,0.01);
+    defineParameter("BBand quad 1/r",0,0.02);
+    defineParameter("BBand hexa 1/r",0,0.04);
+    defineParameter("BBand mono 1/(r*r)",0,0.6);
+    defineParameter("BBand quad 1/(r*r)",0,1.2);
+    defineParameter("BBand hexa 1/(r*r)",0,2.4);
     // Load the interpolation data we will use for each multipole of each model.
     std::string root(modelrootName);
     if(0 < root.size() && root[root.size()-1] != '/') root += '/';
@@ -180,18 +189,21 @@ bool anyChanged) const {
     // Calculate redshift evolution factor.
     double zfactor = std::pow((1+z)/(1+_zref),alpha);
     // Calculate the redshift-space distortion scale factor for this multipole.
-    double rsdScale, offset;
+    double rsdScale, offset, rsq(r*r);
     if(multipole == cosmo::Hexadecapole) {
         rsdScale = (8./35.)*beta*beta;
-        offset = getParameterValue("BBand c4");
+        offset = getParameterValue("BBand hexa const") + getParameterValue("BBand hexa 1/r")/r
+            + getParameterValue("BBand hexa 1/(r*r)")/(r*r);
     }
     else if(multipole == cosmo::Quadrupole) {
         rsdScale = 4*beta*((1./3.) + beta/7.);
-        offset = getParameterValue("BBand c2");
+        offset = getParameterValue("BBand quad const") + getParameterValue("BBand quad 1/r")/r
+            + getParameterValue("BBand quad 1/(r*r)")/(r*r);
     }
     else {
         rsdScale = 1 + beta*((2./3.) + beta/5.);
-        offset = getParameterValue("BBand c0");
+        offset = getParameterValue("BBand mono const") + getParameterValue("BBand mono 1/r")/r
+            + getParameterValue("BBand mono 1/(r*r)")/(r*r);
     }
     // Calculate the peak contribution with scaled radius.
     double peak(0);
