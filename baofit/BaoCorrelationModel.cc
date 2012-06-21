@@ -23,7 +23,7 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
         throw RuntimeError("BaoCorrelationModel: expected zref >= 0.");
     }
     // Linear bias parameters
-    defineParameter("alpha",3.8,0.3);
+    defineParameter("alpha_bias",3.8,0.3);
     defineParameter("beta",1.0,0.1);
     defineParameter("(1+beta)*bias",-0.34,0.03);
     // BAO peak parameters
@@ -128,7 +128,7 @@ template cosmo::CorrelationFunctionPtr likely::createFunctionPtr<local::BaoCorre
     (local::BaoCorrelationModel::BBand2Ptr pimpl);
 
 double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
-    double alpha = getParameterValue("alpha");
+    double alpha_bias = getParameterValue("alpha_bias");
     double beta = getParameterValue("beta");
     double bb = getParameterValue("(1+beta)*bias");
     double ampl = getParameterValue("BAO amplitude");
@@ -140,7 +140,7 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     // Calculate bias from beta and bb.
     double bias = bb/(1+beta);
     // Calculate redshift evolution factor.
-    double zfactor = std::pow((1+z)/(1+_zref),alpha);
+    double zfactor = std::pow((1+z)/(1+_zref),alpha_bias);
     // Build a model with xi(ell=0,2,4) = c(ell).
     cosmo::RsdCorrelationFunction bband2Model(
         likely::createFunctionPtr(BBand2Ptr(new BBand2(
@@ -181,7 +181,7 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
 
 double local::BaoCorrelationModel::_evaluate(double r, cosmo::Multipole multipole, double z,
 bool anyChanged) const {
-    double alpha = getParameterValue("alpha");
+    double alpha_bias = getParameterValue("alpha_bias");
     double beta = getParameterValue("beta");
     double bb = getParameterValue("(1+beta)*bias");
     double ampl = getParameterValue("BAO amplitude");
@@ -193,7 +193,7 @@ bool anyChanged) const {
     // Calculate bias from beta and bb.
     double bias = bb/(1+beta);
     // Calculate redshift evolution factor.
-    double zfactor = std::pow((1+z)/(1+_zref),alpha);
+    double zfactor = std::pow((1+z)/(1+_zref),alpha_bias);
     // Calculate the redshift-space distortion scale factor for this multipole.
     double rsdScale, bband2, rsq(r*r);
     if(multipole == cosmo::Hexadecapole) {
