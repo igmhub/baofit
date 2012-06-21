@@ -30,6 +30,9 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
     defineParameter("BBand a0",0,0.2);
     defineParameter("BBand a1",0,2);
     defineParameter("BBand a2",0,2);
+    defineParameter("BBand c0",0,0);
+    defineParameter("BBand c2",0,0);
+    defineParameter("BBand c4",0,0);
     // Load the interpolation data we will use for each multipole of each model.
     std::string root(modelrootName);
     if(0 < root.size() && root[root.size()-1] != '/') root += '/';
@@ -95,6 +98,24 @@ double local::BaoCorrelationModel::_evaluatePrior(bool anyChanged) const {
     return 0;
 }
 
+namespace baofit {
+    // Define a function object class that simply returns a constant. This could also be done
+    // with boost::lambda using (_1 = value), but I don't know how to create a lambda functor
+    // on the heap so it can be used with the likely::createFunctionPtr machinery.
+    class BaoCorrelationModel::Offset {
+    public:
+        Offset(double value) : _value(value) { }
+        double operator()(double r) { return _value; }
+    private:
+        double _value;
+    };
+}
+
+#include "likely/function_impl.h"
+
+template cosmo::CorrelationFunctionPtr likely::createFunctionPtr<local::BaoCorrelationModel::Offset>
+    (local::BaoCorrelationModel::OffsetPtr pimpl);
+
 double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
     double alpha = getParameterValue("alpha");
     double beta = getParameterValue("beta");
@@ -105,16 +126,25 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     double a0 = getParameterValue("BBand a0");
     double a1 = getParameterValue("BBand a1");
     double a2 = getParameterValue("BBand a2");
+    double c0 = getParameterValue("BBand c0");
+    double c2 = getParameterValue("BBand c2");
+    double c4 = getParameterValue("BBand c4");
     // Calculate bias from beta and bb.
     double bias = bb/(1+beta);
     // Calculate redshift evolution factor.
     double zfactor = std::pow((1+z)/(1+_zref),alpha);
+    // Build a model with xi(ell=0,2,4) = c(ell).
+    cosmo::RsdCorrelationFunction offsetsModel(
+        likely::createFunctionPtr(OffsetPtr(new Offset(c0))),
+        likely::createFunctionPtr(OffsetPtr(new Offset(c2))),
+        likely::createFunctionPtr(OffsetPtr(new Offset(c4))));
     // Apply redshift-space distortion to each model component.
     _fid->setDistortion(beta);
     _nw->setDistortion(beta);
     _bbc->setDistortion(beta);
     _bb1->setDistortion(beta);
     _bb2->setDistortion(beta);
+    offsetsModel.setDistortion(beta);
     // Calculate the peak contribution with scaled radius.
     double peak(0);
     if(ampl != 0) {
@@ -127,8 +157,11 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     if(1+a0 != 0) broadband += (1+a0)*(*_nw)(r,mu);
     if(a1 != 0) broadband += a1*(*_bb1)(r,mu);
     if(a2 != 0) broadband += a2*(*_bb2)(r,mu);
+    // Calculate any additional DC offset contributions.
+    double offsets = offsetsModel(r,mu);
+    std::cout << "offsets " << c0 << ' ' << c2 << ' ' << c4 << " => " << offsets << std::endl;
     // Combine the peak and broadband components, with bias and redshift evolution.
-    return bias*bias*zfactor*(peak + broadband);
+    return bias*bias*zfactor*(peak + broadband + offsets);
 }
 
 double local::BaoCorrelationModel::_evaluate(double r, cosmo::Multipole multipole, double z,
@@ -147,15 +180,18 @@ bool anyChanged) const {
     // Calculate redshift evolution factor.
     double zfactor = std::pow((1+z)/(1+_zref),alpha);
     // Calculate the redshift-space distortion scale factor for this multipole.
-    double rsdScale;
+    double rsdScale, offset;
     if(multipole == cosmo::Hexadecapole) {
         rsdScale = (8./35.)*beta*beta;
+        offset = getParameterValue("BBand c4");
     }
     else if(multipole == cosmo::Quadrupole) {
         rsdScale = 4*beta*((1./3.) + beta/7.);
+        offset = getParameterValue("BBand c2");
     }
     else {
         rsdScale = 1 + beta*((2./3.) + beta/5.);
+        offset = getParameterValue("BBand c0");
     }
     // Calculate the peak contribution with scaled radius.
     double peak(0);
@@ -170,7 +206,7 @@ bool anyChanged) const {
     if(a1 != 0) broadband += a1*(*_bb1)(r,multipole);
     if(a2 != 0) broadband += a2*(*_bb2)(r,multipole);
     // Combine the peak and broadband components, with bias and redshift evolution.
-    return bias*bias*zfactor*rsdScale*(peak + broadband);
+    return bias*bias*zfactor*rsdScale*(peak + broadband + offset);
 }
 
 void  local::BaoCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
