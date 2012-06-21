@@ -25,6 +25,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <vector>
 
 namespace local = baofit::boss;
 
@@ -466,4 +467,20 @@ bool checkPosDef) {
     // Compress our binned data to take advantage of a potentially sparse covariance matrix.
     binnedData->compress();
     return binnedData;
+}
+
+baofit::AbsCorrelationDataCPtr local::createCosmolibXiPrototype(double minz, double dz, int nz,
+double rmin, double rmax) {
+    // Create the new BinnedData that we will fill.
+    std::vector<double> ellValues;
+    ellValues.push_back(-1);
+    ellValues.push_back(cosmo::Monopole);
+    ellValues.push_back(cosmo::Quadrupole);
+    likely::AbsBinningCPtr
+        rBins(new likely::UniformSampling(0,200,41)),
+        ellBins(new likely::NonUniformSampling(ellValues)),
+        zBins(new likely::UniformSampling(minz+0.5*dz,minz+(nz-0.5)*dz,nz));
+    baofit::AbsCorrelationDataPtr
+        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins,rmin,rmax));
+    return prototype;
 }

@@ -36,6 +36,9 @@ namespace baofit {
             AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted,
             bool reuseCov = false, bool checkPosDef = false);
 
+        AbsCorrelationDataCPtr createCosmolibXiPrototype(double minz, double dz, int nz,
+            double rmin, double rmax);
+
     } // boss
 } // baofit
 
