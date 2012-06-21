@@ -23,9 +23,10 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
         throw RuntimeError("BaoCorrelationModel: expected zref >= 0.");
     }
     // Linear bias parameters
-    defineParameter("alpha_bias",3.8,0.3);
-    defineParameter("beta",1.0,0.1);
-    defineParameter("(1+beta)*bias",-0.34,0.03);
+    defineParameter("beta",1.4,0.1);
+    defineParameter("(1+beta)*bias",-0.336,0.03);
+    defineParameter("alpha-bias",3.8,0.3);
+    defineParameter("alpha-beta",0,0.1);
     // BAO peak parameters
     defineParameter("BAO amplitude",1,0.15);
     defineParameter("BAO scale",1,0.02);
@@ -128,19 +129,22 @@ template cosmo::CorrelationFunctionPtr likely::createFunctionPtr<local::BaoCorre
     (local::BaoCorrelationModel::BBand2Ptr pimpl);
 
 double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
-    double alpha_bias = getParameterValue("alpha_bias");
     double beta = getParameterValue("beta");
     double bb = getParameterValue("(1+beta)*bias");
+    double alpha_bias = getParameterValue("alpha-bias");
+    double alpha_beta = getParameterValue("alpha-beta");
     double ampl = getParameterValue("BAO amplitude");
     double scale = getParameterValue("BAO scale");
     double xio = getParameterValue("BBand1 xio");
     double a0 = getParameterValue("BBand1 a0");
     double a1 = getParameterValue("BBand1 a1");
     double a2 = getParameterValue("BBand1 a2");
-    // Calculate bias from beta and bb.
+    // Calculate bias(zref) from beta(zref) and bb(zref).
     double bias = bb/(1+beta);
-    // Calculate redshift evolution factor.
-    double zfactor = std::pow((1+z)/(1+_zref),alpha_bias);
+    // Calculate redshift evolution.
+    double zratio((1+z)/(1+_zref));
+    double zfactor = std::pow(zratio,alpha_bias);
+    beta *= std::pow(zratio,alpha_beta);
     // Build a model with xi(ell=0,2,4) = c(ell).
     cosmo::RsdCorrelationFunction bband2Model(
         likely::createFunctionPtr(BBand2Ptr(new BBand2(
@@ -181,19 +185,22 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
 
 double local::BaoCorrelationModel::_evaluate(double r, cosmo::Multipole multipole, double z,
 bool anyChanged) const {
-    double alpha_bias = getParameterValue("alpha_bias");
     double beta = getParameterValue("beta");
     double bb = getParameterValue("(1+beta)*bias");
+    double alpha_bias = getParameterValue("alpha-bias");
+    double alpha_beta = getParameterValue("alpha-beta");
     double ampl = getParameterValue("BAO amplitude");
     double scale = getParameterValue("BAO scale");
     double xio = getParameterValue("BBand1 xio");
     double a0 = getParameterValue("BBand1 a0");
     double a1 = getParameterValue("BBand1 a1");
     double a2 = getParameterValue("BBand1 a2");
-    // Calculate bias from beta and bb.
+    // Calculate bias(zref) from beta(zref) and bb(zref).
     double bias = bb/(1+beta);
-    // Calculate redshift evolution factor.
-    double zfactor = std::pow((1+z)/(1+_zref),alpha_bias);
+    // Calculate redshift evolution.
+    double zratio((1+z)/(1+_zref));
+    double zfactor = std::pow(zratio,alpha_bias);
+    beta *= std::pow(zratio,alpha_beta);
     // Calculate the redshift-space distortion scale factor for this multipole.
     double rsdScale, bband2, rsq(r*r);
     if(multipole == cosmo::Hexadecapole) {
