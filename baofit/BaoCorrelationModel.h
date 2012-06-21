@@ -35,8 +35,8 @@ namespace baofit {
 	private:
         double _zref, _scalePriorMin, _scalePriorMax, _scalePriorNorm;
         cosmo::RsdCorrelationFunctionPtr _fid, _nw, _bbc, _bb1, _bb2;
-        class Offset;
-        typedef boost::shared_ptr<Offset> OffsetPtr;
+        class BBand2;
+        typedef boost::shared_ptr<BBand2> BBand2Ptr;
 	}; // BaoCorrelationModel
 } // baofit
 
