@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
         analysisOptions("Analysis options");
 
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin;
-    int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,numXi,ndump,jackknifeDrop;
+    int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,numXi,ndump,jackknifeDrop,lmin,lmax;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,
         platelistName,platerootName,modelConfig,iniName,refitConfig,minMethod;
 
@@ -102,11 +102,15 @@ int main(int argc, char **argv) {
         ;
     analysisOptions.add_options()
         ("rmin", po::value<double>(&rmin)->default_value(0),
-            "Minimum 3D comoving separation (Mpc/h) to use in fit.")
+            "Final cut on minimum 3D comoving separation (Mpc/h) to use in fit.")
         ("rmax", po::value<double>(&rmax)->default_value(200),
-            "Maximum 3D comoving separation (Mpc/h) to use in fit.")
+            "Final cut on maximum 3D comoving separation (Mpc/h) to use in fit.")
         ("llmin", po::value<double>(&llmin)->default_value(0),
             "Minimum value of log(lam2/lam1) to use in fit (cosmolib only).")
+        ("lmin", po::value<int>(&lmin)->default_value(0),
+            "Final cut on minimum multipole ell (0,2,4) to use in fit (multipole data only).")
+        ("lmax", po::value<int>(&lmax)->default_value(2),
+            "Final cut on maximum multipole ell (0,2,4) to use in fit (multipole data only).")
         ("ndump", po::value<int>(&ndump)->default_value(100),
             "Number of points spanning [rmin,rmax] to use for dumping models (zero for no dumps).")
         ("refit-config", po::value<std::string>(&refitConfig)->default_value(""),
@@ -180,6 +184,18 @@ int main(int argc, char **argv) {
         return -1;
     }
 
+    // Check for valid multipole options.
+    if(lmin != cosmo::Monopole && lmin != cosmo::Quadrupole && lmin != cosmo::Hexadecapole) {
+        std::cerr << "Expected 0,2,4 for lmin but got " << lmin << std::endl;
+        return -1;
+    }
+    cosmo::Multipole ellmin = static_cast<cosmo::Multipole>(lmin);
+    if(lmax != cosmo::Monopole && lmax != cosmo::Quadrupole && lmax != cosmo::Hexadecapole) {
+        std::cerr << "Expected 0,2,4 for lmax but got " << lmax << std::endl;
+        return -1;
+    }
+    cosmo::Multipole ellmax = static_cast<cosmo::Multipole>(lmax);
+
     // Initialize our analyzer.
     likely::Random::instance()->setSeed(randomSeed);
     baofit::CorrelationAnalyzer analyzer(minMethod,rmin,rmax,verbose);
@@ -225,7 +241,7 @@ int main(int argc, char **argv) {
         baofit::AbsCorrelationDataCPtr prototype;
         if(french) {
             zdata = 2.30;
-            prototype = baofit::boss::createFrenchPrototype(zdata,rmin,rmax,useQuad);
+            prototype = baofit::boss::createFrenchPrototype(zdata,rmin,rmax,ellmin,ellmax,useQuad);
         }
         else if(dr9lrg) {
             zdata = 0.57;
@@ -234,7 +250,7 @@ int main(int argc, char **argv) {
         }
         else if(xiFormat) {
             zdata = 2.25;
-            prototype = baofit::boss::createCosmolibXiPrototype(minz,dz,nz,rmin,rmax);
+            prototype = baofit::boss::createCosmolibXiPrototype(minz,dz,nz,rmin,rmax,ellmin,ellmax);
         }
         else {
             zdata = 2.25;

@@ -12,9 +12,13 @@ namespace baofit {
 	// Represents a 3D correlation function with its transverse degree of freedom projected
 	// into multipole space.
 	public:
+	    //Creates a new multipole correlation dataset with the specified binning and final
+	    // cuts rmin <= r < rmax, ellmin <= ell <= ellmax.
 		MultipoleCorrelationData(likely::AbsBinningCPtr axis1, likely::AbsBinningCPtr axis2,
-		    likely::AbsBinningCPtr axis3, double rmin, double rmax);
-        MultipoleCorrelationData(std::vector<likely::AbsBinningCPtr> axes, double rmin, double rmax);
+		    likely::AbsBinningCPtr axis3, double rmin, double rmax,
+		    cosmo::Multipole ellmin, cosmo::Multipole ellmax);
+        MultipoleCorrelationData(std::vector<likely::AbsBinningCPtr> axes, double rmin, double rmax,
+            cosmo::Multipole ellmin, cosmo::Multipole ellmax);
 		virtual ~MultipoleCorrelationData();
 		// Polymorphic shallow copy so this type of data can be used with likely::BinnedDataResampler.
         virtual MultipoleCorrelationData *clone(bool binningOnly = false) const;
@@ -24,7 +28,7 @@ namespace baofit {
         virtual cosmo::Multipole getMultipole(int index) const;
         // Returns the redshift associated with the specified global index.
         virtual double getRedshift(int index) const;
-        // Finalize a multipole dataset by pruning to the co-moving limits specified in our
+        // Finalize a multipole dataset by pruning to the final cuts specified in our
         // constructor. No further changes to our "shape" are possible after finalizing.
         // See the documentation for BinnedData::finalize() for details.
         virtual void finalize();
@@ -32,8 +36,9 @@ namespace baofit {
         // redshift slice to use in case there are several.
         void dump(std::ostream &out, int zIndex = 0) const;
 	private:
-        void _initialize(double rmin, double rmax);
+        void _initialize(double rmin, double rmax, cosmo::Multipole ellmin, cosmo::Multipole ellmax);
         double _rmin, _rmax;
+        cosmo::Multipole _ellmin, _ellmax;
         void _setIndex(int index) const;
         mutable int _lastIndex;
         mutable std::vector<double> _binCenter;

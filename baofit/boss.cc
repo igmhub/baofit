@@ -43,7 +43,8 @@ std::string const &covName, bool verbose) {
         ellBins(new likely::UniformSampling(0,0,1)), // only monopole for now
         zBins(new likely::UniformSampling(zref,zref,1));
     baofit::AbsCorrelationDataPtr
-        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins,rmin,rmax));
+        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins,rmin,rmax,
+            cosmo::Monopole,cosmo::Monopole));
         
     // Pre-fill each bin with zero values.
     for(int index = 0; index < nbins; ++index) prototype->setData(index,0);
@@ -149,7 +150,7 @@ local::loadDR9LRG(std::string const &dataName, baofit::AbsCorrelationDataCPtr pr
 
 // Creates a prototype MultipoleCorrelationData with the specified binning.
 baofit::AbsCorrelationDataCPtr local::createFrenchPrototype(double zref, double rmin, double rmax,
-bool useQuadrupole) {
+cosmo::Multipole ellmin, cosmo::Multipole ellmax, bool useQuadrupole) {
     // Create the new BinnedData that we will fill.
     likely::AbsBinningCPtr ellBins,
         rBins(new likely::UniformBinning(0,200,50)),
@@ -161,7 +162,7 @@ bool useQuadrupole) {
         ellBins.reset(new likely::UniformSampling(cosmo::Monopole,cosmo::Monopole,1));
     }
     baofit::AbsCorrelationDataPtr
-        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins,rmin,rmax));
+        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins,rmin,rmax,ellmin,ellmax));
     return prototype;
 }
 
@@ -472,7 +473,7 @@ bool checkPosDef) {
 }
 
 baofit::AbsCorrelationDataCPtr local::createCosmolibXiPrototype(double minz, double dz, int nz,
-double rmin, double rmax) {
+double rmin, double rmax, cosmo::Multipole ellmin, cosmo::Multipole ellmax) {
     // Create the new BinnedData that we will fill.
     std::vector<double> ellValues;
     ellValues.push_back(-1);
@@ -483,7 +484,7 @@ double rmin, double rmax) {
         ellBins(new likely::NonUniformSampling(ellValues)),
         zBins(new likely::UniformSampling(minz+0.5*dz,minz+(nz-0.5)*dz,nz));
     baofit::AbsCorrelationDataPtr
-        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins,rmin,rmax));
+        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins,rmin,rmax,ellmin,ellmax));
     return prototype;
 }
 
