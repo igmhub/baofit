@@ -156,6 +156,16 @@ std::string const &refitConfig, std::string const &saveName, int nsave) const {
     return doSamplingAnalysis(sampler, "Individual", fmin, fmin2, refitConfig, saveName, nsave);    
 }
 
+void local::CorrelationAnalyzer::generateMarkovChain(int nchain, int nskip, likely::FunctionMinimumPtr fmin,
+std::string const &saveName, int nsave) const {
+    if(nchain <= 0) {
+        throw RuntimeError("CorrelationAnalyzer::generateMarkovChain: expected nchain > 0.");
+    }
+    if(nskip < 0) {
+        throw RuntimeError("CorrelationAnalyzer::generateMarkovChain: expected nskip >= 0.");        
+    }
+}
+
 int local::CorrelationAnalyzer::doSamplingAnalysis(CorrelationAnalyzer::AbsSampler &sampler,
 std::string const &method, likely::FunctionMinimumPtr fmin, likely::FunctionMinimumPtr fmin2,
 std::string const &refitConfig, std::string const &saveName, int nsave) const {

@@ -60,6 +60,13 @@ namespace baofit {
         int doJackknifeAnalysis(int jackknifeDrop, likely::FunctionMinimumPtr fmin, 
             likely::FunctionMinimumPtr fmin2 = likely::FunctionMinimumPtr(),
             std::string const &refitConfig = "", std::string const &saveName = "", int nsave = 0) const;
+        // Performs a Markov-chain sampling of the likelihood function for the combined data with
+        // the current model, using the specified function
+        // minimum to initialize the sampling. Saves nchain samples, skipping the specified number
+        // of generated samples between saved samples. See doBootstrapAnalysis for a description of
+        // the other parameters.
+        void generateMarkovChain(int nchain, int nskip, likely::FunctionMinimumPtr fmin,
+            std::string const &saveName = "", int nsave = 0) const;
         // Fits each observation separately and returns the number of fits that failed.
         // See doBootstrapAnalysis for a description of the other parameters.
         int fitEach(likely::FunctionMinimumPtr fmin,
