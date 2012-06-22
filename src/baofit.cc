@@ -14,7 +14,6 @@
 #include <string>
 #include <vector>
 
-namespace lk = likely;
 namespace po = boost::program_options;
 
 int main(int argc, char **argv) {
@@ -66,13 +65,13 @@ int main(int argc, char **argv) {
             "3D correlation data will be read from individual plate datafiles listed in this file.")
         ("plateroot", po::value<std::string>(&platerootName)->default_value(""),
             "Common path to prepend to all plate datafiles listed in the platelist.")
-        ("french", "3D correlation data files are in the French format (default is cosmolib).")
         ("dr9lrg", "3D correlation data files are in the BOSS DR9 LRG galaxy format.")
         ("max-plates", po::value<int>(&maxPlates)->default_value(0),
             "Maximum number of plates to load (zero uses all available plates).")
         ("check-posdef", "Checks that each covariance is positive-definite (slow).")
         ;
     frenchOptions.add_options()
+        ("french", "3D correlation data files are in the French format (default is cosmolib).")
         ("unweighted", "Does not read covariance data.")
         ("use-quad", "Uses quadrupole correlations.")
         ;
@@ -99,6 +98,7 @@ int main(int argc, char **argv) {
             "Redshift binsize.")
         ("nz", po::value<int>(&nz)->default_value(2),
             "Maximum number of redshift bins.")
+        ("xi-format", "Cosmolib data in Xi format.")
         ;
     analysisOptions.add_options()
         ("rmin", po::value<double>(&rmin)->default_value(0),
@@ -159,7 +159,8 @@ int main(int argc, char **argv) {
     bool verbose(0 == vm.count("quiet")), french(vm.count("french")), weighted(vm.count("weighted")),
         checkPosDef(vm.count("check-posdef")), fixCovariance(0 == vm.count("naive-covariance")),
         xiModel(vm.count("xi-model")), dr9lrg(vm.count("dr9lrg")), unweighted(vm.count("unweighted")),
-        useQuad(vm.count("use-quad")), fitEach(vm.count("fit-each")), reuseCov(vm.count("reuse-cov"));
+        useQuad(vm.count("use-quad")), fitEach(vm.count("fit-each")), reuseCov(vm.count("reuse-cov")),
+        xiFormat(vm.count("xi-format"));
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
@@ -209,7 +210,7 @@ int main(int argc, char **argv) {
         std::cerr << "ERROR during model initialization:\n  " << e.what() << std::endl;
         return -2;
     }
-    catch(lk::RuntimeError const &e) {
+    catch(likely::RuntimeError const &e) {
         std::cerr << "ERROR during model initialization:\n  " << e.what() << std::endl;
         return -2;
     }
@@ -230,6 +231,10 @@ int main(int argc, char **argv) {
             zdata = 0.57;
             prototype = baofit::boss::createDR9LRGPrototype(zdata,rmin,rmax,
                 "LRG/Sample4_North.cov",verbose);
+        }
+        else if(xiFormat) {
+            zdata = 2.25;
+            prototype = baofit::boss::createCosmolibXiPrototype(minz,dz,nz,rmin,rmax);
         }
         else {
             zdata = 2.25;
@@ -279,6 +284,10 @@ int main(int argc, char **argv) {
             else if(dr9lrg) {
                 analyzer.addData(baofit::boss::loadDR9LRG(*filename,prototype,verbose));
             }
+            else if(xiFormat) {
+                analyzer.addData(baofit::boss::loadCosmolibXi(*filename,prototype,
+                    verbose, weighted, checkPosDef));
+            }
             else {
                 // Add a cosmolib dataset, assumed to provided icov instead of cov.
                 analyzer.addData(baofit::boss::loadCosmolib(*filename,prototype,
@@ -303,7 +312,7 @@ int main(int argc, char **argv) {
     // Do the requested analyses...
     try {
         // Always fit the combined sample.
-        lk::FunctionMinimumPtr fmin = analyzer.fitCombined();
+        likely::FunctionMinimumPtr fmin = analyzer.fitCombined();
         if(ndump > 0) {
             // Dump the best-fit monopole model.
             std::ofstream out("fit.dat");
@@ -323,7 +332,7 @@ int main(int argc, char **argv) {
             out.close();
         }
         // Refit the combined sample, if requested.
-        lk::FunctionMinimumPtr fmin2;
+        likely::FunctionMinimumPtr fmin2;
         if(0 < refitConfig.size()) {
             if(verbose) {
                 std::cout << std::endl << "Re-fitting combined with: " << refitConfig << std::endl;
@@ -352,11 +361,11 @@ int main(int argc, char **argv) {
             analyzer.fitEach(fmin,fmin2,refitConfig,"each.dat",ndump);
         }
     }
-    catch(cosmo::RuntimeError const &e) {
+    catch(baofit::RuntimeError const &e) {
         std::cerr << "ERROR during fit:\n  " << e.what() << std::endl;
         return -2;
     }
-    catch(lk::RuntimeError const &e) {
+    catch(likely::RuntimeError const &e) {
         std::cerr << "ERROR during fit:\n  " << e.what() << std::endl;
         return -2;
     }

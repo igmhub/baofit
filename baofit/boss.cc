@@ -455,13 +455,15 @@ bool checkPosDef) {
             }                
         }
     }
+
     if(checkPosDef) {
         // Check that the covariance is positive definite by triggering an inversion.
         try {
+            binnedData->getInverseCovariance(0,0);
             binnedData->getCovariance(0,0);
         }
         catch(likely::RuntimeError const &e) {
-            std::cerr << "### Inverse covariance not positive-definite: " << covName << std::endl;
+            std::cerr << "### Covariance not positive-definite: " << covName << std::endl;
         }
     }
     // Compress our binned data to take advantage of a potentially sparse covariance matrix.
@@ -483,4 +485,112 @@ double rmin, double rmax) {
     baofit::AbsCorrelationDataPtr
         prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins,rmin,rmax));
     return prototype;
+}
+
+baofit::AbsCorrelationDataPtr local::loadCosmolibXi(std::string const &dataName,
+AbsCorrelationDataCPtr prototype, bool verbose, bool weighted, bool checkPosDef) {
+    
+    // Create the new AbsCorrelationData that we will fill.
+    baofit::AbsCorrelationDataPtr binnedData((baofit::MultipoleCorrelationData *)(prototype->clone(true)));
+
+    // General stuff we will need for reading both files.
+    std::string line;
+    int lines;
+    
+    // import boost spirit parser symbols
+    using qi::double_;
+    using qi::int_;
+    using qi::_1;
+    using phoenix::ref;
+    using phoenix::push_back;
+
+    // Loop over lines in the parameter file.
+    std::string paramsName(dataName + ".params");
+    std::ifstream paramsIn(paramsName.c_str());
+    if(!paramsIn.good()) throw RuntimeError("loadCosmolib: Unable to open " + paramsName);
+    lines = 0;
+    double data,cinvData;
+    std::vector<double> bin(3);
+    while(std::getline(paramsIn,line)) {
+        lines++;
+        bin.resize(0);
+        bool ok = qi::phrase_parse(line.begin(),line.end(),
+            (
+                double_[ref(data) = _1] >> double_[ref(cinvData) = _1] >> "| XiLR (" >>
+                double_[push_back(ref(bin),_1)] >> ',' >> double_[push_back(ref(bin),_1)] >>
+                ',' >> double_[push_back(ref(bin),_1)] >> ')'
+            ),
+            ascii::space);
+        if(!ok) {
+            throw RuntimeError("loadCosmolibXi: error reading line " +
+                boost::lexical_cast<std::string>(lines) + " of " + paramsName);
+        }
+        // File contains (z,ell,r) but we need (r,ell,z)
+        std::swap(bin[0],bin[2]);
+        // File uses 1e30 for "large" r. Map this to r=200.
+        if(bin[0] > 200) bin[0] = 200;
+        int index = binnedData->getIndex(bin);
+        binnedData->setData(index, weighted ? cinvData : data, weighted);
+    }
+    paramsIn.close();
+    if(false) {
+        std::cout << "Read " << binnedData->getNBinsWithData() << " of "
+            << binnedData->getNBinsTotal() << " data values from " << paramsName << std::endl;
+    }
+    
+    // Loop over lines in the covariance file.
+    std::string covName = dataName + ".icov";
+    std::ifstream covIn(covName.c_str());
+    if(!covIn.good()) throw RuntimeError("Unable to open " + covName);
+    lines = 0;
+    double value;
+    int offset1,offset2;
+    while(std::getline(covIn,line)) {
+        lines++;
+        bin.resize(0);
+        bool ok = qi::phrase_parse(line.begin(),line.end(),
+            (
+                int_[ref(offset1) = _1] >> int_[ref(offset2) = _1] >> double_[ref(value) = _1]
+            ),
+            ascii::space);
+        if(!ok) {
+            throw RuntimeError("loadCosmolib: error reading line " +
+                boost::lexical_cast<std::string>(lines) + " of " + paramsName);
+        }
+        // Add this covariance to our dataset.
+        value = -value; // !?! see line #388 of Observed2Point.cpp
+        int index1 = *(binnedData->begin()+offset1), index2 = *(binnedData->begin()+offset2);
+        binnedData->setInverseCovariance(index1,index2,value);
+    }
+    covIn.close();
+    if(false) {
+        int ndata = binnedData->getNBinsWithData();
+        int ncov = (ndata*(ndata+1))/2;
+        std::cout << "Read " << lines << " of " << ncov
+            << " covariance values from " << covName << std::endl;
+    }
+
+    // Check for zero values on the diagonal
+    for(likely::BinnedData::IndexIterator iter = binnedData->begin();
+    iter != binnedData->end(); ++iter) {
+        int index = *iter;
+        if(0 == binnedData->getInverseCovariance(index,index)) {
+            binnedData->setInverseCovariance(index,index,1e-30);
+        }
+    }
+
+    if(checkPosDef) {
+        // Check that the covariance is positive definite by triggering an inversion.
+        try {
+            binnedData->getInverseCovariance(0,0);
+            binnedData->getCovariance(0,0);
+        }
+        catch(likely::RuntimeError const &e) {
+            std::cerr << "### Inverse covariance not positive-definite: " << covName << std::endl;
+        }
+    }
+
+    // Compress our binned data to take advantage of a potentially sparse covariance matrix.
+    binnedData->compress();
+    return binnedData;    
 }
