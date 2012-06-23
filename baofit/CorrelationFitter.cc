@@ -5,6 +5,12 @@
 #include "baofit/AbsCorrelationModel.h"
 
 #include "likely/AbsEngine.h"
+#include "likely/FitParameter.h"
+#include "likely/FunctionMinimum.h"
+#include "likely/MarkovChainEngine.h"
+
+#include "boost/bind.hpp"
+#include "boost/ref.hpp"
 
 namespace local = baofit;
 
@@ -28,15 +34,10 @@ void local::CorrelationFitter::setErrorScale(double scale) {
     _errorScale = scale;
 }
 
-double local::CorrelationFitter::operator()(likely::Parameters const &params) const {
-    // Check that we have the expected number of parameters.
-    if(params.size() != _model->getNParameters()) {
-        throw RuntimeError("CorrelationFitter: got unexpected number of parameters.");
-    }
-    // Loop over the dataset bins.
-    std::vector<double> pred;
-    pred.reserve(_data->getNBinsWithData());
-    static int offset(0);
+void local::CorrelationFitter::getPrediction(likely::Parameters const &params,
+std::vector<double> &prediction) const {
+    prediction.reserve(_data->getNBinsWithData());
+    prediction.resize(0);
     for(baofit::AbsCorrelationData::IndexIterator iter = _data->begin(); iter != _data->end(); ++iter) {
         int index(*iter);
         double z = _data->getRedshift(index);
@@ -50,8 +51,18 @@ double local::CorrelationFitter::operator()(likely::Parameters const &params) co
             cosmo::Multipole multipole = _data->getMultipole(index);
             predicted = _model->evaluate(r,multipole,z,params);
         }
-        pred.push_back(predicted);
+        prediction.push_back(predicted);
+    }    
+}
+
+double local::CorrelationFitter::operator()(likely::Parameters const &params) const {
+    // Check that we have the expected number of parameters.
+    if(params.size() != _model->getNParameters()) {
+        throw RuntimeError("CorrelationFitter: got unexpected number of parameters.");
     }
+    // Calculate the prediction vector for these parameter values.
+    std::vector<double> pred;
+    getPrediction(params,pred);
     // Scale chiSquare by 0.5 since the likely minimizer expects a -log(likelihood).
     // Add any model prior on the parameters. The additional factor of _errorScale
     // is to allow arbitrary error contours to be calculated a la MNCONTOUR.
@@ -62,4 +73,25 @@ likely::FunctionMinimumPtr local::CorrelationFitter::fit(std::string const &meth
 std::string const &config) const {
     likely::FunctionPtr fptr(new likely::Function(*this));
     return _model->findMinimum(fptr,methodName,config);
+}
+
+namespace baofit {
+    // A simple MCMC callback that appends sample and fval to samples.
+    void mcmcCallback(std::vector<double> &samples, std::vector<double> const &sample, double fval) {
+        samples.insert(samples.end(),sample.begin(),sample.end());
+        samples.push_back(fval);
+    }
+}
+
+void local::CorrelationFitter::mcmc(likely::FunctionMinimumPtr fmin, int nchain, int interval,
+std::vector<double> &samples) const {
+    likely::FunctionPtr fptr(new likely::Function(*this));
+    likely::FitParameters params(fmin->getFitParameters());
+    int npar(params.size());
+    samples.reserve(nchain*npar);
+    samples.resize(0);
+    likely::MarkovChainEngine engine(fptr,likely::GradientCalculatorPtr(),params,"saunter");
+    int ntrial(nchain*interval);
+    likely::MarkovChainEngine::Callback callback = boost::bind(mcmcCallback,boost::ref(samples),_1,_3);
+    engine.generate(fmin,ntrial,ntrial,callback,interval);
 }

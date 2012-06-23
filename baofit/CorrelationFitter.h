@@ -7,6 +7,8 @@
 #include "baofit/types.h"
 #include "likely/types.h"
 
+#include <vector>
+
 namespace baofit {
 	class CorrelationFitter {
 	// Manages a correlation function fit.
@@ -17,12 +19,18 @@ namespace baofit {
 		// Changes the error scale definition. The default value of 1 corresponds to the
 		// usual 1-sigma errors.
         void setErrorScale(double scale);
+        // Fills the vector provided with the model prediction for the specified parameter values.
+        void getPrediction(likely::Parameters const &params, std::vector<double> &prediction) const;
         // Returns chiSquare/2 for the specified model parameter values.
         double operator()(likely::Parameters const &params) const;
         // Performs the fit and returns an estimate of the function minimum. Use the optional
         // config parameter to provide a script that will modify the initial parameter values
         // and errors (including fixed/floating) for this fit only.
         likely::FunctionMinimumPtr fit(std::string const &methodName, std::string const &config = "") const;
+        // Generates nchain*interval Markov chain MC samples and fills the vector provided with the parameters
+        // every interval samples. Uses the input fmin to initialize the MCMC proposal function and determine
+        // which parameters are floating. On return, fmin is updated based on accumulated statistics.
+        void mcmc(likely::FunctionMinimumPtr fmin, int nchain, int interval, std::vector<double> &samples) const;
 	private:
         AbsCorrelationData::TransverseBinningType _type;
         AbsCorrelationDataCPtr _data;

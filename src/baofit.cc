@@ -14,7 +14,6 @@
 #include <string>
 #include <vector>
 
-namespace lk = likely;
 namespace po = boost::program_options;
 
 int main(int argc, char **argv) {
@@ -26,7 +25,8 @@ int main(int argc, char **argv) {
         analysisOptions("Analysis options");
 
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin;
-    int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,numXi,ndump,jackknifeDrop;
+    int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,numXi,ndump,jackknifeDrop,lmin,lmax,
+        mcmcSave,mcmcInterval;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,
         platelistName,platerootName,modelConfig,iniName,refitConfig,minMethod;
 
@@ -66,14 +66,15 @@ int main(int argc, char **argv) {
             "3D correlation data will be read from individual plate datafiles listed in this file.")
         ("plateroot", po::value<std::string>(&platerootName)->default_value(""),
             "Common path to prepend to all plate datafiles listed in the platelist.")
-        ("french", "3D correlation data files are in the French format (default is cosmolib).")
         ("dr9lrg", "3D correlation data files are in the BOSS DR9 LRG galaxy format.")
         ("max-plates", po::value<int>(&maxPlates)->default_value(0),
             "Maximum number of plates to load (zero uses all available plates).")
         ("check-posdef", "Checks that each covariance is positive-definite (slow).")
         ;
     frenchOptions.add_options()
+        ("french", "Correlation data files are in the French format (default is cosmolib).")
         ("unweighted", "Does not read covariance data.")
+        ("expanded", "Data uses the expanded format.")
         ("use-quad", "Uses quadrupole correlations.")
         ;
     cosmolibOptions.add_options()
@@ -99,16 +100,22 @@ int main(int argc, char **argv) {
             "Redshift binsize.")
         ("nz", po::value<int>(&nz)->default_value(2),
             "Maximum number of redshift bins.")
+        ("xi-format", "Cosmolib data in Xi format.")
         ;
     analysisOptions.add_options()
         ("rmin", po::value<double>(&rmin)->default_value(0),
-            "Minimum 3D comoving separation (Mpc/h) to use in fit.")
+            "Final cut on minimum 3D comoving separation (Mpc/h) to use in fit.")
         ("rmax", po::value<double>(&rmax)->default_value(200),
-            "Maximum 3D comoving separation (Mpc/h) to use in fit.")
+            "Final cut on maximum 3D comoving separation (Mpc/h) to use in fit.")
         ("llmin", po::value<double>(&llmin)->default_value(0),
             "Minimum value of log(lam2/lam1) to use in fit (cosmolib only).")
+        ("lmin", po::value<int>(&lmin)->default_value(0),
+            "Final cut on minimum multipole ell (0,2,4) to use in fit (multipole data only).")
+        ("lmax", po::value<int>(&lmax)->default_value(2),
+            "Final cut on maximum multipole ell (0,2,4) to use in fit (multipole data only).")
         ("ndump", po::value<int>(&ndump)->default_value(100),
             "Number of points spanning [rmin,rmax] to use for dumping models (zero for no dumps).")
+        ("decorrelated", "Combined data is saved with decorrelated errors.")
         ("refit-config", po::value<std::string>(&refitConfig)->default_value(""),
             "Script to modify parameters for refits.")
         ("fit-each", "Fits each observation separately.")
@@ -118,6 +125,10 @@ int main(int argc, char **argv) {
             "Size of each bootstrap trial or zero to use the number of plates.")
         ("jackknife-drop", po::value<int>(&jackknifeDrop)->default_value(0),
             "Number of observations to drop from each jackknife sample (zero for no jackknife analysis)")
+        ("mcmc-save", po::value<int>(&mcmcSave)->default_value(0),
+            "Number of Markov chain Monte Carlo samples to save (zero for no MCMC analysis)")
+        ("mcmc-interval", po::value<int>(&mcmcInterval)->default_value(10),
+            "Interval for saving MCMC trials (larger for less correlations and longer running time)")
         ("random-seed", po::value<int>(&randomSeed)->default_value(1966),
             "Random seed to use for generating bootstrap samples.")
         ("min-method", po::value<std::string>(&minMethod)->default_value("mn2::vmetric"),
@@ -159,7 +170,8 @@ int main(int argc, char **argv) {
     bool verbose(0 == vm.count("quiet")), french(vm.count("french")), weighted(vm.count("weighted")),
         checkPosDef(vm.count("check-posdef")), fixCovariance(0 == vm.count("naive-covariance")),
         xiModel(vm.count("xi-model")), dr9lrg(vm.count("dr9lrg")), unweighted(vm.count("unweighted")),
-        useQuad(vm.count("use-quad")), fitEach(vm.count("fit-each")), reuseCov(vm.count("reuse-cov"));
+        useQuad(vm.count("use-quad")), fitEach(vm.count("fit-each")), reuseCov(vm.count("reuse-cov")),
+        xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")), expanded(vm.count("expanded"));
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
@@ -178,6 +190,18 @@ int main(int argc, char **argv) {
         std::cerr << "Missing required parameter --broadband." << std::endl;
         return -1;
     }
+
+    // Check for valid multipole options.
+    if(lmin != cosmo::Monopole && lmin != cosmo::Quadrupole && lmin != cosmo::Hexadecapole) {
+        std::cerr << "Expected 0,2,4 for lmin but got " << lmin << std::endl;
+        return -1;
+    }
+    cosmo::Multipole ellmin = static_cast<cosmo::Multipole>(lmin);
+    if(lmax != cosmo::Monopole && lmax != cosmo::Quadrupole && lmax != cosmo::Hexadecapole) {
+        std::cerr << "Expected 0,2,4 for lmax but got " << lmax << std::endl;
+        return -1;
+    }
+    cosmo::Multipole ellmax = static_cast<cosmo::Multipole>(lmax);
 
     // Initialize our analyzer.
     likely::Random::instance()->setSeed(randomSeed);
@@ -209,7 +233,7 @@ int main(int argc, char **argv) {
         std::cerr << "ERROR during model initialization:\n  " << e.what() << std::endl;
         return -2;
     }
-    catch(lk::RuntimeError const &e) {
+    catch(likely::RuntimeError const &e) {
         std::cerr << "ERROR during model initialization:\n  " << e.what() << std::endl;
         return -2;
     }
@@ -224,12 +248,16 @@ int main(int argc, char **argv) {
         baofit::AbsCorrelationDataCPtr prototype;
         if(french) {
             zdata = 2.30;
-            prototype = baofit::boss::createFrenchPrototype(zdata,rmin,rmax,useQuad);
+            prototype = baofit::boss::createFrenchPrototype(zdata,rmin,rmax,ellmin,ellmax,useQuad);
         }
         else if(dr9lrg) {
             zdata = 0.57;
             prototype = baofit::boss::createDR9LRGPrototype(zdata,rmin,rmax,
                 "LRG/Sample4_North.cov",verbose);
+        }
+        else if(xiFormat) {
+            zdata = 2.25;
+            prototype = baofit::boss::createCosmolibXiPrototype(minz,dz,nz,rmin,rmax,ellmin,ellmax);
         }
         else {
             zdata = 2.25;
@@ -274,10 +302,14 @@ int main(int argc, char **argv) {
         filename != filelist.end(); ++filename) {
             if(french) {
                 analyzer.addData(baofit::boss::loadFrench(*filename,prototype,
-                    verbose,unweighted,checkPosDef));
+                    verbose,unweighted,expanded,checkPosDef));
             }
             else if(dr9lrg) {
                 analyzer.addData(baofit::boss::loadDR9LRG(*filename,prototype,verbose));
+            }
+            else if(xiFormat) {
+                analyzer.addData(baofit::boss::loadCosmolibXi(*filename,prototype,
+                    verbose, weighted, checkPosDef));
             }
             else {
                 // Add a cosmolib dataset, assumed to provided icov instead of cov.
@@ -292,28 +324,33 @@ int main(int argc, char **argv) {
     }
     analyzer.setZData(zdata);
 
-    if(french || dr9lrg) {
-        std::ofstream out("combined.dat");
-        boost::shared_ptr<baofit::MultipoleCorrelationData> combined =
-            boost::dynamic_pointer_cast<baofit::MultipoleCorrelationData>(analyzer.getCombined());
-        combined->dump(out);
-        out.close();
-    }
-
     // Do the requested analyses...
     try {
         // Always fit the combined sample.
-        lk::FunctionMinimumPtr fmin = analyzer.fitCombined();
+        likely::FunctionMinimumPtr fmin = analyzer.fitCombined();
+        // Dump the combined multipole data points with decorrelated errors, if possible.
+        if(french || dr9lrg || xiFormat) {
+            std::ofstream out("combined.dat");
+            boost::shared_ptr<baofit::MultipoleCorrelationData> combined =
+                boost::dynamic_pointer_cast<baofit::MultipoleCorrelationData>(analyzer.getCombined());
+            std::vector<double> dweights;
+            if(decorrelated) {
+                // Calculate the decorrelated weights for the combined fit.
+                analyzer.getDecorrelatedWeights(analyzer.getCombined(),fmin->getParameters(),dweights);
+            }
+            combined->dump(out,dweights);
+            out.close();
+        }
         if(ndump > 0) {
-            // Dump the best-fit monopole model.
+            // Dump the best-fit model.
             std::ofstream out("fit.dat");
-            analyzer.dumpModel(out,fmin,ndump);
+            analyzer.dumpModel(out,fmin->getFitParameters(),ndump);
             out.close();
         }
         if(!xiModel && ndump > 0) {
-            // Dump the best-fit monopole model with its peak contribution forced to zero.
+            // Dump the best-fit model with its peak contribution forced to zero.
             std::ofstream out("fit-smooth.dat");
-            analyzer.dumpModel(out,fmin,ndump,"value[BAO amplitude]=0");
+            analyzer.dumpModel(out,fmin->getFitParameters(),ndump,"value[BAO amplitude]=0");
             out.close();
         }
         {
@@ -322,17 +359,20 @@ int main(int argc, char **argv) {
             analyzer.dumpResiduals(out,fmin);
             out.close();
         }
+        if(mcmcSave > 0) {
+            analyzer.generateMarkovChain(mcmcSave,mcmcInterval,fmin,"mcmc.dat",ndump);
+        }
         // Refit the combined sample, if requested.
-        lk::FunctionMinimumPtr fmin2;
+        likely::FunctionMinimumPtr fmin2;
         if(0 < refitConfig.size()) {
             if(verbose) {
                 std::cout << std::endl << "Re-fitting combined with: " << refitConfig << std::endl;
             }
             fmin2 = analyzer.fitCombined(refitConfig);
             if(ndump > 0) {
-                // Dump the best-fit monopole model.
+                // Dump the best-fit model.
                 std::ofstream out("refit.dat");
-                analyzer.dumpModel(out,fmin2,ndump);
+                analyzer.dumpModel(out,fmin2->getFitParameters(),ndump);
                 out.close();
             }
             std::cout << "Delta ChiSquare = "
@@ -352,11 +392,11 @@ int main(int argc, char **argv) {
             analyzer.fitEach(fmin,fmin2,refitConfig,"each.dat",ndump);
         }
     }
-    catch(cosmo::RuntimeError const &e) {
+    catch(baofit::RuntimeError const &e) {
         std::cerr << "ERROR during fit:\n  " << e.what() << std::endl;
         return -2;
     }
-    catch(lk::RuntimeError const &e) {
+    catch(likely::RuntimeError const &e) {
         std::cerr << "ERROR during fit:\n  " << e.what() << std::endl;
         return -2;
     }

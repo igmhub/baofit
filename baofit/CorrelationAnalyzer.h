@@ -8,6 +8,7 @@
 #include "cosmo/types.h"
 
 #include "likely/BinnedDataResampler.h"
+#include "likely/FitParameter.h"
 
 #include <iosfwd>
 
@@ -60,6 +61,12 @@ namespace baofit {
         int doJackknifeAnalysis(int jackknifeDrop, likely::FunctionMinimumPtr fmin, 
             likely::FunctionMinimumPtr fmin2 = likely::FunctionMinimumPtr(),
             std::string const &refitConfig = "", std::string const &saveName = "", int nsave = 0) const;
+        // Performs a Markov-chain sampling of the likelihood function for the combined data with
+        // the current model, using the specified function minimum to initialize the sampling.
+        // Saves nchain samples, using only one per interval trials. See doBootstrapAnalysis for a
+        // description of the other parameters.
+        void generateMarkovChain(int nsave, int interval, likely::FunctionMinimumCPtr fmin,
+            std::string const &saveName = "", int nsave = 0) const;
         // Fits each observation separately and returns the number of fits that failed.
         // See doBootstrapAnalysis for a description of the other parameters.
         int fitEach(likely::FunctionMinimumPtr fmin,
@@ -71,14 +78,18 @@ namespace baofit {
         // to modify the parameters used in the model.
         void dumpResiduals(std::ostream &out, likely::FunctionMinimumPtr fmin,
             std::string const &script = "") const;
-        // Dumps the model predictions for the specified fit result to the specified
-        // output stream. The fit result is assumed to correspond to model that is
+        // Dumps the model predictions for the specified fit parameters to the specified
+        // output stream. The input parameters are assumed to correspond to the model that is
         // currently associated with this analyzer. Use the optional script to modify
-        // the parameters used in the model. By default, values are output as
-        // "rval mono quad hexa" on separate lines. With oneLine = true, values of
+        // the parameters that will be used to evaluate the model. By default, values are output
+        // as "rval mono quad hexa" on separate lines. With oneLine = true, values of
         // "mono quad hexa" are concatenated onto a single line.
-        void dumpModel(std::ostream &out, likely::FunctionMinimumPtr fmin,
+        void dumpModel(std::ostream &out, likely::FitParameters parameters,
             int ndump, std::string const &script = "", bool oneLine = false) const;
+        // Fills the vector provided with the decorrelated weights of the specified data using
+        // the specified parameter values.
+        void getDecorrelatedWeights(AbsCorrelationDataCPtr data, likely::Parameters const &params,
+            std::vector<double> &dweights) const;
 	private:
         std::string _method;
         double _rmin, _rmax, _zdata;
