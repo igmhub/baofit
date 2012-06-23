@@ -12,6 +12,7 @@
 #include "boost/smart_ptr.hpp"
 #include "boost/format.hpp"
 #include "boost/foreach.hpp"
+#include "boost/utility.hpp"
 #include "boost/math/special_functions/gamma.hpp"
 
 #include <iostream>
@@ -156,7 +157,7 @@ std::string const &refitConfig, std::string const &saveName, int nsave) const {
     return doSamplingAnalysis(sampler, "Individual", fmin, fmin2, refitConfig, saveName, nsave);    
 }
 
-void local::CorrelationAnalyzer::generateMarkovChain(int nchain, int nskip, likely::FunctionMinimumPtr fmin,
+void local::CorrelationAnalyzer::generateMarkovChain(int nchain, int nskip, likely::FunctionMinimumCPtr fmin,
 std::string const &saveName, int nsave) const {
     if(nchain <= 0) {
         throw RuntimeError("CorrelationAnalyzer::generateMarkovChain: expected nchain > 0.");
@@ -164,6 +165,90 @@ std::string const &saveName, int nsave) const {
     if(nskip < 0) {
         throw RuntimeError("CorrelationAnalyzer::generateMarkovChain: expected nskip >= 0.");        
     }
+    // Make a copy of the input function minimum, to use (and update) during sampling.
+    likely::FunctionMinimumPtr fminCopy(new likely::FunctionMinimum(*fmin));
+    // Create a fitter to calculate the likelihood.
+    AbsCorrelationDataCPtr combined = getCombined(true);
+    CorrelationFitter fitter(combined,_model);
+    // Generate the MCMC chains, saving the results in a vector.
+    std::vector<double> samples;
+    fitter.mcmc(fminCopy, nchain, nskip, samples);
+}
+
+namespace baofit {
+    // An implementation class to save the results of a sampling analysis in a standard format.
+    class SamplingOutput : public boost::noncopyable {
+    public:
+        SamplingOutput(likely::FunctionMinimumPtr fmin, likely::FunctionMinimumPtr fmin2,
+        std::string const &saveName, int nsave, CorrelationAnalyzer const &parent)
+        : _nsave(nsave), _parent(parent) {
+            if(0 < saveName.length()) {
+                _save.reset(new std::ofstream(saveName.c_str()));
+                // Print a header consisting of the number of parameters, the number of dump points,
+                // and the number of fits (1 = no-refit, 2 = with refit)
+                *_save << fmin->getNParameters() << ' ' << _nsave << ' ' << (fmin2 ? 2:1) << std::endl;
+                // Print the errors in fmin,fmin2.
+                BOOST_FOREACH(double pvalue, fmin->getErrors()) {
+                    *_save << pvalue << ' ';
+                }
+                if(fmin2) {
+                    BOOST_FOREACH(double pvalue, fmin2->getErrors()) {
+                        *_save << pvalue << ' ';
+                    }
+                }
+                *_save << std::endl;
+                // The first line encodes the inputs fmin,fmin2 just like each sample below, for reference.
+                BOOST_FOREACH(double pvalue, fmin->getParameters()) {
+                    *_save << pvalue << ' ';
+                }
+                *_save << 2*fmin->getMinValue() << ' ';
+                if(fmin2) {
+                    BOOST_FOREACH(double pvalue, fmin2->getParameters()) {
+                        *_save << pvalue << ' ';
+                    }
+                    *_save << 2*fmin2->getMinValue() << ' ';
+                }
+                if(_nsave > 0) {
+                    _parent.dumpModel(*_save,fmin->getFitParameters(),_nsave,"",true);
+                    if(fmin2) _parent.dumpModel(*_save,fmin2->getFitParameters(),_nsave,"",true);
+                }
+                *_save << std::endl;
+            }            
+        }
+        ~SamplingOutput() {
+            if(_save) _save->close();
+        }
+        void saveSample(likely::FitParameters parameters, double fval,
+        likely::FitParameters parameters2 = likely::FitParameters(), double fval2 = 0) {
+            if(!_save) return;
+            // Save fit parameter values and chisq.
+            likely::Parameters pvalues;
+            likely::getFitParameterValues(parameters,pvalues);
+            BOOST_FOREACH(double pvalue, pvalues) {
+                *_save << pvalue << ' ';
+            }
+            // Factor of 2 converts -logL to chiSquare.
+            *_save << 2*fval << ' ';
+            // Save alternate fit parameter values and chisq, if any.
+            if(parameters2.size() > 0) {
+                likely::getFitParameterValues(parameters2,pvalues);
+                BOOST_FOREACH(double pvalue, pvalues) {
+                    *_save << pvalue << ' ';
+                }
+                *_save << 2*fval2 << ' ';
+            }
+            // Save best-fit model multipoles, if requested.
+            if(_nsave > 0) {
+                _parent.dumpModel(*_save,parameters,_nsave,"",true);
+                if(parameters2.size() > 0) _parent.dumpModel(*_save,parameters2,_nsave,"",true);
+            }
+            *_save << std::endl;            
+       }
+    private:
+        int _nsave;
+        CorrelationAnalyzer const &_parent;
+        boost::scoped_ptr<std::ofstream> _save;
+    };
 }
 
 int local::CorrelationAnalyzer::doSamplingAnalysis(CorrelationAnalyzer::AbsSampler &sampler,
@@ -178,40 +263,7 @@ std::string const &refitConfig, std::string const &saveName, int nsave) const {
     if((!fmin2 && 0 < refitConfig.size()) || !!fmin2 && 0 == refitConfig.size()) {
         throw RuntimeError("CorrelationAnalyzer::doSamplingAnalysis: inconsistent refit parameters.");
     }
-    // Try to open the specified save file.
-    boost::scoped_ptr<std::ofstream> save;
-    if(0 < saveName.length()) {
-        save.reset(new std::ofstream(saveName.c_str()));
-        // Print a header consisting of the number of parameters, the number of dump points,
-        // and the number of fits (1 = no-refit, 2 = with refit)
-        *save << fmin->getNParameters() << ' ' << nsave << ' ' << (fmin2 ? 2:1) << std::endl;
-        // Print the errors in fmin,fmin2.
-        BOOST_FOREACH(double pvalue, fmin->getErrors()) {
-            *save << pvalue << ' ';
-        }
-        if(fmin2) {
-            BOOST_FOREACH(double pvalue, fmin2->getErrors()) {
-                *save << pvalue << ' ';
-            }
-        }
-        *save << std::endl;
-        // The first line encodes the inputs fmin,fmin2 just like each sample below, for reference.
-        BOOST_FOREACH(double pvalue, fmin->getParameters()) {
-            *save << pvalue << ' ';
-        }
-        *save << 2*fmin->getMinValue() << ' ';
-        if(fmin2) {
-            BOOST_FOREACH(double pvalue, fmin2->getParameters()) {
-                *save << pvalue << ' ';
-            }
-            *save << 2*fmin2->getMinValue() << ' ';
-        }
-        if(nsave > 0) {
-            dumpModel(*save,fmin,nsave,"",true);
-            if(fmin2) dumpModel(*save,fmin2,nsave,"",true);
-        }
-        *save << std::endl;
-    }
+    SamplingOutput output(fmin,fmin2,saveName,nsave,*this);
     baofit::AbsCorrelationDataCPtr sample;
     // Initialize the parameter value statistics accumulators we will need.
     likely::FitParameterStatisticsPtr refitStats,
@@ -239,26 +291,8 @@ std::string const &refitConfig, std::string const &saveName, int nsave) const {
             fitStats->update(sampleMin);
             if(refitStats) refitStats->update(sampleMinRefit);
             // Save the fit results, if requested.
-            if(save) {
-                // Save fit parameter values and chisq.
-                BOOST_FOREACH(double pvalue, sampleMin->getParameters()) {
-                    *save << pvalue << ' ';
-                }
-                *save << 2*sampleMin->getMinValue() << ' ';
-                // Save any refit parameter values and chisq.
-                if(refitStats) {
-                    BOOST_FOREACH(double pvalue, sampleMinRefit->getParameters()) {
-                        *save << pvalue << ' ';
-                    }
-                    *save << 2*sampleMinRefit->getMinValue() << ' ';                    
-                }
-                // Save best-fit model multipoles, if requested.
-                if(nsave > 0) {
-                    dumpModel(*save,sampleMin,nsave,"",true);
-                    if(refitStats) dumpModel(*save,sampleMinRefit,nsave,"",true);
-                }
-                *save << std::endl;
-            }
+            output.saveSample(sampleMin->getFitParameters(),sampleMin->getMinValue(),
+                sampleMinRefit->getFitParameters(), sampleMinRefit->getMinValue());
         }
         else {
             nInvalid++;
@@ -276,8 +310,6 @@ std::string const &refitConfig, std::string const &saveName, int nsave) const {
         std::cout << std::endl << "== " << method << " Re-Fit Results:" << std::endl;
         refitStats->printToStream(std::cout);        
     }
-    // Close our save file if necessary.
-    if(save) save->close();
     return nInvalid;
 }
 
@@ -325,14 +357,12 @@ std::string const &script) const {
     }
 }
 
-void local::CorrelationAnalyzer::dumpModel(std::ostream &out, likely::FunctionMinimumPtr fmin,
+void local::CorrelationAnalyzer::dumpModel(std::ostream &out, likely::FitParameters parameters,
 int ndump, std::string const &script, bool oneLine) const {
     if(ndump <= 1) {
         throw RuntimeError("CorrelationAnalyzer::dump: expected ndump > 1.");
     }
-    // Get a copy of the the parameters at this minimum.
-    likely::FitParameters parameters(fmin->getFitParameters());
-    // Should check that these parameters are "congruent" (have same names?) with model params.
+    // Should check that parameters are "congruent" (have same names?) with model params.
     // assert(parameters.isCongruent(model...))
     // Modify the parameters using the specified script, if any.
     if(0 < script.length()) likely::modifyFitParameters(parameters, script);

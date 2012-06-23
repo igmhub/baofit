@@ -8,6 +8,7 @@
 #include "cosmo/types.h"
 
 #include "likely/BinnedDataResampler.h"
+#include "likely/FitParameter.h"
 
 #include <iosfwd>
 
@@ -65,7 +66,7 @@ namespace baofit {
         // minimum to initialize the sampling. Saves nchain samples, skipping the specified number
         // of generated samples between saved samples. See doBootstrapAnalysis for a description of
         // the other parameters.
-        void generateMarkovChain(int nchain, int nskip, likely::FunctionMinimumPtr fmin,
+        void generateMarkovChain(int nchain, int nskip, likely::FunctionMinimumCPtr fmin,
             std::string const &saveName = "", int nsave = 0) const;
         // Fits each observation separately and returns the number of fits that failed.
         // See doBootstrapAnalysis for a description of the other parameters.
@@ -78,13 +79,13 @@ namespace baofit {
         // to modify the parameters used in the model.
         void dumpResiduals(std::ostream &out, likely::FunctionMinimumPtr fmin,
             std::string const &script = "") const;
-        // Dumps the model predictions for the specified fit result to the specified
-        // output stream. The fit result is assumed to correspond to model that is
+        // Dumps the model predictions for the specified fit parameters to the specified
+        // output stream. The input parameters are assumed to correspond to the model that is
         // currently associated with this analyzer. Use the optional script to modify
-        // the parameters used in the model. By default, values are output as
-        // "rval mono quad hexa" on separate lines. With oneLine = true, values of
+        // the parameters that will be used to evaluate the model. By default, values are output
+        // as "rval mono quad hexa" on separate lines. With oneLine = true, values of
         // "mono quad hexa" are concatenated onto a single line.
-        void dumpModel(std::ostream &out, likely::FunctionMinimumPtr fmin,
+        void dumpModel(std::ostream &out, likely::FitParameters parameters,
             int ndump, std::string const &script = "", bool oneLine = false) const;
 	private:
         std::string _method;
