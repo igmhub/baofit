@@ -19,6 +19,8 @@ namespace baofit {
 		// Changes the error scale definition. The default value of 1 corresponds to the
 		// usual 1-sigma errors.
         void setErrorScale(double scale);
+        // Fills the vector provided with the model prediction for the specified parameter values.
+        void getPrediction(likely::Parameters const &params, std::vector<double> &prediction) const;
         // Returns chiSquare/2 for the specified model parameter values.
         double operator()(likely::Parameters const &params) const;
         // Performs the fit and returns an estimate of the function minimum. Use the optional

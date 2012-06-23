@@ -34,15 +34,10 @@ void local::CorrelationFitter::setErrorScale(double scale) {
     _errorScale = scale;
 }
 
-double local::CorrelationFitter::operator()(likely::Parameters const &params) const {
-    // Check that we have the expected number of parameters.
-    if(params.size() != _model->getNParameters()) {
-        throw RuntimeError("CorrelationFitter: got unexpected number of parameters.");
-    }
-    // Loop over the dataset bins.
-    std::vector<double> pred;
-    pred.reserve(_data->getNBinsWithData());
-    static int offset(0);
+void local::CorrelationFitter::getPrediction(likely::Parameters const &params,
+std::vector<double> &prediction) const {
+    prediction.reserve(_data->getNBinsWithData());
+    prediction.resize(0);
     for(baofit::AbsCorrelationData::IndexIterator iter = _data->begin(); iter != _data->end(); ++iter) {
         int index(*iter);
         double z = _data->getRedshift(index);
@@ -56,8 +51,18 @@ double local::CorrelationFitter::operator()(likely::Parameters const &params) co
             cosmo::Multipole multipole = _data->getMultipole(index);
             predicted = _model->evaluate(r,multipole,z,params);
         }
-        pred.push_back(predicted);
+        prediction.push_back(predicted);
+    }    
+}
+
+double local::CorrelationFitter::operator()(likely::Parameters const &params) const {
+    // Check that we have the expected number of parameters.
+    if(params.size() != _model->getNParameters()) {
+        throw RuntimeError("CorrelationFitter: got unexpected number of parameters.");
     }
+    // Calculate the prediction vector for these parameter values.
+    std::vector<double> pred;
+    getPrediction(params,pred);
     // Scale chiSquare by 0.5 since the likely minimizer expects a -log(likelihood).
     // Add any model prior on the parameters. The additional factor of _errorScale
     // is to allow arbitrary error contours to be calculated a la MNCONTOUR.
