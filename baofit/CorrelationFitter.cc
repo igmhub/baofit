@@ -71,9 +71,10 @@ std::string const &config) const {
 }
 
 namespace baofit {
-    // A simple MCMC callback that appends sample to samples.
-    void mcmcCallback(std::vector<double> &samples, std::vector<double> const &sample) {
+    // A simple MCMC callback that appends sample and fval to samples.
+    void mcmcCallback(std::vector<double> &samples, std::vector<double> const &sample, double fval) {
         samples.insert(samples.end(),sample.begin(),sample.end());
+        samples.push_back(fval);
     }
 }
 
@@ -86,6 +87,6 @@ std::vector<double> &samples) const {
     samples.resize(0);
     likely::MarkovChainEngine engine(fptr,likely::GradientCalculatorPtr(),params,"saunter");
     int ntrial(nchain*nskip);
-    likely::MarkovChainEngine::Callback callback = boost::bind(mcmcCallback,boost::ref(samples),_1);
+    likely::MarkovChainEngine::Callback callback = boost::bind(mcmcCallback,boost::ref(samples),_1,_3);
     engine.generate(fmin,ntrial,ntrial,callback,nskip);
 }

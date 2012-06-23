@@ -157,29 +157,11 @@ std::string const &refitConfig, std::string const &saveName, int nsave) const {
     return doSamplingAnalysis(sampler, "Individual", fmin, fmin2, refitConfig, saveName, nsave);    
 }
 
-void local::CorrelationAnalyzer::generateMarkovChain(int nchain, int nskip, likely::FunctionMinimumCPtr fmin,
-std::string const &saveName, int nsave) const {
-    if(nchain <= 0) {
-        throw RuntimeError("CorrelationAnalyzer::generateMarkovChain: expected nchain > 0.");
-    }
-    if(nskip < 0) {
-        throw RuntimeError("CorrelationAnalyzer::generateMarkovChain: expected nskip >= 0.");        
-    }
-    // Make a copy of the input function minimum, to use (and update) during sampling.
-    likely::FunctionMinimumPtr fminCopy(new likely::FunctionMinimum(*fmin));
-    // Create a fitter to calculate the likelihood.
-    AbsCorrelationDataCPtr combined = getCombined(true);
-    CorrelationFitter fitter(combined,_model);
-    // Generate the MCMC chains, saving the results in a vector.
-    std::vector<double> samples;
-    fitter.mcmc(fminCopy, nchain, nskip, samples);
-}
-
 namespace baofit {
     // An implementation class to save the results of a sampling analysis in a standard format.
     class SamplingOutput : public boost::noncopyable {
     public:
-        SamplingOutput(likely::FunctionMinimumPtr fmin, likely::FunctionMinimumPtr fmin2,
+        SamplingOutput(likely::FunctionMinimumCPtr fmin, likely::FunctionMinimumCPtr fmin2,
         std::string const &saveName, int nsave, CorrelationAnalyzer const &parent)
         : _nsave(nsave), _parent(parent) {
             if(0 < saveName.length()) {
@@ -311,6 +293,36 @@ std::string const &refitConfig, std::string const &saveName, int nsave) const {
         refitStats->printToStream(std::cout);        
     }
     return nInvalid;
+}
+
+void local::CorrelationAnalyzer::generateMarkovChain(int nchain, int nskip, likely::FunctionMinimumCPtr fmin,
+std::string const &saveName, int nsave) const {
+    if(nchain <= 0) {
+        throw RuntimeError("CorrelationAnalyzer::generateMarkovChain: expected nchain > 0.");
+    }
+    if(nskip < 0) {
+        throw RuntimeError("CorrelationAnalyzer::generateMarkovChain: expected nskip >= 0.");        
+    }
+    // Make a copy of the input function minimum, to use (and update) during sampling.
+    likely::FunctionMinimumPtr fminCopy(new likely::FunctionMinimum(*fmin));
+    // Create a fitter to calculate the likelihood.
+    AbsCorrelationDataCPtr combined = getCombined(true);
+    CorrelationFitter fitter(combined,_model);
+    // Generate the MCMC chains, saving the results in a vector.
+    std::vector<double> samples;
+    fitter.mcmc(fminCopy, nchain, nskip, samples);
+    // Output the results.
+    SamplingOutput output(fmin,likely::FunctionMinimumCPtr(),saveName,nsave,*this);
+    likely::FitParameters parameters(fmin->getFitParameters());
+    int npar = parameters.size();
+    std::vector<double>::const_iterator iter(samples.begin()), next;
+    for(int i = 0; i < nchain; ++i) {
+        next = iter+npar;
+        likely::setFitParameterValues(parameters,iter,next);
+        double fval = *next++;
+        iter = next;
+        output.saveSample(parameters,fval);
+    }
 }
 
 void local::CorrelationAnalyzer::dumpResiduals(std::ostream &out, likely::FunctionMinimumPtr fmin,
