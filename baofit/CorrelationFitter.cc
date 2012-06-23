@@ -5,6 +5,12 @@
 #include "baofit/AbsCorrelationModel.h"
 
 #include "likely/AbsEngine.h"
+#include "likely/FitParameter.h"
+#include "likely/FunctionMinimum.h"
+#include "likely/MarkovChainEngine.h"
+
+#include "boost/bind.hpp"
+#include "boost/ref.hpp"
 
 namespace local = baofit;
 
@@ -62,4 +68,24 @@ likely::FunctionMinimumPtr local::CorrelationFitter::fit(std::string const &meth
 std::string const &config) const {
     likely::FunctionPtr fptr(new likely::Function(*this));
     return _model->findMinimum(fptr,methodName,config);
+}
+
+namespace baofit {
+    // A simple MCMC callback that appends sample to samples.
+    void mcmcCallback(std::vector<double> &samples, std::vector<double> const &sample) {
+        samples.insert(samples.end(),sample.begin(),sample.end());
+    }
+}
+
+void local::CorrelationFitter::mcmc(likely::FunctionMinimumPtr fmin, int nchain, int nskip,
+std::vector<double> &samples) const {
+    likely::FunctionPtr fptr(new likely::Function(*this));
+    likely::FitParameters params(fmin->getFitParameters());
+    int npar(params.size());
+    samples.reserve(nchain*npar);
+    samples.resize(0);
+    likely::MarkovChainEngine engine(fptr,likely::GradientCalculatorPtr(),params,"saunter");
+    int ntrial(nchain*nskip);
+    likely::MarkovChainEngine::Callback callback = boost::bind(mcmcCallback,boost::ref(samples),_1);
+    engine.generate(fmin,ntrial,ntrial,callback,nskip);
 }

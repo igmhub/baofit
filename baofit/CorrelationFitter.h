@@ -7,6 +7,8 @@
 #include "baofit/types.h"
 #include "likely/types.h"
 
+#include <vector>
+
 namespace baofit {
 	class CorrelationFitter {
 	// Manages a correlation function fit.
@@ -23,6 +25,10 @@ namespace baofit {
         // config parameter to provide a script that will modify the initial parameter values
         // and errors (including fixed/floating) for this fit only.
         likely::FunctionMinimumPtr fit(std::string const &methodName, std::string const &config = "") const;
+        // Generates nchain*nskip Markov chain MC samples and fills the vector provided with the parameters
+        // after every nskip samples. Uses the input fmin to initialize the MCMC proposal function and determine
+        // which parameters are floating. On return, fmin is updated based on accumulated statistics.
+        void mcmc(likely::FunctionMinimumPtr fmin, int nchain, int nskip, std::vector<double> &samples) const;
 	private:
         AbsCorrelationData::TransverseBinningType _type;
         AbsCorrelationDataCPtr _data;
