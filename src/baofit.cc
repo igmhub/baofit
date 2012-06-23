@@ -332,8 +332,12 @@ int main(int argc, char **argv) {
             std::ofstream out("combined.dat");
             boost::shared_ptr<baofit::MultipoleCorrelationData> combined =
                 boost::dynamic_pointer_cast<baofit::MultipoleCorrelationData>(analyzer.getCombined());
-            std::vector<double> dwgt;
-            combined->dump(out,dwgt);
+            std::vector<double> dweights;
+            if(decorrelated) {
+                // Calculate the decorrelated weights for the combined fit.
+                analyzer.getDecorrelatedWeights(analyzer.getCombined(),fmin->getParameters(),dweights);
+            }
+            combined->dump(out,dweights);
             out.close();
         }
         if(ndump > 0) {

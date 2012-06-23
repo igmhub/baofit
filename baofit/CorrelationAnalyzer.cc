@@ -396,3 +396,11 @@ int ndump, std::string const &script, bool oneLine) const {
         if(!oneLine) out << std::endl;
     }
 }
+
+void local::CorrelationAnalyzer::getDecorrelatedWeights(AbsCorrelationDataCPtr data,
+likely::Parameters const &params, std::vector<double> &dweights) const {
+    CorrelationFitter fitter(data, _model);
+    std::vector<double> prediction;
+    fitter.getPrediction(params,prediction);
+    data->getDecorrelatedWeights(prediction,dweights);
+}

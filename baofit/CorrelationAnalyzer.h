@@ -86,6 +86,10 @@ namespace baofit {
         // "mono quad hexa" are concatenated onto a single line.
         void dumpModel(std::ostream &out, likely::FitParameters parameters,
             int ndump, std::string const &script = "", bool oneLine = false) const;
+        // Fills the vector provided with the decorrelated weights of the specified data using
+        // the specified parameter values.
+        void getDecorrelatedWeights(AbsCorrelationDataCPtr data, likely::Parameters const &params,
+            std::vector<double> &dweights) const;
 	private:
         std::string _method;
         double _rmin, _rmax, _zdata;
