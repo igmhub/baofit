@@ -7,6 +7,7 @@
 #include "baofit/CorrelationFitter.h"
 
 #include "likely/FunctionMinimum.h"
+#include "likely/CovarianceMatrix.h"
 #include "likely/FitParameterStatistics.h"
 
 #include "boost/smart_ptr.hpp"
@@ -65,7 +66,8 @@ likely::FunctionMinimumPtr local::CorrelationAnalyzer::fitCombined(std::string c
         int npar = fmin->getNParameters(true);
         double prob = 1 - boost::math::gamma_p((nbins-npar)/2,chisq/2);
         std::cout << std::endl << "Results of combined fit: chiSquare / dof = " << chisq << " / ("
-            << nbins << '-' << npar << "), prob = " << prob << std::endl << std::endl;
+            << nbins << '-' << npar << "), prob = " << prob << ", log(det(Covariance)) = "
+            << combined->getCovarianceMatrix()->getLogDeterminant() << std::endl << std::endl;
         fmin->printToStream(std::cout);
     }
     return fmin;
