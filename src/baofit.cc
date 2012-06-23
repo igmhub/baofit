@@ -25,7 +25,8 @@ int main(int argc, char **argv) {
         analysisOptions("Analysis options");
 
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin;
-    int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,numXi,ndump,jackknifeDrop,lmin,lmax;
+    int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,numXi,ndump,jackknifeDrop,lmin,lmax,
+        mcmcSave,mcmcInterval;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,
         platelistName,platerootName,modelConfig,iniName,refitConfig,minMethod;
 
@@ -122,6 +123,10 @@ int main(int argc, char **argv) {
             "Size of each bootstrap trial or zero to use the number of plates.")
         ("jackknife-drop", po::value<int>(&jackknifeDrop)->default_value(0),
             "Number of observations to drop from each jackknife sample (zero for no jackknife analysis)")
+        ("mcmc-save", po::value<int>(&mcmcSave)->default_value(0),
+            "Number of Markov chain Monte Carlo samples to save (zero for no MCMC analysis)")
+        ("mcmc-interval", po::value<int>(&mcmcInterval)->default_value(10),
+            "Interval for saving MCMC trials (larger for less correlations and longer running time)")
         ("random-seed", po::value<int>(&randomSeed)->default_value(1966),
             "Random seed to use for generating bootstrap samples.")
         ("min-method", po::value<std::string>(&minMethod)->default_value("mn2::vmetric"),
@@ -332,13 +337,13 @@ int main(int argc, char **argv) {
         if(ndump > 0) {
             // Dump the best-fit monopole model.
             std::ofstream out("fit.dat");
-            analyzer.dumpModel(out,fmin,ndump);
+            analyzer.dumpModel(out,fmin->getFitParameters(),ndump);
             out.close();
         }
         if(!xiModel && ndump > 0) {
             // Dump the best-fit monopole model with its peak contribution forced to zero.
             std::ofstream out("fit-smooth.dat");
-            analyzer.dumpModel(out,fmin,ndump,"value[BAO amplitude]=0");
+            analyzer.dumpModel(out,fmin->getFitParameters(),ndump,"value[BAO amplitude]=0");
             out.close();
         }
         {
@@ -346,6 +351,9 @@ int main(int argc, char **argv) {
             std::ofstream out("residuals.dat");
             analyzer.dumpResiduals(out,fmin);
             out.close();
+        }
+        if(mcmcSave > 0) {
+            analyzer.generateMarkovChain(mcmcSave,mcmcInterval,fmin,"mcmc.dat",ndump);
         }
         // Refit the combined sample, if requested.
         likely::FunctionMinimumPtr fmin2;
@@ -357,7 +365,7 @@ int main(int argc, char **argv) {
             if(ndump > 0) {
                 // Dump the best-fit monopole model.
                 std::ofstream out("refit.dat");
-                analyzer.dumpModel(out,fmin2,ndump);
+                analyzer.dumpModel(out,fmin2->getFitParameters(),ndump);
                 out.close();
             }
             std::cout << "Delta ChiSquare = "
