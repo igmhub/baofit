@@ -78,7 +78,7 @@ namespace baofit {
     }
 }
 
-void local::CorrelationFitter::mcmc(likely::FunctionMinimumPtr fmin, int nchain, int nskip,
+void local::CorrelationFitter::mcmc(likely::FunctionMinimumPtr fmin, int nchain, int interval,
 std::vector<double> &samples) const {
     likely::FunctionPtr fptr(new likely::Function(*this));
     likely::FitParameters params(fmin->getFitParameters());
@@ -86,7 +86,7 @@ std::vector<double> &samples) const {
     samples.reserve(nchain*npar);
     samples.resize(0);
     likely::MarkovChainEngine engine(fptr,likely::GradientCalculatorPtr(),params,"saunter");
-    int ntrial(nchain*nskip);
+    int ntrial(nchain*interval);
     likely::MarkovChainEngine::Callback callback = boost::bind(mcmcCallback,boost::ref(samples),_1,_3);
-    engine.generate(fmin,ntrial,ntrial,callback,nskip);
+    engine.generate(fmin,ntrial,ntrial,callback,interval);
 }

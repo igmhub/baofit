@@ -295,13 +295,13 @@ std::string const &refitConfig, std::string const &saveName, int nsave) const {
     return nInvalid;
 }
 
-void local::CorrelationAnalyzer::generateMarkovChain(int nchain, int nskip, likely::FunctionMinimumCPtr fmin,
+void local::CorrelationAnalyzer::generateMarkovChain(int nchain, int interval, likely::FunctionMinimumCPtr fmin,
 std::string const &saveName, int nsave) const {
     if(nchain <= 0) {
         throw RuntimeError("CorrelationAnalyzer::generateMarkovChain: expected nchain > 0.");
     }
-    if(nskip < 0) {
-        throw RuntimeError("CorrelationAnalyzer::generateMarkovChain: expected nskip >= 0.");        
+    if(interval < 0) {
+        throw RuntimeError("CorrelationAnalyzer::generateMarkovChain: expected interval >= 0.");        
     }
     // Make a copy of the input function minimum, to use (and update) during sampling.
     likely::FunctionMinimumPtr fminCopy(new likely::FunctionMinimum(*fmin));
@@ -310,7 +310,7 @@ std::string const &saveName, int nsave) const {
     CorrelationFitter fitter(combined,_model);
     // Generate the MCMC chains, saving the results in a vector.
     std::vector<double> samples;
-    fitter.mcmc(fminCopy, nchain, nskip, samples);
+    fitter.mcmc(fminCopy, nchain, interval, samples);
     // Output the results.
     SamplingOutput output(fmin,likely::FunctionMinimumCPtr(),saveName,nsave,*this);
     likely::FitParameters parameters(fmin->getFitParameters());
