@@ -114,6 +114,7 @@ int main(int argc, char **argv) {
             "Final cut on maximum multipole ell (0,2,4) to use in fit (multipole data only).")
         ("ndump", po::value<int>(&ndump)->default_value(100),
             "Number of points spanning [rmin,rmax] to use for dumping models (zero for no dumps).")
+        ("decorrelated", "Combined data is saved with decorrelated errors.")
         ("refit-config", po::value<std::string>(&refitConfig)->default_value(""),
             "Script to modify parameters for refits.")
         ("fit-each", "Fits each observation separately.")
@@ -169,7 +170,7 @@ int main(int argc, char **argv) {
         checkPosDef(vm.count("check-posdef")), fixCovariance(0 == vm.count("naive-covariance")),
         xiModel(vm.count("xi-model")), dr9lrg(vm.count("dr9lrg")), unweighted(vm.count("unweighted")),
         useQuad(vm.count("use-quad")), fitEach(vm.count("fit-each")), reuseCov(vm.count("reuse-cov")),
-        xiFormat(vm.count("xi-format"));
+        xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated"));
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
@@ -322,26 +323,27 @@ int main(int argc, char **argv) {
     }
     analyzer.setZData(zdata);
 
-    if(french || dr9lrg) {
-        std::ofstream out("combined.dat");
-        boost::shared_ptr<baofit::MultipoleCorrelationData> combined =
-            boost::dynamic_pointer_cast<baofit::MultipoleCorrelationData>(analyzer.getCombined());
-        combined->dump(out);
-        out.close();
-    }
-
     // Do the requested analyses...
     try {
         // Always fit the combined sample.
         likely::FunctionMinimumPtr fmin = analyzer.fitCombined();
+        // Dump the combined multipole data points with decorrelated errors, if possible.
+        if(french || dr9lrg || xiFormat) {
+            std::ofstream out("combined.dat");
+            boost::shared_ptr<baofit::MultipoleCorrelationData> combined =
+                boost::dynamic_pointer_cast<baofit::MultipoleCorrelationData>(analyzer.getCombined());
+            std::vector<double> dwgt;
+            combined->dump(out,dwgt);
+            out.close();
+        }
         if(ndump > 0) {
-            // Dump the best-fit monopole model.
+            // Dump the best-fit model.
             std::ofstream out("fit.dat");
             analyzer.dumpModel(out,fmin->getFitParameters(),ndump);
             out.close();
         }
         if(!xiModel && ndump > 0) {
-            // Dump the best-fit monopole model with its peak contribution forced to zero.
+            // Dump the best-fit model with its peak contribution forced to zero.
             std::ofstream out("fit-smooth.dat");
             analyzer.dumpModel(out,fmin->getFitParameters(),ndump,"value[BAO amplitude]=0");
             out.close();
@@ -363,7 +365,7 @@ int main(int argc, char **argv) {
             }
             fmin2 = analyzer.fitCombined(refitConfig);
             if(ndump > 0) {
-                // Dump the best-fit monopole model.
+                // Dump the best-fit model.
                 std::ofstream out("refit.dat");
                 analyzer.dumpModel(out,fmin2->getFitParameters(),ndump);
                 out.close();

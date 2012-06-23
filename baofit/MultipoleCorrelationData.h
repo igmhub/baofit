@@ -32,9 +32,11 @@ namespace baofit {
         // constructor. No further changes to our "shape" are possible after finalizing.
         // See the documentation for BinnedData::finalize() for details.
         virtual void finalize();
-        // Dumps all available multipoles to the specified output stream. zIndex specifies which
-        // redshift slice to use in case there are several.
-        void dump(std::ostream &out, int zIndex = 0) const;
+        // Dumps all available multipoles to the specified output stream. Uses the weights
+        // provided for error bars, if weights.size() > 0, or else uses the covariance matrix
+        // diagonal elements. Output format is separation followed by "value error" pairs for each
+        // redshift slice (outer loop) and multipole (inner loop), for a total 1+2*nz*nell columns.
+        void dump(std::ostream &out, std::vector<double> const &weights) const;
 	private:
         void _initialize(double rmin, double rmax, cosmo::Multipole ellmin, cosmo::Multipole ellmax);
         double _rmin, _rmax;

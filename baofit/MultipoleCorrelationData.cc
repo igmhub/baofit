@@ -94,31 +94,36 @@ void local::MultipoleCorrelationData::finalize() {
     AbsCorrelationData::finalize();
 }
 
-void local::MultipoleCorrelationData::dump(std::ostream &out, int zIndex) const {
+void local::MultipoleCorrelationData::dump(std::ostream &out, std::vector<double> const &weights) const {
+    if(weights.size() > 0 && weights.size() != getNBinsWithData()) {
+        throw RuntimeError("MultipoleCorrelationData::dump: unexpected size of weights.");
+    }
     std::vector<likely::AbsBinningCPtr> binning = getAxisBinning();
-    int nRadialBins(binning[0]->getNBins()), nEllBins(binning[1]->getNBins());
+    int nRadialBins(binning[0]->getNBins()), nEllBins(binning[1]->getNBins()), nZBins(binning[2]->getNBins());
     std::vector<int> bin(3);
-    bin[2] = 0;
     for(int rIndex = 0; rIndex < nRadialBins; ++rIndex) {
         double rval(binning[0]->getBinCenter(rIndex));
         if(rval < _rmin) continue;
         if(rval >= _rmax) break;
         out << rval;
         bin[0] = rIndex;
-        for(int ellIndex = 0; ellIndex < nEllBins; ++ellIndex) {
-            bin[1] = ellIndex;
-            int index = getIndex(bin);
-            if(hasData(index)) {
-                out << ' ' << getData(index);
-                if(hasCovariance()) {
-                    out << ' ' << std::sqrt(getCovariance(index,index));
+        for(int zIndex = 0; zIndex < nZBins; ++zIndex) {
+            bin[2] = zIndex;
+            for(int ellIndex = 0; ellIndex < nEllBins; ++ellIndex) {
+                bin[1] = ellIndex;
+                int index = getIndex(bin);
+                double data(0),error(-1);
+                if(hasData(index)) {
+                    data = getData(index);
+                    if(0 < weights.size()) {
+                        error = weights[getOffsetForIndex(index)];
+                        error = (error > 0) ? 1/std::sqrt(error) : -1;
+                    }
+                    else if(hasCovariance()) {
+                        error = std::sqrt(getCovariance(index,index));
+                    }
                 }
-                else {
-                    out << " 0";
-                }
-            }
-            else {
-                out << " 0 -1";
+                out << ' ' << data << ' ' << error;
             }
         }
         out << std::endl;
