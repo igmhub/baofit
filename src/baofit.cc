@@ -72,8 +72,9 @@ int main(int argc, char **argv) {
         ("check-posdef", "Checks that each covariance is positive-definite (slow).")
         ;
     frenchOptions.add_options()
-        ("french", "3D correlation data files are in the French format (default is cosmolib).")
+        ("french", "Correlation data files are in the French format (default is cosmolib).")
         ("unweighted", "Does not read covariance data.")
+        ("expanded", "Data uses the expanded format.")
         ("use-quad", "Uses quadrupole correlations.")
         ;
     cosmolibOptions.add_options()
@@ -170,7 +171,7 @@ int main(int argc, char **argv) {
         checkPosDef(vm.count("check-posdef")), fixCovariance(0 == vm.count("naive-covariance")),
         xiModel(vm.count("xi-model")), dr9lrg(vm.count("dr9lrg")), unweighted(vm.count("unweighted")),
         useQuad(vm.count("use-quad")), fitEach(vm.count("fit-each")), reuseCov(vm.count("reuse-cov")),
-        xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated"));
+        xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")), expanded(vm.count("expanded"));
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
@@ -301,7 +302,7 @@ int main(int argc, char **argv) {
         filename != filelist.end(); ++filename) {
             if(french) {
                 analyzer.addData(baofit::boss::loadFrench(*filename,prototype,
-                    verbose,unweighted,checkPosDef));
+                    verbose,unweighted,expanded,checkPosDef));
             }
             else if(dr9lrg) {
                 analyzer.addData(baofit::boss::loadDR9LRG(*filename,prototype,verbose));

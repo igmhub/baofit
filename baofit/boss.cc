@@ -170,7 +170,7 @@ cosmo::Multipole ellmin, cosmo::Multipole ellmax, bool useQuadrupole) {
 // a MultipoleCorrelationData.
 baofit::AbsCorrelationDataPtr
 local::loadFrench(std::string const &dataName, baofit::AbsCorrelationDataCPtr prototype,
-bool verbose, bool unweighted, bool checkPosDef) {
+bool verbose, bool unweighted, bool expanded, bool checkPosDef) {
 
     // Create the new AbsCorrelationData that we will fill.
     baofit::AbsCorrelationDataPtr binnedData((baofit::MultipoleCorrelationData *)(prototype->clone(true)));
@@ -204,11 +204,24 @@ bool verbose, bool unweighted, bool checkPosDef) {
     std::vector<double> bin(3);
     while(std::getline(paramsIn,line)) {
         lines++;
-        bool ok = qi::phrase_parse(line.begin(),line.end(),
-            (
-                double_[ref(rval) = _1] >> double_[ref(mono) = _1] >> double_[ref(quad) = _1]
-            ),
-            ascii::space);
+        bool ok(false);
+        if(expanded) {
+            ok = qi::phrase_parse(line.begin(),line.end(),
+                (
+                    // data uses an expanded format: r mono dmono quad dquad ...
+                    // https://trac.sdss3.org/wiki/BOSS/LyaForestsurvey/FPGAnalysis/Unblinding_details#DATAfiles
+                    double_[ref(rval) = _1] >> double_[ref(mono) = _1] >> double_ >> double_[ref(quad) = _1]
+                ),
+                ascii::space);            
+        }
+        else {
+            ok = qi::phrase_parse(line.begin(),line.end(),
+                (
+                    // mocks use the format: r mono quad ...
+                    double_[ref(rval) = _1] >> double_[ref(mono) = _1] >> double_[ref(quad) = _1]
+                ),
+                ascii::space);
+        }
         if(!ok) {
             throw RuntimeError("loadFrench: error reading line " +
                 boost::lexical_cast<std::string>(lines) + " of " + paramsName);
