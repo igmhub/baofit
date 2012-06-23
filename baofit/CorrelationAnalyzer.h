@@ -65,7 +65,7 @@ namespace baofit {
         // the current model, using the specified function minimum to initialize the sampling.
         // Saves nchain samples, using only one per interval trials. See doBootstrapAnalysis for a
         // description of the other parameters.
-        void generateMarkovChain(int nsave, int interval, likely::FunctionMinimumCPtr fmin,
+        void generateMarkovChain(int nchain, int interval, likely::FunctionMinimumCPtr fmin,
             std::string const &saveName = "", int nsave = 0) const;
         // Fits each observation separately and returns the number of fits that failed.
         // See doBootstrapAnalysis for a description of the other parameters.
