@@ -183,6 +183,7 @@ int main(int argc, char **argv) {
         std::cerr << "Missing required parameter --data or --platelist." << std::endl;
         return -1;
     }
+    /*
     if(0 == fiducialName.length()) {
         std::cerr << "Missing required parameter --fiducial." << std::endl;
         return -1;
@@ -195,7 +196,7 @@ int main(int argc, char **argv) {
         std::cerr << "Missing required parameter --broadband." << std::endl;
         return -1;
     }
-
+*/
     // Check for valid multipole options.
     if(lmin != cosmo::Monopole && lmin != cosmo::Quadrupole && lmin != cosmo::Hexadecapole) {
         std::cerr << "Expected 0,2,4 for lmin but got " << lmin << std::endl;
@@ -242,6 +243,10 @@ int main(int argc, char **argv) {
         return -2;
     }
     catch(likely::RuntimeError const &e) {
+        std::cerr << "ERROR during model initialization:\n  " << e.what() << std::endl;
+        return -2;
+    }
+    catch(baofit::RuntimeError const &e) {
         std::cerr << "ERROR during model initialization:\n  " << e.what() << std::endl;
         return -2;
     }

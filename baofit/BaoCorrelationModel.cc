@@ -7,6 +7,7 @@
 #include "cosmo/TransferFunctionPowerSpectrum.h"
 #include "likely/Interpolator.h"
 #include "likely/function.h"
+#include "likely/RuntimeError.h"
 
 #include "boost/format.hpp"
 
@@ -50,43 +51,48 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
     if(0 < root.size() && root[root.size()-1] != '/') root += '/';
     boost::format fileName("%s%s.%d.dat"),bbandName("%s%s%c.%d.dat");
     std::string method("cspline");
-    cosmo::CorrelationFunctionPtr
-        fid0 = likely::createFunctionPtr(likely::createInterpolator(
-            boost::str(fileName % root % fiducialName % 0),method)),
-        fid2 = likely::createFunctionPtr(likely::createInterpolator(
-            boost::str(fileName % root % fiducialName % 2),method)),
-        fid4 = likely::createFunctionPtr(likely::createInterpolator(
-            boost::str(fileName % root % fiducialName % 4),method)),
-        nw0 = likely::createFunctionPtr(likely::createInterpolator(
-            boost::str(fileName % root % nowigglesName % 0),method)),
-        nw2 = likely::createFunctionPtr(likely::createInterpolator(
-            boost::str(fileName % root % nowigglesName % 2),method)),
-        nw4 = likely::createFunctionPtr(likely::createInterpolator(
-            boost::str(fileName % root % nowigglesName % 4),method)),
-        bbc0 = likely::createFunctionPtr(likely::createInterpolator(
-            boost::str(bbandName % root % broadbandName % 'c' % 0),method)),
-        bbc2 = likely::createFunctionPtr(likely::createInterpolator(
-            boost::str(bbandName % root % broadbandName % 'c' % 2),method)),
-        bbc4 = likely::createFunctionPtr(likely::createInterpolator(
-            boost::str(bbandName % root % broadbandName % 'c' % 4),method)),
-        bb10 = likely::createFunctionPtr(likely::createInterpolator(
-            boost::str(bbandName % root % broadbandName % '1' % 0),method)),
-        bb12 = likely::createFunctionPtr(likely::createInterpolator(
-            boost::str(bbandName % root % broadbandName % '1' % 2),method)),
-        bb14 = likely::createFunctionPtr(likely::createInterpolator(
-            boost::str(bbandName % root % broadbandName % '1' % 4),method)),
-        bb20 = likely::createFunctionPtr(likely::createInterpolator(
-            boost::str(bbandName % root % broadbandName % '2' % 0),method)),
-        bb22 = likely::createFunctionPtr(likely::createInterpolator(
-            boost::str(bbandName % root % broadbandName % '2' % 2),method)),
-        bb24 = likely::createFunctionPtr(likely::createInterpolator(
-            boost::str(bbandName % root % broadbandName % '2' % 4),method));
-    // Create redshift-space distorted correlation function models from the multipole interpolators.
-    _fid.reset(new cosmo::RsdCorrelationFunction(fid0,fid2,fid4));
-    _nw.reset(new cosmo::RsdCorrelationFunction(nw0,nw2,nw4));
-    _bbc.reset(new cosmo::RsdCorrelationFunction(bbc0,bbc2,bbc4));
-    _bb1.reset(new cosmo::RsdCorrelationFunction(bb10,bb12,bb14));
-    _bb2.reset(new cosmo::RsdCorrelationFunction(bb20,bb22,bb24));
+    try {
+        cosmo::CorrelationFunctionPtr
+            fid0 = likely::createFunctionPtr(likely::createInterpolator(
+                boost::str(fileName % root % fiducialName % 0),method)),
+            fid2 = likely::createFunctionPtr(likely::createInterpolator(
+                boost::str(fileName % root % fiducialName % 2),method)),
+            fid4 = likely::createFunctionPtr(likely::createInterpolator(
+                boost::str(fileName % root % fiducialName % 4),method)),
+            nw0 = likely::createFunctionPtr(likely::createInterpolator(
+                boost::str(fileName % root % nowigglesName % 0),method)),
+            nw2 = likely::createFunctionPtr(likely::createInterpolator(
+                boost::str(fileName % root % nowigglesName % 2),method)),
+            nw4 = likely::createFunctionPtr(likely::createInterpolator(
+                boost::str(fileName % root % nowigglesName % 4),method)),
+            bbc0 = likely::createFunctionPtr(likely::createInterpolator(
+                boost::str(bbandName % root % broadbandName % 'c' % 0),method)),
+            bbc2 = likely::createFunctionPtr(likely::createInterpolator(
+                boost::str(bbandName % root % broadbandName % 'c' % 2),method)),
+            bbc4 = likely::createFunctionPtr(likely::createInterpolator(
+                boost::str(bbandName % root % broadbandName % 'c' % 4),method)),
+            bb10 = likely::createFunctionPtr(likely::createInterpolator(
+                boost::str(bbandName % root % broadbandName % '1' % 0),method)),
+            bb12 = likely::createFunctionPtr(likely::createInterpolator(
+                boost::str(bbandName % root % broadbandName % '1' % 2),method)),
+            bb14 = likely::createFunctionPtr(likely::createInterpolator(
+                boost::str(bbandName % root % broadbandName % '1' % 4),method)),
+            bb20 = likely::createFunctionPtr(likely::createInterpolator(
+                boost::str(bbandName % root % broadbandName % '2' % 0),method)),
+            bb22 = likely::createFunctionPtr(likely::createInterpolator(
+                boost::str(bbandName % root % broadbandName % '2' % 2),method)),
+            bb24 = likely::createFunctionPtr(likely::createInterpolator(
+                boost::str(bbandName % root % broadbandName % '2' % 4),method));
+        // Create redshift-space distorted correlation function models from the multipole interpolators.
+        _fid.reset(new cosmo::RsdCorrelationFunction(fid0,fid2,fid4));
+        _nw.reset(new cosmo::RsdCorrelationFunction(nw0,nw2,nw4));
+        _bbc.reset(new cosmo::RsdCorrelationFunction(bbc0,bbc2,bbc4));
+        _bb1.reset(new cosmo::RsdCorrelationFunction(bb10,bb12,bb14));
+        _bb2.reset(new cosmo::RsdCorrelationFunction(bb20,bb22,bb24));
+    }
+    catch(likely::RuntimeError const &e) {
+        throw RuntimeError("BaoCorrelationModel: error while reading model interpolation data.");
+    }
     // Hardcode our scale parameter prior for a first test.
     _scalePriorMin = 0.85;
     _scalePriorMax = 1.15;
