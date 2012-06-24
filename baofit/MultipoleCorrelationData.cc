@@ -117,12 +117,13 @@ void local::MultipoleCorrelationData::dump(std::ostream &out, std::vector<double
             for(int ellIndex = 0; ellIndex < nEllBins; ++ellIndex) {
                 bin[1] = ellIndex;
                 int index = getIndex(bin);
-                double data(0),error(-1);
+                double data(0),error(0);
                 if(hasData(index)) {
                     data = getData(index);
                     if(0 < weights.size()) {
-                        error = weights[getOffsetForIndex(index)];
-                        error = (error > 0) ? 1/std::sqrt(error) : -1;
+                        double weight = weights[getOffsetForIndex(index)];
+                        if(weight != 0) error = 1/std::sqrt(std::fabs(weight));
+                        if(weight < 0) error = -error;
                     }
                     else if(hasCovariance()) {
                         error = std::sqrt(getCovariance(index,index));
