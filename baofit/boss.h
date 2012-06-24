@@ -13,7 +13,7 @@ namespace baofit {
     namespace boss {
 
         AbsCorrelationDataCPtr createFrenchPrototype(double zref, double rmin, double rmax,
-            cosmo::Multipole ellmin, cosmo::Multipole ellmax, bool useQuadrupole = false);
+            cosmo::Multipole ellmin, cosmo::Multipole ellmax);
 
         AbsCorrelationDataPtr loadFrench(std::string const &dataName,
             AbsCorrelationDataCPtr prototype, bool verbose,
