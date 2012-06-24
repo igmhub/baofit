@@ -170,7 +170,7 @@ int main(int argc, char **argv) {
     bool verbose(0 == vm.count("quiet")), french(vm.count("french")), weighted(vm.count("weighted")),
         checkPosDef(vm.count("check-posdef")), fixCovariance(0 == vm.count("naive-covariance")),
         xiModel(vm.count("xi-model")), dr9lrg(vm.count("dr9lrg")), unweighted(vm.count("unweighted")),
-        useQuad(vm.count("use-quad")), fitEach(vm.count("fit-each")), reuseCov(vm.count("reuse-cov")),
+        fitEach(vm.count("fit-each")), reuseCov(vm.count("reuse-cov")),
         xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")), expanded(vm.count("expanded"));
 
     // Check for the required filename parameters.
@@ -248,7 +248,7 @@ int main(int argc, char **argv) {
         baofit::AbsCorrelationDataCPtr prototype;
         if(french) {
             zdata = 2.30;
-            prototype = baofit::boss::createFrenchPrototype(zdata,rmin,rmax,ellmin,ellmax,useQuad);
+            prototype = baofit::boss::createFrenchPrototype(zdata,rmin,rmax,ellmin,ellmax);
         }
         else if(dr9lrg) {
             zdata = 0.57;

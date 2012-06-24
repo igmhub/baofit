@@ -150,17 +150,15 @@ local::loadDR9LRG(std::string const &dataName, baofit::AbsCorrelationDataCPtr pr
 
 // Creates a prototype MultipoleCorrelationData with the specified binning.
 baofit::AbsCorrelationDataCPtr local::createFrenchPrototype(double zref, double rmin, double rmax,
-cosmo::Multipole ellmin, cosmo::Multipole ellmax, bool useQuadrupole) {
+cosmo::Multipole ellmin, cosmo::Multipole ellmax) {
+    if(ellmin < cosmo::Monopole || ellmax > cosmo::Quadrupole || ellmin > ellmax) {
+        throw RuntimeError("createFrenchPrototype: invalid ell range.");
+    }
     // Create the new BinnedData that we will fill.
-    likely::AbsBinningCPtr ellBins,
+    likely::AbsBinningCPtr
         rBins(new likely::UniformBinning(0,200,50)),
-        zBins(new likely::UniformSampling(zref,zref,1));
-    if(useQuadrupole) {
-        ellBins.reset(new likely::UniformSampling(cosmo::Monopole,cosmo::Quadrupole,2));
-    }
-    else {
-        ellBins.reset(new likely::UniformSampling(cosmo::Monopole,cosmo::Monopole,1));
-    }
+        zBins(new likely::UniformSampling(zref,zref,1)),
+        ellBins(new likely::UniformSampling(cosmo::Monopole,cosmo::Quadrupole,2));
     baofit::AbsCorrelationDataPtr
         prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins,rmin,rmax,ellmin,ellmax));
     return prototype;
@@ -178,9 +176,6 @@ bool verbose, bool unweighted, bool expanded, bool checkPosDef) {
     // Lookup the number of radial bins.
     int nrbins = prototype->getAxisBinning()[0]->getNBins();
     
-    // Are we using the quadrupole?
-    bool useQuadrupole = (2 == prototype->getAxisBinning()[1]->getNBins());
-
     // Lookup our reference redshift.
     double zref = prototype->getAxisBinning()[2]->getBinCenter(0);
     
@@ -231,11 +226,9 @@ bool verbose, bool unweighted, bool expanded, bool checkPosDef) {
         bin[1] = cosmo::Monopole;
         int monoIndex = binnedData->getIndex(bin);
         binnedData->setData(monoIndex,mono);
-        if(useQuadrupole) {
-            bin[1] = cosmo::Quadrupole;
-            int quadIndex = binnedData->getIndex(bin);
-            binnedData->setData(quadIndex,quad);
-        }
+        bin[1] = cosmo::Quadrupole;
+        int quadIndex = binnedData->getIndex(bin);
+        binnedData->setData(quadIndex,quad);
     }
     paramsIn.close();
     if(verbose) {
@@ -267,16 +260,11 @@ bool verbose, bool unweighted, bool expanded, bool checkPosDef) {
             }
             // Ignore entries above the diagonal since they are duplicates by symmetry.
             if(index1 > index2) continue;
-            // Ignore quadrupole elements if requested.
-            if(!useQuadrupole && index2 >= nrbins) continue;
             // Remap file indexing to a BinnedData global index.
             bin1[0] = index1 % nrbins;
             bin2[0] = index2 % nrbins;
             bin1[1] = index1/nrbins;
             bin2[1] = index2/nrbins;
-            // Ignore mono-quad covariances (except at the same separation?)
-            //if(bin1[1] != bin2[1]) continue;
-            //if(bin1[0] != bin2[0] && bin1[1] != bin2[1]) continue;
             binnedData->setCovariance(binnedData->getIndex(bin1), binnedData->getIndex(bin2), cov);
         }
         covIn.close();
@@ -487,6 +475,9 @@ bool checkPosDef) {
 
 baofit::AbsCorrelationDataCPtr local::createCosmolibXiPrototype(double minz, double dz, int nz,
 double rmin, double rmax, cosmo::Multipole ellmin, cosmo::Multipole ellmax) {
+    if(ellmin < cosmo::Monopole || ellmax > cosmo::Quadrupole || ellmin > ellmax) {
+        throw RuntimeError("createCosmolibXiPrototype: invalid ell range.");
+    }
     // Create the new BinnedData that we will fill.
     std::vector<double> ellValues;
     ellValues.push_back(-1);
