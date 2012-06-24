@@ -12,7 +12,7 @@
 namespace local = baofit;
 
 local::XiCorrelationModel::XiCorrelationModel(likely::AbsBinningCPtr rbins, double zref,
-std::string const &method)
+double rVetoMin, double rVetoMax, std::string const &method)
 : AbsCorrelationModel("Xi Correlation Model"), _method(method), _zref(zref)
 {
     // Create parameters at the center of each radial bin.
@@ -23,6 +23,7 @@ std::string const &method)
         else if(4 == ell) perror = 0.01;
         for(int index = 0; index < rbins->getNBins(); ++index) {
             double rval(rbins->getBinCenter(index));
+            if(rval > rVetoMin && rval < rVetoMax) continue;
             defineParameter(boost::str(pname % ell % index),0,perror);
             if(0 == ell) _rValues.push_back(rval);
         }
@@ -91,7 +92,7 @@ double local::XiCorrelationModel::_evaluate(double r, double mu, double z, bool 
     // Rebuild our interpolators, if necessary.
     if(anyChanged) _initializeInterpolators();
     // Combine the multipoles.
-    return _normScale*bias*bias*zfactor*(C0*(*_xi0)(r) + C2*P2*(*_xi2)(r) + C4*P4*(*_xi4)(r));
+    return _normScale*bias*bias*zfactor*(C0*(*_xi0)(r) + C2*P2*(*_xi2)(r) + C4*P4*(*_xi4)(r))/(r*r);
 }
 
 double local::XiCorrelationModel::_evaluate(double r, cosmo::Multipole multipole, double z,
@@ -109,13 +110,13 @@ bool anyChanged) const {
     // Return the appropriately normalization multipole.
     double norm = _normScale*bias*bias*zfactor;
     if(multipole == cosmo::Hexadecapole) {
-        return norm*(8./35.)*beta*beta*(*_xi4)(r);
+        return norm*(8./35.)*beta*beta*(*_xi4)(r)/(r*r);
     }
     else if(multipole == cosmo::Quadrupole) {
-        return norm*4*beta*((1./3.) + beta/7.)*(*_xi2)(r);
+        return norm*4*beta*((1./3.) + beta/7.)*(*_xi2)(r)/(r*r);
     }
     else {
-        return norm*(1 + beta*((2./3.) + beta/5.))*(*_xi0)(r);
+        return norm*(1 + beta*((2./3.) + beta/5.))*(*_xi0)(r)/(r*r);
     }
 }
 
