@@ -24,7 +24,8 @@ int main(int argc, char **argv) {
         frenchOptions("French data options"), cosmolibOptions("Cosmolib data options"),
         analysisOptions("Analysis options");
 
-    double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin;
+    double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin,
+        rVetoWidth,rVetoCenter;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,numXi,ndump,jackknifeDrop,lmin,lmax,
         mcmcSave,mcmcInterval;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,
@@ -107,6 +108,10 @@ int main(int argc, char **argv) {
             "Final cut on minimum 3D comoving separation (Mpc/h) to use in fit.")
         ("rmax", po::value<double>(&rmax)->default_value(200),
             "Final cut on maximum 3D comoving separation (Mpc/h) to use in fit.")
+        ("rveto-width", po::value<double>(&rVetoWidth)->default_value(0),
+            "Full width (Mpc/h) of co-moving separation window to veto in fit (zero for no veto).")
+        ("rveto-center", po::value<double>(&rVetoCenter)->default_value(110),
+            "Center (Mpc/h) of co-moving separation window to veto in fit.")
         ("llmin", po::value<double>(&llmin)->default_value(0),
             "Minimum value of log(lam2/lam1) to use in fit (cosmolib only).")
         ("lmin", po::value<int>(&lmin)->default_value(0),
@@ -203,6 +208,9 @@ int main(int argc, char **argv) {
     }
     cosmo::Multipole ellmax = static_cast<cosmo::Multipole>(lmax);
 
+    // Calculate veto window limits.
+    double rVetoMin = rVetoCenter - 0.5*rVetoWidth, rVetoMax = rVetoCenter + 0.5*rVetoWidth;
+
     // Initialize our analyzer.
     likely::Random::instance()->setSeed(randomSeed);
     baofit::CorrelationAnalyzer analyzer(minMethod,rmin,rmax,verbose);
@@ -248,21 +256,21 @@ int main(int argc, char **argv) {
         baofit::AbsCorrelationDataCPtr prototype;
         if(french) {
             zdata = 2.30;
-            prototype = baofit::boss::createFrenchPrototype(zdata,rmin,rmax,ellmin,ellmax);
+            prototype = baofit::boss::createFrenchPrototype(zdata,rmin,rmax,rVetoMin,rVetoMax,ellmin,ellmax);
         }
         else if(dr9lrg) {
             zdata = 0.57;
-            prototype = baofit::boss::createDR9LRGPrototype(zdata,rmin,rmax,
+            prototype = baofit::boss::createDR9LRGPrototype(zdata,rmin,rmax,rVetoMin,rVetoMax,
                 "LRG/Sample4_North.cov",verbose);
         }
         else if(xiFormat) {
             zdata = 2.25;
-            prototype = baofit::boss::createCosmolibXiPrototype(minz,dz,nz,rmin,rmax,ellmin,ellmax);
+            prototype = baofit::boss::createCosmolibXiPrototype(minz,dz,nz,rmin,rmax,rVetoMin,rVetoMax,ellmin,ellmax);
         }
         else {
             zdata = 2.25;
             prototype = baofit::boss::createCosmolibPrototype(
-                minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,rmin,rmax,llmin,cosmology);
+                minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,rmin,rmax,rVetoMin,rVetoMax,llmin,cosmology);
         }
         
         // Build a list of the data files we will read.
