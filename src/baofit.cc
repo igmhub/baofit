@@ -225,7 +225,7 @@ int main(int argc, char **argv) {
         
         if(xiModel) {
             likely::AbsBinningCPtr rbins(new likely::UniformSampling(rmin,rmax,numXi));
-            model.reset(new baofit::XiCorrelationModel(rbins,zref,"cspline"));
+            model.reset(new baofit::XiCorrelationModel(rbins,zref,rVetoMin,rVetoMax,"linear"));
         }
         else {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
