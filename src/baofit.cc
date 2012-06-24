@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,numXi,ndump,jackknifeDrop,lmin,lmax,
         mcmcSave,mcmcInterval;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,
-        platelistName,platerootName,modelConfig,iniName,refitConfig,minMethod;
+        platelistName,platerootName,modelConfig,iniName,refitConfig,minMethod,xiMethod;
 
     // Default values in quotes below are to avoid roundoff errors leading to ugly --help
     // messages. See http://stackoverflow.com/questions/1734916/
@@ -57,6 +57,8 @@ int main(int argc, char **argv) {
         ("xi-model", "Uses experimental binned correlation model.")
         ("num-xi", po::value<int>(&numXi)->default_value(9),
             "Number of points from rmin-rmax to use for interpolating xi(r)")
+        ("xi-method", po::value<std::string>(&xiMethod)->default_value("cspline"),
+            "Interpolation method to use in r^2 xi(r), use linear or cspline.")
         ("model-config", po::value<std::string>(&modelConfig)->default_value(""),
             "Model parameters configuration script.")
         ;
@@ -225,7 +227,7 @@ int main(int argc, char **argv) {
         
         if(xiModel) {
             likely::AbsBinningCPtr rbins(new likely::UniformSampling(rmin,rmax,numXi));
-            model.reset(new baofit::XiCorrelationModel(rbins,zref,rVetoMin,rVetoMax,"linear"));
+            model.reset(new baofit::XiCorrelationModel(rbins,zref,rVetoMin,rVetoMax,xiMethod));
         }
         else {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
