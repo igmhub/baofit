@@ -28,7 +28,7 @@ std::string const &method)
         }
     }
     // Define linear bias parameters.
-    defineParameter("alpha",3.8,0.3);
+    defineParameter("alpha-bias",3.8,0.3);
     defineParameter("beta",1.0,0.1);
     defineParameter("(1+beta)*bias",-0.34,0.03);
     // Pick a normalization scale that gives parameter values of order one.
@@ -76,7 +76,7 @@ void local::XiCorrelationModel::_initializeInterpolators() const {
 
 double local::XiCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
     // Fetch linear bias parameters.
-    double alpha = getParameterValue("alpha");
+    double alpha = getParameterValue("alpha-bias");
     double beta = getParameterValue("beta");
     double bb = getParameterValue("(1+beta)*bias");
     // Calculate bias from beta and bb.
@@ -97,7 +97,7 @@ double local::XiCorrelationModel::_evaluate(double r, double mu, double z, bool 
 double local::XiCorrelationModel::_evaluate(double r, cosmo::Multipole multipole, double z,
 bool anyChanged) const {
     // Fetch linear bias parameters.
-    double alpha = getParameterValue("alpha");
+    double alpha = getParameterValue("alpha-bias");
     double beta = getParameterValue("beta");
     double bb = getParameterValue("(1+beta)*bias");
     // Calculate bias from beta and bb.
