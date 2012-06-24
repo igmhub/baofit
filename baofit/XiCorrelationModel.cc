@@ -109,10 +109,10 @@ bool anyChanged) const {
     // Return the appropriately normalization multipole.
     double norm = _normScale*bias*bias*zfactor;
     if(multipole == cosmo::Hexadecapole) {
-        return norm*(8./35.)*beta*beta*(*_xi2)(r);
+        return norm*(8./35.)*beta*beta*(*_xi4)(r);
     }
     else if(multipole == cosmo::Quadrupole) {
-        return norm*4*beta*((1./3.) + beta/7.)*(*_xi4)(r);
+        return norm*4*beta*((1./3.) + beta/7.)*(*_xi2)(r);
     }
     else {
         return norm*(1 + beta*((2./3.) + beta/5.))*(*_xi0)(r);
