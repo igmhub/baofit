@@ -12,8 +12,6 @@ Test/fix jackknife resampling.
 
 Create PkCorrelationModel.
 
-Implement MCMC marginalization of nuisance parameters.
-
 Implement likelihood refit marginalization of nuisance parameters.
 
 Add peak broadening parameter.
@@ -27,3 +25,5 @@ Provide option to split BAO scale into separate transverse, perpendicular compon
 Implement options for integrating theory over bins with finite size.
 
 Re-implement applyTheoryOffsets for pseudo no-BAO mocks.
+
+More flexible cmd-line entry of XiCorrelationModel interpolation points.
