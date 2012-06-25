@@ -112,7 +112,7 @@ int main(int argc, char **argv) {
             "Final cut on maximum 3D comoving separation (Mpc/h) to use in fit.")
         ("rveto-width", po::value<double>(&rVetoWidth)->default_value(0),
             "Full width (Mpc/h) of co-moving separation window to veto in fit (zero for no veto).")
-        ("rveto-center", po::value<double>(&rVetoCenter)->default_value(110),
+        ("rveto-center", po::value<double>(&rVetoCenter)->default_value(114),
             "Center (Mpc/h) of co-moving separation window to veto in fit.")
         ("llmin", po::value<double>(&llmin)->default_value(0),
             "Minimum value of log(lam2/lam1) to use in fit (cosmolib only).")
