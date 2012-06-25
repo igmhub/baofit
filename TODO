@@ -25,5 +25,3 @@ Provide option to split BAO scale into separate transverse, perpendicular compon
 Implement options for integrating theory over bins with finite size.
 
 Re-implement applyTheoryOffsets for pseudo no-BAO mocks.
-
-More flexible cmd-line entry of XiCorrelationModel interpolation points.

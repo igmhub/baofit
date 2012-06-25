@@ -13,7 +13,7 @@ namespace baofit {
 	class XiCorrelationModel : public AbsCorrelationModel {
 	public:
 	    // Creates a new interpolating correlation model.
-		XiCorrelationModel(std::string const &config, double zref, std::string const &method = "linear");
+		XiCorrelationModel(std::string const &points, double zref, std::string const &method = "linear");
 		virtual ~XiCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
