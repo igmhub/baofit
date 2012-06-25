@@ -2,7 +2,6 @@
 
 #include "baofit/XiCorrelationModel.h"
 
-#include "likely/AbsBinning.h"
 #include "likely/Interpolator.h"
 
 #include "boost/format.hpp"
@@ -11,12 +10,12 @@
 
 namespace local = baofit;
 
-local::XiCorrelationModel::XiCorrelationModel(likely::AbsBinningCPtr rbins, double zref,
-double rVetoMin, double rVetoMax, std::string const &method)
+local::XiCorrelationModel::XiCorrelationModel(std::string const &config, double zref, std::string const &method)
 : AbsCorrelationModel("Xi Correlation Model"), _method(method), _zref(zref)
 {
     // Create parameters at the center of each radial bin.
     boost::format pname("xi%d-%d");
+    /*
     for(int ell = 0; ell <= 4; ell += 2) {
         double perror = 1;
         if(2 == ell) perror = 0.1;
@@ -28,6 +27,7 @@ double rVetoMin, double rVetoMax, std::string const &method)
             if(0 == ell) _rValues.push_back(rval);
         }
     }
+    */
     // Define linear bias parameters.
     defineParameter("alpha-bias",3.8,0.3);
     defineParameter("beta",1.0,0.1);

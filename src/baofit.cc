@@ -26,9 +26,9 @@ int main(int argc, char **argv) {
 
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin,
         rVetoWidth,rVetoCenter;
-    int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,numXi,ndump,jackknifeDrop,lmin,lmax,
+    int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
         mcmcSave,mcmcInterval;
-    std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,
+    std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,
         platelistName,platerootName,modelConfig,iniName,refitConfig,minMethod,xiMethod;
 
     // Default values in quotes below are to avoid roundoff errors leading to ugly --help
@@ -54,9 +54,8 @@ int main(int argc, char **argv) {
             "Common path to prepend to all model filenames.")
         ("zref", po::value<double>(&zref)->default_value(2.25),
             "Reference redshift used by model correlation functions.")
-        ("xi-model", "Uses experimental binned correlation model.")
-        ("num-xi", po::value<int>(&numXi)->default_value(9),
-            "Number of points from rmin-rmax to use for interpolating xi(r)")
+        ("xi-points", po::value<std::string>(&xiPoints)->default_value(""),
+            "Comma-separated list of r values (Mpc/h) to use for interpolating r^2 xi(r)")
         ("xi-method", po::value<std::string>(&xiMethod)->default_value("cspline"),
             "Interpolation method to use in r^2 xi(r), use linear or cspline.")
         ("model-config", po::value<std::string>(&modelConfig)->default_value(""),
@@ -176,7 +175,7 @@ int main(int argc, char **argv) {
     // Extract boolean options.
     bool verbose(0 == vm.count("quiet")), french(vm.count("french")), weighted(vm.count("weighted")),
         checkPosDef(vm.count("check-posdef")), fixCovariance(0 == vm.count("naive-covariance")),
-        xiModel(vm.count("xi-model")), dr9lrg(vm.count("dr9lrg")), unweighted(vm.count("unweighted")),
+        dr9lrg(vm.count("dr9lrg")), unweighted(vm.count("unweighted")),
         fitEach(vm.count("fit-each")), reuseCov(vm.count("reuse-cov")),
         xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")), expanded(vm.count("expanded"));
 
@@ -185,20 +184,7 @@ int main(int argc, char **argv) {
         std::cerr << "Missing required parameter --data or --platelist." << std::endl;
         return -1;
     }
-    /*
-    if(0 == fiducialName.length()) {
-        std::cerr << "Missing required parameter --fiducial." << std::endl;
-        return -1;
-    }
-    if(0 == nowigglesName.length()) {
-        std::cerr << "Missing required parameter --nowiggles." << std::endl;
-        return -1;
-    }
-    if(0 == broadbandName.length()) {
-        std::cerr << "Missing required parameter --broadband." << std::endl;
-        return -1;
-    }
-*/
+
     // Check for valid multipole options.
     if(lmin != cosmo::Monopole && lmin != cosmo::Quadrupole && lmin != cosmo::Hexadecapole) {
         std::cerr << "Expected 0,2,4 for lmin but got " << lmin << std::endl;
@@ -225,9 +211,8 @@ int main(int argc, char **argv) {
         // Build the homogeneous cosmology we will use.
         cosmology.reset(new cosmo::LambdaCdmRadiationUniverse(OmegaMatter,0,hubbleConstant));
         
-        if(xiModel) {
-            likely::AbsBinningCPtr rbins(new likely::UniformSampling(rmin,rmax,numXi));
-            model.reset(new baofit::XiCorrelationModel(rbins,zref,rVetoMin,rVetoMax,xiMethod));
+        if(xiPoints.length() > 0) {
+            model.reset(new baofit::XiCorrelationModel(xiPoints,zref,xiMethod));
         }
         else {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
@@ -362,7 +347,7 @@ int main(int argc, char **argv) {
             analyzer.dumpModel(out,fmin->getFitParameters(),ndump);
             out.close();
         }
-        if(!xiModel && ndump > 0) {
+        if(xiPoints.length()==0 && ndump > 0) {
             // Dump the best-fit model with its peak contribution forced to zero.
             std::ofstream out("fit-smooth.dat");
             analyzer.dumpModel(out,fmin->getFitParameters(),ndump,"value[BAO amplitude]=0");
