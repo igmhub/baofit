@@ -12,8 +12,6 @@ Test/fix jackknife resampling.
 
 Create PkCorrelationModel.
 
-Implement MCMC marginalization of nuisance parameters.
-
 Implement likelihood refit marginalization of nuisance parameters.
 
 Add peak broadening parameter.

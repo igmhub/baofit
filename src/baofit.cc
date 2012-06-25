@@ -24,11 +24,12 @@ int main(int argc, char **argv) {
         frenchOptions("French data options"), cosmolibOptions("Cosmolib data options"),
         analysisOptions("Analysis options");
 
-    double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin;
-    int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,numXi,ndump,jackknifeDrop,lmin,lmax,
+    double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin,
+        rVetoWidth,rVetoCenter;
+    int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
         mcmcSave,mcmcInterval;
-    std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,
-        platelistName,platerootName,modelConfig,iniName,refitConfig,minMethod;
+    std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,
+        platelistName,platerootName,modelConfig,iniName,refitConfig,minMethod,xiMethod;
 
     // Default values in quotes below are to avoid roundoff errors leading to ugly --help
     // messages. See http://stackoverflow.com/questions/1734916/
@@ -53,9 +54,10 @@ int main(int argc, char **argv) {
             "Common path to prepend to all model filenames.")
         ("zref", po::value<double>(&zref)->default_value(2.25),
             "Reference redshift used by model correlation functions.")
-        ("xi-model", "Uses experimental binned correlation model.")
-        ("num-xi", po::value<int>(&numXi)->default_value(9),
-            "Number of points from rmin-rmax to use for interpolating xi(r)")
+        ("xi-points", po::value<std::string>(&xiPoints)->default_value(""),
+            "Comma-separated list of r values (Mpc/h) to use for interpolating r^2 xi(r)")
+        ("xi-method", po::value<std::string>(&xiMethod)->default_value("cspline"),
+            "Interpolation method to use in r^2 xi(r), use linear or cspline.")
         ("model-config", po::value<std::string>(&modelConfig)->default_value(""),
             "Model parameters configuration script.")
         ;
@@ -107,6 +109,10 @@ int main(int argc, char **argv) {
             "Final cut on minimum 3D comoving separation (Mpc/h) to use in fit.")
         ("rmax", po::value<double>(&rmax)->default_value(200),
             "Final cut on maximum 3D comoving separation (Mpc/h) to use in fit.")
+        ("rveto-width", po::value<double>(&rVetoWidth)->default_value(0),
+            "Full width (Mpc/h) of co-moving separation window to veto in fit (zero for no veto).")
+        ("rveto-center", po::value<double>(&rVetoCenter)->default_value(114),
+            "Center (Mpc/h) of co-moving separation window to veto in fit.")
         ("llmin", po::value<double>(&llmin)->default_value(0),
             "Minimum value of log(lam2/lam1) to use in fit (cosmolib only).")
         ("lmin", po::value<int>(&lmin)->default_value(0),
@@ -169,25 +175,13 @@ int main(int argc, char **argv) {
     // Extract boolean options.
     bool verbose(0 == vm.count("quiet")), french(vm.count("french")), weighted(vm.count("weighted")),
         checkPosDef(vm.count("check-posdef")), fixCovariance(0 == vm.count("naive-covariance")),
-        xiModel(vm.count("xi-model")), dr9lrg(vm.count("dr9lrg")), unweighted(vm.count("unweighted")),
+        dr9lrg(vm.count("dr9lrg")), unweighted(vm.count("unweighted")),
         fitEach(vm.count("fit-each")), reuseCov(vm.count("reuse-cov")),
         xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")), expanded(vm.count("expanded"));
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
         std::cerr << "Missing required parameter --data or --platelist." << std::endl;
-        return -1;
-    }
-    if(0 == fiducialName.length()) {
-        std::cerr << "Missing required parameter --fiducial." << std::endl;
-        return -1;
-    }
-    if(0 == nowigglesName.length()) {
-        std::cerr << "Missing required parameter --nowiggles." << std::endl;
-        return -1;
-    }
-    if(0 == broadbandName.length()) {
-        std::cerr << "Missing required parameter --broadband." << std::endl;
         return -1;
     }
 
@@ -203,6 +197,9 @@ int main(int argc, char **argv) {
     }
     cosmo::Multipole ellmax = static_cast<cosmo::Multipole>(lmax);
 
+    // Calculate veto window limits.
+    double rVetoMin = rVetoCenter - 0.5*rVetoWidth, rVetoMax = rVetoCenter + 0.5*rVetoWidth;
+
     // Initialize our analyzer.
     likely::Random::instance()->setSeed(randomSeed);
     baofit::CorrelationAnalyzer analyzer(minMethod,rmin,rmax,verbose);
@@ -214,9 +211,8 @@ int main(int argc, char **argv) {
         // Build the homogeneous cosmology we will use.
         cosmology.reset(new cosmo::LambdaCdmRadiationUniverse(OmegaMatter,0,hubbleConstant));
         
-        if(xiModel) {
-            likely::AbsBinningCPtr rbins(new likely::UniformSampling(rmin,rmax,numXi));
-            model.reset(new baofit::XiCorrelationModel(rbins,zref,"cspline"));
+        if(xiPoints.length() > 0) {
+            model.reset(new baofit::XiCorrelationModel(xiPoints,zref,xiMethod));
         }
         else {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
@@ -237,6 +233,10 @@ int main(int argc, char **argv) {
         std::cerr << "ERROR during model initialization:\n  " << e.what() << std::endl;
         return -2;
     }
+    catch(baofit::RuntimeError const &e) {
+        std::cerr << "ERROR during model initialization:\n  " << e.what() << std::endl;
+        return -2;
+    }
     if(verbose) model->printToStream(std::cout);
     analyzer.setModel(model);
     
@@ -248,21 +248,21 @@ int main(int argc, char **argv) {
         baofit::AbsCorrelationDataCPtr prototype;
         if(french) {
             zdata = 2.30;
-            prototype = baofit::boss::createFrenchPrototype(zdata,rmin,rmax,ellmin,ellmax);
+            prototype = baofit::boss::createFrenchPrototype(zdata,rmin,rmax,rVetoMin,rVetoMax,ellmin,ellmax);
         }
         else if(dr9lrg) {
             zdata = 0.57;
-            prototype = baofit::boss::createDR9LRGPrototype(zdata,rmin,rmax,
+            prototype = baofit::boss::createDR9LRGPrototype(zdata,rmin,rmax,rVetoMin,rVetoMax,
                 "LRG/Sample4_North.cov",verbose);
         }
         else if(xiFormat) {
             zdata = 2.25;
-            prototype = baofit::boss::createCosmolibXiPrototype(minz,dz,nz,rmin,rmax,ellmin,ellmax);
+            prototype = baofit::boss::createCosmolibXiPrototype(minz,dz,nz,rmin,rmax,rVetoMin,rVetoMax,ellmin,ellmax);
         }
         else {
             zdata = 2.25;
             prototype = baofit::boss::createCosmolibPrototype(
-                minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,rmin,rmax,llmin,cosmology);
+                minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,rmin,rmax,rVetoMin,rVetoMax,llmin,cosmology);
         }
         
         // Build a list of the data files we will read.
@@ -347,7 +347,7 @@ int main(int argc, char **argv) {
             analyzer.dumpModel(out,fmin->getFitParameters(),ndump);
             out.close();
         }
-        if(!xiModel && ndump > 0) {
+        if(xiPoints.length()==0 && ndump > 0) {
             // Dump the best-fit model with its peak contribution forced to zero.
             std::ofstream out("fit-smooth.dat");
             analyzer.dumpModel(out,fmin->getFitParameters(),ndump,"value[BAO amplitude]=0");

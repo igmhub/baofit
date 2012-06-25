@@ -13,14 +13,14 @@ namespace baofit {
     namespace boss {
 
         AbsCorrelationDataCPtr createFrenchPrototype(double zref, double rmin, double rmax,
-            cosmo::Multipole ellmin, cosmo::Multipole ellmax);
+            double rVetoMin, double rVetoMax, cosmo::Multipole ellmin, cosmo::Multipole ellmax);
 
         AbsCorrelationDataPtr loadFrench(std::string const &dataName,
             AbsCorrelationDataCPtr prototype, bool verbose,
             bool unweighted = false, bool expanded = false, bool checkPosDef = false);
             
         AbsCorrelationDataCPtr createDR9LRGPrototype(double zref, double rmin, double rmax,
-            std::string const &covName, bool verbose);
+            double rVetoMin, double rVetoMax, std::string const &covName, bool verbose);
         
         AbsCorrelationDataPtr loadDR9LRG(std::string const &dataName,
             AbsCorrelationDataCPtr prototype, bool verbose);
@@ -30,14 +30,16 @@ namespace baofit {
 
         AbsCorrelationDataCPtr createCosmolibPrototype(double minsep, double dsep, int nsep,
             double minz, double dz, int nz, double minll, double maxll, double dll, double dll2,
-            double rmin, double rmax, double llmin, cosmo::AbsHomogeneousUniversePtr cosmology);
+            double rmin, double rmax, double rVetoMin, double rVetoMax, double llmin,
+            cosmo::AbsHomogeneousUniversePtr cosmology);
 
         AbsCorrelationDataPtr loadCosmolib(std::string const &dataName,
             AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted,
             bool reuseCov = false, bool checkPosDef = false);
 
         AbsCorrelationDataCPtr createCosmolibXiPrototype(double minz, double dz, int nz,
-            double rmin, double rmax, cosmo::Multipole ellmin, cosmo::Multipole ellmax);
+            double rmin, double rmax, double rVetoMin, double rVetoMax,
+            cosmo::Multipole ellmin, cosmo::Multipole ellmax);
             
         AbsCorrelationDataPtr loadCosmolibXi(std::string const &dataName,
             AbsCorrelationDataCPtr prototype, bool verbose, bool weighted,
