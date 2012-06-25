@@ -276,7 +276,8 @@ std::string const &refitConfig, std::string const &saveName, int nsave) const {
             if(refitStats) refitStats->update(sampleMinRefit);
             // Save the fit results, if requested.
             output.saveSample(sampleMin->getFitParameters(),sampleMin->getMinValue(),
-                sampleMinRefit->getFitParameters(), sampleMinRefit->getMinValue());
+                sampleMinRefit ? sampleMinRefit->getFitParameters() : likely::FitParameters(),
+                sampleMinRefit ? sampleMinRefit->getMinValue() : 0);
         }
         else {
             nInvalid++;
