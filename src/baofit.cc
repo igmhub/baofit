@@ -27,8 +27,8 @@ int main(int argc, char **argv) {
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin,
         rVetoWidth,rVetoCenter;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
-        mcmcSave,mcmcInterval;
-    std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,
+        mcmcSave,mcmcInterval,mcSamples;
+    std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,mcConfig,
         platelistName,platerootName,modelConfig,iniName,refitConfig,minMethod,xiMethod;
 
     // Default values in quotes below are to avoid roundoff errors leading to ugly --help
@@ -135,6 +135,10 @@ int main(int argc, char **argv) {
             "Number of Markov chain Monte Carlo samples to save (zero for no MCMC analysis)")
         ("mcmc-interval", po::value<int>(&mcmcInterval)->default_value(10),
             "Interval for saving MCMC trials (larger for less correlations and longer running time)")
+        ("mc-samples", po::value<int>(&mcSamples)->default_value(0),
+            "Number of MC samples to generate and fit.")
+        ("mc-config", po::value<std::string>(&mcConfig)->default_value(""),
+            "Fit parameter configuration to apply before generating samples.")
         ("random-seed", po::value<int>(&randomSeed)->default_value(1966),
             "Random seed to use for generating bootstrap samples.")
         ("min-method", po::value<std::string>(&minMethod)->default_value("mn2::vmetric"),
