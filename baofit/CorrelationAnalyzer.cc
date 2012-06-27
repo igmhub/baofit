@@ -127,6 +127,39 @@ namespace baofit {
         int _next;
         likely::BinnedDataResampler const &_resampler;
     };
+    class CorrelationAnalyzer::MCSampler : public CorrelationAnalyzer::AbsSampler {
+    public:
+        MCSampler(int ngen, AbsCorrelationDataPtr prototype)
+        : _remaining(ngen), _prototype(prototype)
+        {
+            for(likely::BinnedData::IndexIterator iter = prototype->begin();
+            iter != prototype->end(); ++iter) {
+                _truth.push_back(prototype->getData(*iter));
+            }
+        }
+        virtual AbsCorrelationDataCPtr nextSample() {
+            AbsCorrelationDataPtr sample;
+            if(_remaining-- > 0) {
+                // Generate a noise vector sampling from the prototype's covariance.
+                _prototype->getCovarianceMatrix()->sample(_noise);
+                // Clone our prototype (which only copies the covariance smart pointer, not
+                // the whole matrix)
+                sample.reset((AbsCorrelationData*)_prototype->clone());
+                // Overwrite the bin values with truth+noise
+                std::vector<double>::const_iterator nextTruth(_truth.begin()), nextNoise(_noise.begin());
+                for(likely::BinnedData::IndexIterator iter = _prototype->begin();
+                iter != _prototype->end(); ++iter) {
+                    sample->setData(*iter,(*nextTruth++)+(*nextNoise++));
+                }
+                sample->finalize();
+            }
+            return sample;
+        }
+    private:
+        int _remaining;
+        AbsCorrelationDataPtr _prototype;
+        std::vector<double> _truth, _noise;
+    };
 }
 
 int local::CorrelationAnalyzer::doJackknifeAnalysis(int jackknifeDrop, likely::FunctionMinimumPtr fmin,

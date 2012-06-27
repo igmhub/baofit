@@ -101,6 +101,7 @@ namespace baofit {
         class JackknifeSampler;
         class BootstrapSampler;
         class EachSampler;
+        class MCSampler;
         int doSamplingAnalysis(AbsSampler &sampler, std::string const &method,
             likely::FunctionMinimumPtr fmin, likely::FunctionMinimumPtr fmin2,
             std::string const &refitConfig, std::string const &saveName, int nsave) const;
