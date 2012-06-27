@@ -145,7 +145,7 @@ namespace baofit {
                 iter != _prototype->end(); ++iter) {
                     sample->setData(*iter,(*nextTruth++)+(*nextNoise++));
                 }
-                sample->finalize();
+                // We don't finalize here because the prototype should already be finalized.
             }
             return sample;
         }
@@ -162,6 +162,9 @@ int nsave) const {
     if(jackknifeDrop <= 0) {
         throw RuntimeError("CorrelationAnalyzer::doJackknifeAnalysis: expected jackknifeDrop > 0.");
     }
+    if(getNData() <= 1) {
+        throw RuntimeError("CorrelationAnalyzer::doJackknifeAnalysis: need > 1 observation.");
+    }
     CorrelationAnalyzer::JackknifeSampler sampler(jackknifeDrop,_resampler);
     return doSamplingAnalysis(sampler, "Jackknife", fmin, fmin2, refitConfig, saveName, nsave);
 }
@@ -174,6 +177,9 @@ std::string const &refitConfig, std::string const &saveName, int nsave) const {
     }
     if(bootstrapSize < 0) {
         throw RuntimeError("CorrelationAnalyzer::doBootstrapAnalysis: expected bootstrapSize >= 0.");
+    }
+    if(getNData() <= 1) {
+        throw RuntimeError("CorrelationAnalyzer::doBootstrapAnalysis: need > 1 observation.");
     }
     if(0 == bootstrapSize) bootstrapSize = getNData();
     CorrelationAnalyzer::BootstrapSampler sampler(bootstrapTrials,bootstrapSize,fixCovariance,_resampler);
@@ -192,7 +198,7 @@ std::string const &refitConfig, std::string const &saveName, int nsave) const {
     if(ngen <= 0) {
         throw RuntimeError("CorrelationAnalyzer::doMCSampling: expected ngen > 0.");
     }
-    // Get a copy of our combined dataset to use as a prototype.
+    // Get a copy of our (finalized) combined dataset to use as a prototype.
     AbsCorrelationDataPtr prototype = getCombined();
     if(!prototype->hasCovariance()) {
         throw RuntimeError("CorrelationAnalyzer::doMCSampling: no covariance available.");
@@ -291,9 +297,6 @@ namespace baofit {
 int local::CorrelationAnalyzer::doSamplingAnalysis(CorrelationAnalyzer::AbsSampler &sampler,
 std::string const &method, likely::FunctionMinimumPtr fmin, likely::FunctionMinimumPtr fmin2,
 std::string const &refitConfig, std::string const &saveName, int nsave) const {
-    if(getNData() <= 1) {
-        throw RuntimeError("CorrelationAnalyzer::doSamplingAnalysis: need > 1 observation.");
-    }
     if(nsave < 0) {
         throw RuntimeError("CorrelationAnalyzer::doSamplingAnalysis: expected nsave >= 0.");
     }
