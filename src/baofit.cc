@@ -363,6 +363,7 @@ int main(int argc, char **argv) {
             analyzer.dumpResiduals(out,fmin);
             out.close();
         }
+        // Generate a Markov-chain for marginalization, if requested.
         if(mcmcSave > 0) {
             analyzer.generateMarkovChain(mcmcSave,mcmcInterval,fmin,"mcmc.dat",ndump);
         }
@@ -381,6 +382,10 @@ int main(int argc, char **argv) {
             }
             std::cout << "Delta ChiSquare = "
                 << 2*(fmin2->getMinValue() - fmin->getMinValue()) << std::endl;
+        }
+        // Generate and fit MC samples, if requested.
+        if(mcSamples > 0) {
+            analyzer.doMCSampling(mcSamples,mcConfig,fmin,fmin2,refitConfig,"mc.dat",ndump);
         }
         // Perform a bootstrap analysis, if requested.
         if(bootstrapTrials > 0) {
