@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
         analysisOptions("Analysis options");
 
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin,
-        rVetoWidth,rVetoCenter;
+        rVetoWidth,rVetoCenter,priorCenter,priorWidth;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
         mcmcSave,mcmcInterval,mcSamples;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,mcConfig,
@@ -58,6 +58,10 @@ int main(int argc, char **argv) {
             "Comma-separated list of r values (Mpc/h) to use for interpolating r^2 xi(r)")
         ("xi-method", po::value<std::string>(&xiMethod)->default_value("cspline"),
             "Interpolation method to use in r^2 xi(r), use linear or cspline.")
+        ("prior-width", po::value<double>(&priorWidth)->default_value(0.3),
+            "Full width of BAO scale prior window to use in fit (zero for no prior).")
+        ("prior-center", po::value<double>(&priorCenter)->default_value(1),
+            "Center of BAO scale prior window to use in fit.")
         ("model-config", po::value<std::string>(&modelConfig)->default_value(""),
             "Model parameters configuration script.")
         ;
@@ -201,8 +205,9 @@ int main(int argc, char **argv) {
     }
     cosmo::Multipole ellmax = static_cast<cosmo::Multipole>(lmax);
 
-    // Calculate veto window limits.
+    // Calculate veto and scale prior windows.
     double rVetoMin = rVetoCenter - 0.5*rVetoWidth, rVetoMax = rVetoCenter + 0.5*rVetoWidth;
+    double priorMin = priorCenter - 0.5*priorWidth, priorMax = priorCenter + 0.5*priorWidth;
 
     // Initialize our analyzer.
     likely::Random::instance()->setSeed(randomSeed);
@@ -221,7 +226,7 @@ int main(int argc, char **argv) {
         else {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
             model.reset(new baofit::BaoCorrelationModel(
-                modelrootName,fiducialName,nowigglesName,broadbandName,zref));
+                modelrootName,fiducialName,nowigglesName,broadbandName,zref,priorMin,priorMax));
         }
              
         // Configure our fit model parameters, if requested.
