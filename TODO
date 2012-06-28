@@ -1,7 +1,5 @@
 Add option to load/save data using new BinnedData virtual methods.
 
-Generate and save/fit MC samples from a model and data covariance matrix.
-
 Add structured (json?) logging of analysis outputs.
 
 Add python scripting of analysis.

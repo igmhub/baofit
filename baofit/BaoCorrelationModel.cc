@@ -17,12 +17,17 @@ namespace local = baofit;
 
 local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName,
     std::string const &fiducialName, std::string const &nowigglesName,
-    std::string const &broadbandName, double zref)
-: AbsCorrelationModel("BAO Correlation Model"), _zref(zref)
+    std::string const &broadbandName, double zref, double scalePriorMin, double scalePriorMax)
+: AbsCorrelationModel("BAO Correlation Model"), _zref(zref),
+_scalePriorMin(scalePriorMin), _scalePriorMax(scalePriorMax)
 {
     if(zref < 0) {
         throw RuntimeError("BaoCorrelationModel: expected zref >= 0.");
     }
+    if(scalePriorMin > scalePriorMax) {
+        throw RuntimeError("BaoCorrelationModel: expected scalePriorMin <= scalePriorMax.");
+    }
+    _scalePriorNorm = 2*0.01*0.01; // 2*sigma^2
     // Linear bias parameters
     defineParameter("beta",1.4,0.1);
     defineParameter("(1+beta)*bias",-0.336,0.03);
@@ -93,10 +98,6 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
     catch(likely::RuntimeError const &e) {
         throw RuntimeError("BaoCorrelationModel: error while reading model interpolation data.");
     }
-    // Hardcode our scale parameter prior for a first test.
-    _scalePriorMin = 0.85;
-    _scalePriorMax = 1.15;
-    _scalePriorNorm = 2*0.01*0.01; // 2*sigma^2
 }
 
 local::BaoCorrelationModel::~BaoCorrelationModel() { }
@@ -104,6 +105,9 @@ local::BaoCorrelationModel::~BaoCorrelationModel() { }
 // Evaluates -log(prior(scale)) where the prior is Gaussian for scale < min or scale > max,
 // and equal to one for min < scale < max.
 double local::BaoCorrelationModel::_evaluatePrior(bool anyChanged) const {
+    // First check if any prior is requested
+    if(_scalePriorMin >= _scalePriorMax) return 0;
+
     double scale = getParameterValue("BAO scale");
     if(scale < _scalePriorMin) {
         double diff(scale - _scalePriorMin);

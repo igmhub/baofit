@@ -25,10 +25,10 @@ int main(int argc, char **argv) {
         analysisOptions("Analysis options");
 
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin,
-        rVetoWidth,rVetoCenter;
+        rVetoWidth,rVetoCenter,priorCenter,priorWidth,xiRmin,xiRmax;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
-        mcmcSave,mcmcInterval;
-    std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,
+        mcmcSave,mcmcInterval,mcSamples,xiNr;
+    std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,mcConfig,
         platelistName,platerootName,modelConfig,iniName,refitConfig,minMethod,xiMethod;
 
     // Default values in quotes below are to avoid roundoff errors leading to ugly --help
@@ -58,6 +58,10 @@ int main(int argc, char **argv) {
             "Comma-separated list of r values (Mpc/h) to use for interpolating r^2 xi(r)")
         ("xi-method", po::value<std::string>(&xiMethod)->default_value("cspline"),
             "Interpolation method to use in r^2 xi(r), use linear or cspline.")
+        ("prior-width", po::value<double>(&priorWidth)->default_value(0.3),
+            "Full width of BAO scale prior window to use in fit (zero for no prior).")
+        ("prior-center", po::value<double>(&priorCenter)->default_value(1),
+            "Center of BAO scale prior window to use in fit.")
         ("model-config", po::value<std::string>(&modelConfig)->default_value(""),
             "Model parameters configuration script.")
         ;
@@ -103,6 +107,13 @@ int main(int argc, char **argv) {
         ("nz", po::value<int>(&nz)->default_value(2),
             "Maximum number of redshift bins.")
         ("xi-format", "Cosmolib data in Xi format.")
+        ("xi-rmin", po::value<double>(&xiRmin)->default_value(0),
+            "Minimum separation in Mpc/h (Xi format only).")
+        ("xi-rmax", po::value<double>(&xiRmax)->default_value(200),
+            "Minimum separation in Mpc/h (Xi format only).")
+        ("xi-nr", po::value<int>(&xiNr)->default_value(41),
+            "Number of separation values equally spaced from minr-maxr (Xi format only).")
+        ("xi-hexa", "Has hexadecapole (Xi format only).")
         ;
     analysisOptions.add_options()
         ("rmin", po::value<double>(&rmin)->default_value(0),
@@ -135,6 +146,10 @@ int main(int argc, char **argv) {
             "Number of Markov chain Monte Carlo samples to save (zero for no MCMC analysis)")
         ("mcmc-interval", po::value<int>(&mcmcInterval)->default_value(10),
             "Interval for saving MCMC trials (larger for less correlations and longer running time)")
+        ("mc-samples", po::value<int>(&mcSamples)->default_value(0),
+            "Number of MC samples to generate and fit.")
+        ("mc-config", po::value<std::string>(&mcConfig)->default_value(""),
+            "Fit parameter configuration to apply before generating samples.")
         ("random-seed", po::value<int>(&randomSeed)->default_value(1966),
             "Random seed to use for generating bootstrap samples.")
         ("min-method", po::value<std::string>(&minMethod)->default_value("mn2::vmetric"),
@@ -176,7 +191,7 @@ int main(int argc, char **argv) {
     bool verbose(0 == vm.count("quiet")), french(vm.count("french")), weighted(vm.count("weighted")),
         checkPosDef(vm.count("check-posdef")), fixCovariance(0 == vm.count("naive-covariance")),
         dr9lrg(vm.count("dr9lrg")), unweighted(vm.count("unweighted")),
-        fitEach(vm.count("fit-each")), reuseCov(vm.count("reuse-cov")),
+        fitEach(vm.count("fit-each")), reuseCov(vm.count("reuse-cov")), xiHexa(vm.count("xi-hexa")),
         xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")), expanded(vm.count("expanded"));
 
     // Check for the required filename parameters.
@@ -197,8 +212,9 @@ int main(int argc, char **argv) {
     }
     cosmo::Multipole ellmax = static_cast<cosmo::Multipole>(lmax);
 
-    // Calculate veto window limits.
+    // Calculate veto and scale prior windows.
     double rVetoMin = rVetoCenter - 0.5*rVetoWidth, rVetoMax = rVetoCenter + 0.5*rVetoWidth;
+    double priorMin = priorCenter - 0.5*priorWidth, priorMax = priorCenter + 0.5*priorWidth;
 
     // Initialize our analyzer.
     likely::Random::instance()->setSeed(randomSeed);
@@ -217,7 +233,7 @@ int main(int argc, char **argv) {
         else {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
             model.reset(new baofit::BaoCorrelationModel(
-                modelrootName,fiducialName,nowigglesName,broadbandName,zref));
+                modelrootName,fiducialName,nowigglesName,broadbandName,zref,priorMin,priorMax));
         }
              
         // Configure our fit model parameters, if requested.
@@ -257,7 +273,8 @@ int main(int argc, char **argv) {
         }
         else if(xiFormat) {
             zdata = 2.25;
-            prototype = baofit::boss::createCosmolibXiPrototype(minz,dz,nz,rmin,rmax,rVetoMin,rVetoMax,ellmin,ellmax);
+            prototype = baofit::boss::createCosmolibXiPrototype(minz,dz,nz,xiRmin,xiRmax,xiNr,xiHexa,
+                rmin,rmax,rVetoMin,rVetoMax,ellmin,ellmax);
         }
         else {
             zdata = 2.25;
@@ -309,7 +326,7 @@ int main(int argc, char **argv) {
             }
             else if(xiFormat) {
                 analyzer.addData(baofit::boss::loadCosmolibXi(*filename,prototype,
-                    verbose, weighted, checkPosDef));
+                    verbose,weighted,reuseCov,checkPosDef));
             }
             else {
                 // Add a cosmolib dataset, assumed to provided icov instead of cov.
@@ -359,6 +376,7 @@ int main(int argc, char **argv) {
             analyzer.dumpResiduals(out,fmin);
             out.close();
         }
+        // Generate a Markov-chain for marginalization, if requested.
         if(mcmcSave > 0) {
             analyzer.generateMarkovChain(mcmcSave,mcmcInterval,fmin,"mcmc.dat",ndump);
         }
@@ -377,6 +395,10 @@ int main(int argc, char **argv) {
             }
             std::cout << "Delta ChiSquare = "
                 << 2*(fmin2->getMinValue() - fmin->getMinValue()) << std::endl;
+        }
+        // Generate and fit MC samples, if requested.
+        if(mcSamples > 0) {
+            analyzer.doMCSampling(mcSamples,mcConfig,fmin,fmin2,refitConfig,"mc.dat",ndump);
         }
         // Perform a bootstrap analysis, if requested.
         if(bootstrapTrials > 0) {

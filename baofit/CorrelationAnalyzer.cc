@@ -127,6 +127,33 @@ namespace baofit {
         int _next;
         likely::BinnedDataResampler const &_resampler;
     };
+    class CorrelationAnalyzer::MCSampler : public CorrelationAnalyzer::AbsSampler {
+    public:
+        MCSampler(int ngen, AbsCorrelationDataPtr prototype, std::vector<double> truth)
+        : _remaining(ngen), _prototype(prototype), _truth(truth) { }
+        virtual AbsCorrelationDataCPtr nextSample() {
+            AbsCorrelationDataPtr sample;
+            if(_remaining-- > 0) {
+                // Generate a noise vector sampling from the prototype's covariance.
+                _prototype->getCovarianceMatrix()->sample(_noise);
+                // Clone our prototype (which only copies the covariance smart pointer, not
+                // the whole matrix)
+                sample.reset((AbsCorrelationData*)_prototype->clone());
+                // Overwrite the bin values with truth+noise
+                std::vector<double>::const_iterator nextTruth(_truth.begin()), nextNoise(_noise.begin());
+                for(likely::BinnedData::IndexIterator iter = _prototype->begin();
+                iter != _prototype->end(); ++iter) {
+                    sample->setData(*iter,(*nextTruth++)+(*nextNoise++));
+                }
+                // We don't finalize here because the prototype should already be finalized.
+            }
+            return sample;
+        }
+    private:
+        int _remaining;
+        AbsCorrelationDataPtr _prototype;
+        std::vector<double> _truth, _noise;
+    };
 }
 
 int local::CorrelationAnalyzer::doJackknifeAnalysis(int jackknifeDrop, likely::FunctionMinimumPtr fmin,
@@ -134,6 +161,9 @@ likely::FunctionMinimumPtr fmin2, std::string const &refitConfig, std::string co
 int nsave) const {
     if(jackknifeDrop <= 0) {
         throw RuntimeError("CorrelationAnalyzer::doJackknifeAnalysis: expected jackknifeDrop > 0.");
+    }
+    if(getNData() <= 1) {
+        throw RuntimeError("CorrelationAnalyzer::doJackknifeAnalysis: need > 1 observation.");
     }
     CorrelationAnalyzer::JackknifeSampler sampler(jackknifeDrop,_resampler);
     return doSamplingAnalysis(sampler, "Jackknife", fmin, fmin2, refitConfig, saveName, nsave);
@@ -148,6 +178,9 @@ std::string const &refitConfig, std::string const &saveName, int nsave) const {
     if(bootstrapSize < 0) {
         throw RuntimeError("CorrelationAnalyzer::doBootstrapAnalysis: expected bootstrapSize >= 0.");
     }
+    if(getNData() <= 1) {
+        throw RuntimeError("CorrelationAnalyzer::doBootstrapAnalysis: need > 1 observation.");
+    }
     if(0 == bootstrapSize) bootstrapSize = getNData();
     CorrelationAnalyzer::BootstrapSampler sampler(bootstrapTrials,bootstrapSize,fixCovariance,_resampler);
     return doSamplingAnalysis(sampler, "Bootstrap", fmin, fmin2, refitConfig, saveName, nsave);
@@ -157,6 +190,32 @@ int local::CorrelationAnalyzer::fitEach(likely::FunctionMinimumPtr fmin, likely:
 std::string const &refitConfig, std::string const &saveName, int nsave) const {
     CorrelationAnalyzer::EachSampler sampler(_resampler);
     return doSamplingAnalysis(sampler, "Individual", fmin, fmin2, refitConfig, saveName, nsave);    
+}
+
+int local::CorrelationAnalyzer::doMCSampling(int ngen, std::string const &mcConfig,
+likely::FunctionMinimumPtr fmin, likely::FunctionMinimumPtr fmin2,
+std::string const &refitConfig, std::string const &saveName, int nsave) const {
+    if(ngen <= 0) {
+        throw RuntimeError("CorrelationAnalyzer::doMCSampling: expected ngen > 0.");
+    }
+    // Get a copy of our (finalized) combined dataset to use as a prototype.
+    AbsCorrelationDataPtr prototype = getCombined();
+    if(!prototype->hasCovariance()) {
+        throw RuntimeError("CorrelationAnalyzer::doMCSampling: no covariance available.");
+    }
+    // Configure the fit parameters for generating the truth vector.
+    likely::FitParameters parameters = fmin->getFitParameters();
+    likely::modifyFitParameters(parameters,mcConfig);
+    std::vector<double> pvalues;
+    likely::getFitParameterValues(parameters,pvalues);
+    // Build a fitter to calculate the truth vector.
+    CorrelationFitter fitter(prototype, _model);
+    // Calculate the truth vector.
+    std::vector<double> truth;
+    fitter.getPrediction(pvalues,truth);
+    // Build the sampler for this analysis.
+    CorrelationAnalyzer::MCSampler sampler(ngen,prototype,truth);
+    return doSamplingAnalysis(sampler, "MonteCarlo", fmin, fmin2, refitConfig, saveName, nsave);
 }
 
 namespace baofit {
@@ -238,9 +297,6 @@ namespace baofit {
 int local::CorrelationAnalyzer::doSamplingAnalysis(CorrelationAnalyzer::AbsSampler &sampler,
 std::string const &method, likely::FunctionMinimumPtr fmin, likely::FunctionMinimumPtr fmin2,
 std::string const &refitConfig, std::string const &saveName, int nsave) const {
-    if(getNData() <= 1) {
-        throw RuntimeError("CorrelationAnalyzer::doSamplingAnalysis: need > 1 observation.");
-    }
     if(nsave < 0) {
         throw RuntimeError("CorrelationAnalyzer::doSamplingAnalysis: expected nsave >= 0.");
     }
