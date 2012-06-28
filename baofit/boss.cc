@@ -160,7 +160,8 @@ double rVetoMin, double rVetoMax, cosmo::Multipole ellmin, cosmo::Multipole ellm
         zBins(new likely::UniformSampling(zref,zref,1)),
         ellBins(new likely::UniformSampling(cosmo::Monopole,cosmo::Quadrupole,2));
     baofit::AbsCorrelationDataPtr
-        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins,rmin,rmax,rVetoMin,rVetoMax,ellmin,ellmax));
+        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins,rmin,rmax,
+            rVetoMin,rVetoMax,ellmin,ellmax));
     return prototype;
 }
 
@@ -475,10 +476,10 @@ bool checkPosDef) {
 }
 
 baofit::AbsCorrelationDataCPtr local::createCosmolibXiPrototype(double minz, double dz, int nz,
-double minr, double maxr, double nr, bool hasHexadecapole, double rmin, double rmax, double rVetoMin, double rVetoMax,
-cosmo::Multipole ellmin, cosmo::Multipole ellmax) {
-    if(ellmin < cosmo::Monopole || ellmax > cosmo::Quadrupole || ellmin > ellmax) {
-        throw RuntimeError("createCosmolibXiPrototype: invalid ell range.");
+double minr, double maxr, double nr, bool hasHexadecapole, double rmin, double rmax,
+double rVetoMin, double rVetoMax, cosmo::Multipole ellmin, cosmo::Multipole ellmax) {
+    if(ellmin > ellmax) {
+        throw RuntimeError("createCosmolibXiPrototype: expected ellmin <= ellmax.");
     }
     // Create the new BinnedData that we will fill.
     std::vector<double> ellValues;
@@ -491,12 +492,13 @@ cosmo::Multipole ellmin, cosmo::Multipole ellmax) {
         ellBins(new likely::NonUniformSampling(ellValues)),
         zBins(new likely::UniformSampling(minz+0.5*dz,minz+(nz-0.5)*dz,nz));
     baofit::AbsCorrelationDataPtr
-        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins,rmin,rmax,rVetoMin,rVetoMax,ellmin,ellmax));
+        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins,rmin,rmax,
+            rVetoMin,rVetoMax,ellmin,ellmax));
     return prototype;
 }
 
 baofit::AbsCorrelationDataPtr local::loadCosmolibXi(std::string const &dataName,
-AbsCorrelationDataCPtr prototype, bool verbose, bool weighted, bool checkPosDef) {
+AbsCorrelationDataCPtr prototype, bool verbose, bool weighted, bool reuseCov, bool checkPosDef) {
     
     // Create the new AbsCorrelationData that we will fill.
     baofit::AbsCorrelationDataPtr binnedData((baofit::MultipoleCorrelationData *)(prototype->clone(true)));
@@ -546,8 +548,24 @@ AbsCorrelationDataCPtr prototype, bool verbose, bool weighted, bool checkPosDef)
             << binnedData->getNBinsTotal() << " data values from " << paramsName << std::endl;
     }
     
+
+    // Do we need to reuse the covariance estimated for the first realization of this plate?
+    std::string covName;
+    if(reuseCov) {
+        // Parse the data name.
+        boost::regex namePattern("([a-zA-Z0-9/_\\.]+/)?([0-9]+_)([0-9]+)\\.cat\\.([0-9]+)");
+        boost::match_results<std::string::const_iterator> what;
+        if(!boost::regex_match(dataName,what,namePattern)) {
+            throw RuntimeError("loadCosmolib: cannot parse name \"" + dataName + "\"");
+        }
+        covName = what[1]+what[2]+"1.cat."+what[4];
+    }
+    else {
+        covName = dataName;
+    }
+    covName += ".icov";
+
     // Loop over lines in the covariance file.
-    std::string covName = dataName + ".icov";
     std::ifstream covIn(covName.c_str());
     if(!covIn.good()) throw RuntimeError("Unable to open " + covName);
     lines = 0;

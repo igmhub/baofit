@@ -326,7 +326,7 @@ int main(int argc, char **argv) {
             }
             else if(xiFormat) {
                 analyzer.addData(baofit::boss::loadCosmolibXi(*filename,prototype,
-                    verbose, weighted, checkPosDef));
+                    verbose,weighted,reuseCov,checkPosDef));
             }
             else {
                 // Add a cosmolib dataset, assumed to provided icov instead of cov.

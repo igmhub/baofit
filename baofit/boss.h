@@ -44,7 +44,7 @@ namespace baofit {
             
         AbsCorrelationDataPtr loadCosmolibXi(std::string const &dataName,
             AbsCorrelationDataCPtr prototype, bool verbose, bool weighted,
-            bool checkPosDef = false);
+            bool reuseCov = false, bool checkPosDef = false);
 
     } // boss
 } // baofit
