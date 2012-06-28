@@ -25,9 +25,9 @@ int main(int argc, char **argv) {
         analysisOptions("Analysis options");
 
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin,
-        rVetoWidth,rVetoCenter,priorCenter,priorWidth;
+        rVetoWidth,rVetoCenter,priorCenter,priorWidth,xiRmin,xiRmax;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
-        mcmcSave,mcmcInterval,mcSamples;
+        mcmcSave,mcmcInterval,mcSamples,xiNr;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,mcConfig,
         platelistName,platerootName,modelConfig,iniName,refitConfig,minMethod,xiMethod;
 
@@ -107,6 +107,13 @@ int main(int argc, char **argv) {
         ("nz", po::value<int>(&nz)->default_value(2),
             "Maximum number of redshift bins.")
         ("xi-format", "Cosmolib data in Xi format.")
+        ("xi-rmin", po::value<double>(&xiRmin)->default_value(0),
+            "Minimum separation in Mpc/h (Xi format only).")
+        ("xi-rmax", po::value<double>(&xiRmax)->default_value(200),
+            "Minimum separation in Mpc/h (Xi format only).")
+        ("xi-nr", po::value<int>(&xiNr)->default_value(41),
+            "Number of separation values equally spaced from minr-maxr (Xi format only).")
+        ("xi-hexa", "Has hexadecapole (Xi format only).")
         ;
     analysisOptions.add_options()
         ("rmin", po::value<double>(&rmin)->default_value(0),
@@ -184,7 +191,7 @@ int main(int argc, char **argv) {
     bool verbose(0 == vm.count("quiet")), french(vm.count("french")), weighted(vm.count("weighted")),
         checkPosDef(vm.count("check-posdef")), fixCovariance(0 == vm.count("naive-covariance")),
         dr9lrg(vm.count("dr9lrg")), unweighted(vm.count("unweighted")),
-        fitEach(vm.count("fit-each")), reuseCov(vm.count("reuse-cov")),
+        fitEach(vm.count("fit-each")), reuseCov(vm.count("reuse-cov")), xiHexa(vm.count("xi-hexa")),
         xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")), expanded(vm.count("expanded"));
 
     // Check for the required filename parameters.
@@ -266,7 +273,8 @@ int main(int argc, char **argv) {
         }
         else if(xiFormat) {
             zdata = 2.25;
-            prototype = baofit::boss::createCosmolibXiPrototype(minz,dz,nz,rmin,rmax,rVetoMin,rVetoMax,ellmin,ellmax);
+            prototype = baofit::boss::createCosmolibXiPrototype(minz,dz,nz,xiRmin,xiRmax,xiNr,xiHexa,
+                rmin,rmax,rVetoMin,rVetoMax,ellmin,ellmax);
         }
         else {
             zdata = 2.25;

@@ -38,6 +38,7 @@ namespace baofit {
             bool reuseCov = false, bool checkPosDef = false);
 
         AbsCorrelationDataCPtr createCosmolibXiPrototype(double minz, double dz, int nz,
+            double minr, double maxr, double nr, bool hasHexadecapole,
             double rmin, double rmax, double rVetoMin, double rVetoMax,
             cosmo::Multipole ellmin, cosmo::Multipole ellmax);
             

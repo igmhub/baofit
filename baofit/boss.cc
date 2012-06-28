@@ -475,7 +475,8 @@ bool checkPosDef) {
 }
 
 baofit::AbsCorrelationDataCPtr local::createCosmolibXiPrototype(double minz, double dz, int nz,
-double rmin, double rmax, double rVetoMin, double rVetoMax, cosmo::Multipole ellmin, cosmo::Multipole ellmax) {
+double minr, double maxr, double nr, bool hasHexadecapole, double rmin, double rmax, double rVetoMin, double rVetoMax,
+cosmo::Multipole ellmin, cosmo::Multipole ellmax) {
     if(ellmin < cosmo::Monopole || ellmax > cosmo::Quadrupole || ellmin > ellmax) {
         throw RuntimeError("createCosmolibXiPrototype: invalid ell range.");
     }
@@ -484,8 +485,9 @@ double rmin, double rmax, double rVetoMin, double rVetoMax, cosmo::Multipole ell
     ellValues.push_back(-1);
     ellValues.push_back(cosmo::Monopole);
     ellValues.push_back(cosmo::Quadrupole);
+    if(hasHexadecapole) ellValues.push_back(cosmo::Hexadecapole);
     likely::AbsBinningCPtr
-        rBins(new likely::UniformSampling(0,200,41)),
+        rBins(new likely::UniformSampling(minr,maxr,nr)),
         ellBins(new likely::NonUniformSampling(ellValues)),
         zBins(new likely::UniformSampling(minz+0.5*dz,minz+(nz-0.5)*dz,nz));
     baofit::AbsCorrelationDataPtr
