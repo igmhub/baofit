@@ -105,6 +105,9 @@ local::BaoCorrelationModel::~BaoCorrelationModel() { }
 // Evaluates -log(prior(scale)) where the prior is Gaussian for scale < min or scale > max,
 // and equal to one for min < scale < max.
 double local::BaoCorrelationModel::_evaluatePrior(bool anyChanged) const {
+    // First check if any prior is requested
+    if(_scalePriorMin >= _scalePriorMax) return 0;
+
     double scale = getParameterValue("BAO scale");
     if(scale < _scalePriorMin) {
         double diff(scale - _scalePriorMin);
