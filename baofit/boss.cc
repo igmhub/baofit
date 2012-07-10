@@ -314,6 +314,20 @@ std::vector<double> local::twoStepSampling(double breakpoint,double llmax,double
     return samplePoints;
 }
 
+baofit::AbsCorrelationDataCPtr local::createSectorsPrototype(double zref, double rmin, double rmax,
+double rVetoMin, double rVetoMax) {
+    // Initialize the fixed (r,mu,z) binning for this format.
+    likely::AbsBinningCPtr
+        rBins(new likely::UniformBinning(0,200,50)),
+        muBins(new likely::UniformBinning(0,1,50)),
+        zBins(new likely::UniformSampling(zref,zref,1));
+
+    baofit::AbsCorrelationDataPtr
+        prototype(new baofit::ThreeDCorrelationData(rBins,muBins,zBins,rmin,rmax,rVetoMin,rVetoMax));
+
+    return prototype;    
+}
+
 // Creates a prototype QuasarCorrelationData with the specified binning and cosmology.
 baofit::AbsCorrelationDataCPtr local::createCosmolibPrototype(
 double minsep, double dsep, int nsep, double minz, double dz, int nz,

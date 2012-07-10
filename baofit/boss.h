@@ -19,6 +19,9 @@ namespace baofit {
             AbsCorrelationDataCPtr prototype, bool verbose,
             bool unweighted = false, bool expanded = false, bool checkPosDef = false);
             
+        AbsCorrelationDataCPtr createSectorsPrototype(double zref, double rmin, double rmax,
+            double rVetoMin, double rVetoMax);
+            
         AbsCorrelationDataCPtr createDR9LRGPrototype(double zref, double rmin, double rmax,
             double rVetoMin, double rVetoMax, std::string const &covName, bool verbose);
         

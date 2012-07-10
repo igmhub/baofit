@@ -83,6 +83,7 @@ int main(int argc, char **argv) {
         ("unweighted", "Does not read covariance data.")
         ("expanded", "Data uses the expanded format.")
         ("use-quad", "Uses quadrupole correlations.")
+        ("sectors", "Correlation data file in r-mu format by angular sector.")
         ;
     cosmolibOptions.add_options()
         ("weighted", "Data vectors are inverse-covariance weighted.")
@@ -193,7 +194,8 @@ int main(int argc, char **argv) {
         checkPosDef(vm.count("check-posdef")), fixCovariance(0 == vm.count("naive-covariance")),
         dr9lrg(vm.count("dr9lrg")), unweighted(vm.count("unweighted")), anisotropic(vm.count("anisotropic")),
         fitEach(vm.count("fit-each")), reuseCov(vm.count("reuse-cov")), xiHexa(vm.count("xi-hexa")),
-        xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")), expanded(vm.count("expanded"));
+        xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")),
+        expanded(vm.count("expanded")), sectors(vm.count("sectors"));
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
@@ -267,6 +269,10 @@ int main(int argc, char **argv) {
         if(french) {
             zdata = 2.30;
             prototype = baofit::boss::createFrenchPrototype(zdata,rmin,rmax,rVetoMin,rVetoMax,ellmin,ellmax);
+        }
+        else if(sectors) {
+            zdata = 2.30;
+            prototype = baofit::boss::createSectorsPrototype(zdata,rmin,rmax,rVetoMin,rVetoMax);
         }
         else if(dr9lrg) {
             zdata = 0.57;
