@@ -254,7 +254,6 @@ bool anyChanged) const {
             double b = getParameterValue("BAO scale b");
 
             // !! TODO: add hexadecapole terms below
-            double fid(0),nw(0);
             switch(multipole) {
             case cosmo::Monopole:
                 fid = fid0 + (2./5.)*(a-b)*fid2 + (a+2*b)/3*r*fid0p + (2./15.)*(a-b)*r*fid2p;
@@ -263,6 +262,10 @@ bool anyChanged) const {
             case cosmo::Quadrupole:
                 fid = fid2*(1 + (2./7.)*(a-b)) + (2./3.)*(a-b)*r*fid0p + (11*a+10*b)/21*r*fid2p;
                 nw = nw2*(1 + (2./7.)*(a-b)) + (2./3.)*(a-b)*r*nw0p + (11*a+10*b)/21*r*nw2p;
+                break;
+            case cosmo::Hexadecapole:
+                throw RuntimeError("BaoCorrelationModel: anisotropic hexadecapole not implemented yet.");
+                break;
             }
         }
         else {
