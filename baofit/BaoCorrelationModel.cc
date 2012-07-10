@@ -264,7 +264,8 @@ bool anyChanged) const {
                 nw = nw2*(1 + (2./7.)*(a-b)) + (2./3.)*(a-b)*r*nw0p + (11*a+10*b)/21*r*nw2p;
                 break;
             case cosmo::Hexadecapole:
-                throw RuntimeError("BaoCorrelationModel: anisotropic hexadecapole not implemented yet.");
+                //throw RuntimeError("BaoCorrelationModel: anisotropic hexadecapole not implemented yet.");
+                fid = nw = 0;
                 break;
             }
         }
@@ -287,4 +288,6 @@ bool anyChanged) const {
 void  local::BaoCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
     AbsCorrelationModel::printToStream(out,formatSpec);
     out << std::endl << "Reference redshift = " << _zref << std::endl;
+    out << "Using " << (_anisotropic ? "anisotropic":"isotropic") << " BAO scales." << std::endl;
+    out << "Isotropic BAO scale prior [" << _scalePriorMin << "," << _scalePriorMax << "]" << std::endl;
 }
