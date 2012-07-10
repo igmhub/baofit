@@ -17,8 +17,9 @@ namespace local = baofit;
 
 local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName,
     std::string const &fiducialName, std::string const &nowigglesName,
-    std::string const &broadbandName, double zref, double scalePriorMin, double scalePriorMax)
-: AbsCorrelationModel("BAO Correlation Model"), _zref(zref),
+    std::string const &broadbandName, double zref, bool anisotropic,
+    double scalePriorMin, double scalePriorMax)
+: AbsCorrelationModel("BAO Correlation Model"), _zref(zref), _anisotropic(anisotropic),
 _scalePriorMin(scalePriorMin), _scalePriorMax(scalePriorMax)
 {
     if(zref < 0) {
@@ -36,6 +37,10 @@ _scalePriorMin(scalePriorMin), _scalePriorMax(scalePriorMax)
     // BAO peak parameters
     defineParameter("BAO amplitude",1,0.15);
     defineParameter("BAO scale",1,0.02);
+
+    defineParameter("BAO scale a",0,0.1);
+    defineParameter("BAO scale b",0,0.1);
+
     // Broadband Model 1 parameters
     defineParameter("BBand1 xio",0,0.001);
     defineParameter("BBand1 a0",0,0.2);
@@ -231,7 +236,39 @@ bool anyChanged) const {
     // Calculate the peak contribution with scaled radius.
     double peak(0);
     if(ampl != 0) {
-        double fid((*_fid)(r*scale,multipole)), nw((*_nw)(r*scale,multipole));
+        double fid, nw;
+        if(_anisotropic) {
+            double fid0 = (*_fid)(r,cosmo::Monopole), fid2 = (*_fid)(r,cosmo::Quadrupole), fid4 = (*_fid)(r,cosmo::Hexadecapole);
+            double nw0 = (*_nw)(r,cosmo::Monopole), nw2 = (*_nw)(r,cosmo::Quadrupole), nw4 = (*_nw)(r,cosmo::Hexadecapole);
+
+            double dr = 1;
+            double fid0p = ((*_fid)(r+dr,cosmo::Monopole) - (*_fid)(r-dr,cosmo::Monopole))/(2*dr);
+            double fid2p = ((*_fid)(r+dr,cosmo::Quadrupole) - (*_fid)(r-dr,cosmo::Quadrupole))/(2*dr);
+            double fid4p = ((*_fid)(r+dr,cosmo::Hexadecapole) - (*_fid)(r-dr,cosmo::Hexadecapole))/(2*dr);
+            double nw0p = ((*_nw)(r+dr,cosmo::Monopole) - (*_nw)(r-dr,cosmo::Monopole))/(2*dr);
+            double nw2p = ((*_nw)(r+dr,cosmo::Quadrupole) - (*_nw)(r-dr,cosmo::Quadrupole))/(2*dr);
+            double nw4p = ((*_nw)(r+dr,cosmo::Hexadecapole) - (*_nw)(r-dr,cosmo::Hexadecapole))/(2*dr);
+        
+            //double a = scale - 1, b = a;
+            double a = getParameterValue("BAO scale a");
+            double b = getParameterValue("BAO scale b");
+
+            // !! TODO: add hexadecapole terms below
+            double fid(0),nw(0);
+            switch(multipole) {
+            case cosmo::Monopole:
+                fid = fid0 + (2./5.)*(a-b)*fid2 + (a+2*b)/3*r*fid0p + (2./15.)*(a-b)*r*fid2p;
+                nw = nw0 + (2./5.)*(a-b)*nw2 + (a+2*b)/3*r*nw0p + (2./15.)*(a-b)*r*nw2p;
+                break;
+            case cosmo::Quadrupole:
+                fid = fid2*(1 + (2./7.)*(a-b)) + (2./3.)*(a-b)*r*fid0p + (11*a+10*b)/21*r*fid2p;
+                nw = nw2*(1 + (2./7.)*(a-b)) + (2./3.)*(a-b)*r*nw0p + (11*a+10*b)/21*r*nw2p;
+            }
+        }
+        else {
+            fid = (*_fid)(r*scale,multipole);
+            nw = (*_nw)(r*scale,multipole);
+        }
         peak = ampl*(fid-nw);
     }
     // Calculate the additional broadband contribution with no radius scaling.

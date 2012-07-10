@@ -64,6 +64,7 @@ int main(int argc, char **argv) {
             "Center of BAO scale prior window to use in fit.")
         ("model-config", po::value<std::string>(&modelConfig)->default_value(""),
             "Model parameters configuration script.")
+        ("anisotropic", "Uses anisotropic a,b parameters instead of isotropic scale.")
         ;
     dataOptions.add_options()
         ("data", po::value<std::string>(&dataName)->default_value(""),
@@ -190,7 +191,7 @@ int main(int argc, char **argv) {
     // Extract boolean options.
     bool verbose(0 == vm.count("quiet")), french(vm.count("french")), weighted(vm.count("weighted")),
         checkPosDef(vm.count("check-posdef")), fixCovariance(0 == vm.count("naive-covariance")),
-        dr9lrg(vm.count("dr9lrg")), unweighted(vm.count("unweighted")),
+        dr9lrg(vm.count("dr9lrg")), unweighted(vm.count("unweighted")), anisotropic(vm.count("anisotropic")),
         fitEach(vm.count("fit-each")), reuseCov(vm.count("reuse-cov")), xiHexa(vm.count("xi-hexa")),
         xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")), expanded(vm.count("expanded"));
 
@@ -233,7 +234,8 @@ int main(int argc, char **argv) {
         else {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
             model.reset(new baofit::BaoCorrelationModel(
-                modelrootName,fiducialName,nowigglesName,broadbandName,zref,priorMin,priorMax));
+                modelrootName,fiducialName,nowigglesName,broadbandName,zref,
+                anisotropic,priorMin,priorMax));
         }
              
         // Configure our fit model parameters, if requested.
