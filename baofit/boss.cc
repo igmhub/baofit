@@ -335,73 +335,51 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose) {
     // Create the new AbsCorrelationData that we will fill.
     baofit::AbsCorrelationDataPtr binnedData((baofit::ComovingCorrelationData *)(prototype->clone(true)));
 
-    // General stuff we will need for reading both files.
-    std::string line;
-    int lines;
+    int length(0);
+    boost::scoped_array<char> buffer;
+    {
+        // Get the length of the input file.
+        std::string paramsName(dataName + ".dat");
+        std::ifstream paramsIn(paramsName.c_str(),std::ios::binary);
+        paramsIn.seekg(0, std::ios::end);
+        length = paramsIn.tellg();
+        if(length % 4 != 0) throw RuntimeError("loadSectors: unexpected file length.");
+
+        // Read the input file into memory.
+        buffer.reset(new char[length]);
+        paramsIn.seekg(0, std::ios::beg);
+        paramsIn.read(buffer.get(),length);
+        paramsIn.close();
+    }
     
-    // import boost spirit parser symbols
-    using qi::double_;
-    using qi::int_;
-    using qi::_1;
-    using phoenix::ref;
-    using phoenix::push_back;
-
-    // Loop over lines in the parameter file.
-    std::string paramsName(dataName + ".dat");
-    std::ifstream paramsIn(paramsName.c_str());
-    if(!paramsIn.good()) throw RuntimeError("loadSectors: Unable to open " + paramsName);
-    lines = 0;
-    int index;
-    double data;
-    std::vector<double> bin(3);
-    while(std::getline(paramsIn,line)) {
-        lines++;
-        bin.resize(0);
-        bool ok = qi::phrase_parse(line.begin(),line.end(),
-            (
-                int_[ref(index) = _1] >> double_[ref(data) = _1]
-            ),
-            ascii::space);
-        if(!ok) {
-            throw RuntimeError("loadSectors: error reading line " +
-                boost::lexical_cast<std::string>(lines) + " of " + paramsName);
+    // Parse the input file in memory.
+    int *iter = (int*)buffer.get(), *end = iter + length/4;
+    while(iter != end) {
+        int cmd = *iter++;
+        int count = *iter++;
+        if(0 == cmd) {
+            // Load Cinv.data bin contents.
+            bool weighted(true);
+            for(int i = 0; i < count; ++i) {
+                int index = *iter++;
+                double cinvData = *((double*)iter);
+                iter += 2;
+                binnedData->setData(index, cinvData, weighted);
+            }
         }
-        binnedData->setData(index, data);
-    }
-    paramsIn.close();
-    if(verbose) {
-        std::cout << "Read " << binnedData->getNBinsWithData() << " of "
-            << binnedData->getNBinsTotal() << " data values from " << paramsName << std::endl;
-    }
-
-    // Loop over lines in the covariance file.
-    std::string icovName(dataName + ".icov");
-    std::ifstream icovIn(icovName.c_str());
-    if(!icovIn.good()) throw RuntimeError("Unable to open " + icovName);
-    lines = 0;
-    double value;
-    int index1,index2;
-    while(std::getline(icovIn,line)) {
-        lines++;
-        bin.resize(0);
-        bool ok = qi::phrase_parse(line.begin(),line.end(),
-            (
-                int_[ref(index1) = _1] >> int_[ref(index2) = _1] >> double_[ref(value) = _1]
-            ),
-            ascii::space);
-        if(!ok) {
-            throw RuntimeError("loadSectors: error reading line " +
-                boost::lexical_cast<std::string>(lines) + " of " + paramsName);
+        else if(1 == cmd) {
+            // Load inverse covariances.
+            for(int i = 0; i < count; ++i) {
+                int index1 = *iter++, index2 = *iter++;
+                double cinv = *((double*)iter);
+                iter += 2;
+                binnedData->setInverseCovariance(index1, index2, cinv);
+            }
         }
-        // Add this inverse covariance to our dataset.
-        binnedData->setInverseCovariance(index1,index2,value);
-    }
-    icovIn.close();
-    if(false) {
-        int ndata = binnedData->getNBinsWithData();
-        int ncov = (ndata*(ndata+1))/2;
-        std::cout << "Read " << lines << " of " << ncov
-            << " covariance values from " << icovName << std::endl;
+        else {
+            throw RuntimeError("loadSectors: unexpected command byte in input file.");
+        }
+        if(iter > end) throw RuntimeError("loadSectors: internal parsing error.");
     }
 
     // Compress our binned data to take advantage of a very sparse (diagonal) covariance matrix.
