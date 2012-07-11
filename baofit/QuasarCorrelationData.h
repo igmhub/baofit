@@ -18,9 +18,9 @@ namespace baofit {
 	    // log(lambda2/lambda1) > llmin when the finalize() method is called.
 		QuasarCorrelationData(likely::AbsBinningCPtr axis1, likely::AbsBinningCPtr axis2,
 		    likely::AbsBinningCPtr axis3, double rmin, double rmax, double llmin,
-		    cosmo::AbsHomogeneousUniversePtr cosmology);
+		    double rVetoMin, double rVetoMax, cosmo::AbsHomogeneousUniversePtr cosmology);
         QuasarCorrelationData(std::vector<likely::AbsBinningCPtr> axes, double rmin, double rmax,
-            double llmin, cosmo::AbsHomogeneousUniversePtr cosmology);
+            double llmin, double rVetoMin, double rVetoMax, cosmo::AbsHomogeneousUniversePtr cosmology);
 		virtual ~QuasarCorrelationData();
 		// Polymorphic shallow copy so this type of data can be used with likely::BinnedDataResampler.
         virtual QuasarCorrelationData *clone(bool binningOnly = false) const;
@@ -39,8 +39,9 @@ namespace baofit {
         // Transforms the specified values of ll,sep,dsep,z to co-moving r,mu.
         void transform(double ll, double sep, double dsep, double z, double &r, double &mu) const;
 	private:
-        void _initialize(double rmin, double rmax, double llmin, cosmo::AbsHomogeneousUniversePtr cosmology);
-        double _rmin, _rmax, _llmin;
+        void _initialize(double rmin, double rmax, double llmin, double rVetoMin, double rVetoMax,
+            cosmo::AbsHomogeneousUniversePtr cosmology);
+        double _rmin, _rmax, _llmin, _rVetoMin, _rVetoMax;
         cosmo::AbsHomogeneousUniversePtr _cosmology;
         std::vector<double> _rLookup, _muLookup, _zLookup;
         // Calculates and saves (r,mu,z) for the specified global index.

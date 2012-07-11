@@ -351,7 +351,8 @@ cosmo::AbsHomogeneousUniversePtr cosmology) {
 
     // Create the new BinnedData that we will fill.
     baofit::AbsCorrelationDataPtr
-        prototype(new baofit::QuasarCorrelationData(llBins,sepBins,zBins,rmin,rmax,llmin,cosmology));
+        prototype(new baofit::QuasarCorrelationData(llBins,sepBins,zBins,rmin,rmax,llmin,
+            rVetoMin,rVetoMax,cosmology));
 
     return prototype;
 }

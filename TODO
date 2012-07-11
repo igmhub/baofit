@@ -28,5 +28,3 @@ Cleanup of anisotropic BAO model:
  - use GSL interpolator derivatives
  - implement priors on a,b
  - infer whether to use a,b or scale based on errors?
-
-Implement rVetoMin,Max cuts in QuasarCorrelationData::finalize().
