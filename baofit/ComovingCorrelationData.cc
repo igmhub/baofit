@@ -39,6 +39,7 @@ void local::ComovingCorrelationData::_initialize(double rmin, double rmax, doubl
     }
     _rVetoMin = rVetoMin;
     _rVetoMax = rVetoMax;
+    _lastIndex = -1;
 }
 
 void local::ComovingCorrelationData::finalize() {
