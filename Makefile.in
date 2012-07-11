@@ -40,8 +40,8 @@ bin_PROGRAMS = baofit$(EXEEXT)
 subdir = .
 DIST_COMMON = $(am__configure_deps) $(nobase_include_HEADERS) \
 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
-	$(srcdir)/config.h.in $(top_srcdir)/configure config.guess \
-	config.sub depcomp install-sh ltmain.sh missing
+	$(srcdir)/config.h.in $(top_srcdir)/configure TODO \
+	config.guess config.sub depcomp install-sh ltmain.sh missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -80,8 +80,8 @@ libbaofit_la_LIBADD =
 am_libbaofit_la_OBJECTS = AbsCorrelationModel.lo \
 	BaoCorrelationModel.lo XiCorrelationModel.lo \
 	AbsCorrelationData.lo QuasarCorrelationData.lo \
-	MultipoleCorrelationData.lo CorrelationFitter.lo \
-	CorrelationAnalyzer.lo boss.lo
+	ComovingCorrelationData.lo MultipoleCorrelationData.lo \
+	CorrelationFitter.lo CorrelationAnalyzer.lo boss.lo
 libbaofit_la_OBJECTS = $(am_libbaofit_la_OBJECTS)
 PROGRAMS = $(bin_PROGRAMS)
 am_baofit_OBJECTS = baofit.$(OBJEXT)
@@ -254,6 +254,7 @@ libbaofit_la_SOURCES = \
 	baofit/XiCorrelationModel.cc \
 	baofit/AbsCorrelationData.cc \
 	baofit/QuasarCorrelationData.cc \
+	baofit/ComovingCorrelationData.cc \
 	baofit/MultipoleCorrelationData.cc \
 	baofit/CorrelationFitter.cc \
 	baofit/CorrelationAnalyzer.cc \
@@ -272,6 +273,7 @@ nobase_include_HEADERS = \
 	baofit/XiCorrelationModel.h \
 	baofit/AbsCorrelationData.h \
 	baofit/QuasarCorrelationData.h \
+	baofit/ComovingCorrelationData.h \
 	baofit/MultipoleCorrelationData.h \
 	baofit/CorrelationFitter.h \
 	baofit/CorrelationAnalyzer.h \
@@ -427,6 +429,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/AbsCorrelationData.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/AbsCorrelationModel.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/BaoCorrelationModel.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ComovingCorrelationData.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/CorrelationAnalyzer.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/CorrelationFitter.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/MultipoleCorrelationData.Plo@am__quote@
@@ -490,6 +493,13 @@ QuasarCorrelationData.lo: baofit/QuasarCorrelationData.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='baofit/QuasarCorrelationData.cc' object='QuasarCorrelationData.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o QuasarCorrelationData.lo `test -f 'baofit/QuasarCorrelationData.cc' || echo '$(srcdir)/'`baofit/QuasarCorrelationData.cc
+
+ComovingCorrelationData.lo: baofit/ComovingCorrelationData.cc
+@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ComovingCorrelationData.lo -MD -MP -MF $(DEPDIR)/ComovingCorrelationData.Tpo -c -o ComovingCorrelationData.lo `test -f 'baofit/ComovingCorrelationData.cc' || echo '$(srcdir)/'`baofit/ComovingCorrelationData.cc
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/ComovingCorrelationData.Tpo $(DEPDIR)/ComovingCorrelationData.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='baofit/ComovingCorrelationData.cc' object='ComovingCorrelationData.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ComovingCorrelationData.lo `test -f 'baofit/ComovingCorrelationData.cc' || echo '$(srcdir)/'`baofit/ComovingCorrelationData.cc
 
 MultipoleCorrelationData.lo: baofit/MultipoleCorrelationData.cc
 @am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT MultipoleCorrelationData.lo -MD -MP -MF $(DEPDIR)/MultipoleCorrelationData.Tpo -c -o MultipoleCorrelationData.lo `test -f 'baofit/MultipoleCorrelationData.cc' || echo '$(srcdir)/'`baofit/MultipoleCorrelationData.cc
