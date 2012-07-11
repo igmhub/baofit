@@ -22,6 +22,9 @@ namespace baofit {
         AbsCorrelationDataCPtr createSectorsPrototype(double zref, double rmin, double rmax,
             double rVetoMin, double rVetoMax);
             
+        AbsCorrelationDataPtr loadSectors(std::string const &dataName,
+            baofit::AbsCorrelationDataCPtr prototype, bool verbose);
+            
         AbsCorrelationDataCPtr createDR9LRGPrototype(double zref, double rmin, double rmax,
             double rVetoMin, double rVetoMax, std::string const &covName, bool verbose);
         

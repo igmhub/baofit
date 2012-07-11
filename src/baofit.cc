@@ -329,6 +329,9 @@ int main(int argc, char **argv) {
                 analyzer.addData(baofit::boss::loadFrench(*filename,prototype,
                     verbose,unweighted,expanded,checkPosDef));
             }
+            else if(sectors) {
+                analyzer.addData(baofit::boss::loadSectors(*filename,prototype,verbose));
+            }
             else if(dr9lrg) {
                 analyzer.addData(baofit::boss::loadDR9LRG(*filename,prototype,verbose));
             }
