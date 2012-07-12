@@ -184,7 +184,26 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     // Calculate the peak contribution with scaled radius.
     double peak(0);
     if(ampl != 0) {
-        double fid((*_fid)(r*scale,mu)), nw((*_nw)(r*scale,mu)); // scale cancels in mu
+        double rPeak, muPeak;
+        if(_anisotropic) {
+            double a = getParameterValue("BAO scale a");
+            double b = getParameterValue("BAO scale b");
+            double musq(mu*mu),ap1(1+a),bp1(1+b);
+            // Exact (r,mu) transformation
+            /*
+            double rscale = std::sqrt(ap1*ap1*musq + (1-musq)*bp1*bp1);
+            rPeak = r*rscale;
+            muPeak = mu*ap1/rscale;
+            */
+            // Linear approximation, equivalent to multipole model below
+            rPeak = r*(1 + a*musq + b*(1-musq));
+            muPeak = mu*(1 + (a-b)*(1-musq));
+        }
+        else {
+            rPeak = r*scale;
+            muPeak = mu;
+        }
+        double fid((*_fid)(rPeak,muPeak)), nw((*_nw)(rPeak,muPeak));
         peak = ampl*(fid-nw);
     }
     // Calculate the additional broadband contributions with no radius scaling.
