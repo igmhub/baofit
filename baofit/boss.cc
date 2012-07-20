@@ -36,7 +36,7 @@ namespace phoenix = boost::phoenix;
 
 // Creates a prototype MultipoleCorrelationData with the specified binning.
 baofit::AbsCorrelationDataCPtr local::createDR9LRGPrototype(double zref, double rmin, double rmax,
-double muMin, double muMax, double rVetoMin, double rVetoMax, std::string const &covName, bool verbose) {
+double rVetoMin, double rVetoMax, std::string const &covName, bool verbose) {
     // Create the new BinnedData that we will fill.
     int nbins(50);
     likely::AbsBinningCPtr
@@ -151,7 +151,7 @@ local::loadDR9LRG(std::string const &dataName, baofit::AbsCorrelationDataCPtr pr
 
 // Creates a prototype MultipoleCorrelationData with the specified binning.
 baofit::AbsCorrelationDataCPtr local::createFrenchPrototype(double zref, double rmin, double rmax,
-double muMin, double muMax, double rVetoMin, double rVetoMax, cosmo::Multipole ellmin, cosmo::Multipole ellmax) {
+double rVetoMin, double rVetoMax, cosmo::Multipole ellmin, cosmo::Multipole ellmax) {
     if(ellmin < cosmo::Monopole || ellmax > cosmo::Quadrupole || ellmin > ellmax) {
         throw RuntimeError("createFrenchPrototype: invalid ell range.");
     }
@@ -552,7 +552,7 @@ bool checkPosDef) {
 
 baofit::AbsCorrelationDataCPtr local::createCosmolibXiPrototype(double minz, double dz, int nz,
 double minr, double maxr, double nr, bool hasHexadecapole, double rmin, double rmax,
-double muMin, double muMax, double rVetoMin, double rVetoMax, cosmo::Multipole ellmin, cosmo::Multipole ellmax) {
+double rVetoMin, double rVetoMax, cosmo::Multipole ellmin, cosmo::Multipole ellmax) {
     if(ellmin > ellmax) {
         throw RuntimeError("createCosmolibXiPrototype: expected ellmin <= ellmax.");
     }

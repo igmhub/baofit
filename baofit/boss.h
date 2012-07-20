@@ -13,7 +13,6 @@ namespace baofit {
     namespace boss {
 
         AbsCorrelationDataCPtr createFrenchPrototype(double zref, double rmin, double rmax,
-            double muMin, double muMax,
             double rVetoMin, double rVetoMax, cosmo::Multipole ellmin, cosmo::Multipole ellmax);
 
         AbsCorrelationDataPtr loadFrench(std::string const &dataName,
@@ -27,7 +26,6 @@ namespace baofit {
             baofit::AbsCorrelationDataCPtr prototype, bool verbose);
             
         AbsCorrelationDataCPtr createDR9LRGPrototype(double zref, double rmin, double rmax,
-            double muMin, double muMax,
             double rVetoMin, double rVetoMax, std::string const &covName, bool verbose);
         
         AbsCorrelationDataPtr loadDR9LRG(std::string const &dataName,
@@ -47,7 +45,7 @@ namespace baofit {
 
         AbsCorrelationDataCPtr createCosmolibXiPrototype(double minz, double dz, int nz,
             double minr, double maxr, double nr, bool hasHexadecapole,
-            double rmin, double rmax, double muMin, double muMax, double rVetoMin, double rVetoMax,
+            double rmin, double rmax, double rVetoMin, double rVetoMax,
             cosmo::Multipole ellmin, cosmo::Multipole ellmax);
             
         AbsCorrelationDataPtr loadCosmolibXi(std::string const &dataName,

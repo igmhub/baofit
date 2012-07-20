@@ -127,11 +127,11 @@ int main(int argc, char **argv) {
         ("rveto-center", po::value<double>(&rVetoCenter)->default_value(114),
             "Center (Mpc/h) of co-moving separation window to veto in fit.")
         ("mu-min", po::value<double>(&muMin)->default_value(0),
-            "Final cut on minimum value of mu = rL/r to use in the fit.")
+            "Final cut on minimum value of mu = rL/r to use in the fit (coordinate data only).")
         ("mu-max", po::value<double>(&muMax)->default_value(1),
-            "Final cut on maximum value of mu = rL/r to use in the fit.")
+            "Final cut on maximum value of mu = rL/r to use in the fit (coordinate data only).")
         ("llmin", po::value<double>(&llmin)->default_value(0),
-            "Minimum value of log(lam2/lam1) to use in fit (cosmolib only).")
+            "Minimum value of log(lam2/lam1) to use in fit (multipole data only).")
         ("lmin", po::value<int>(&lmin)->default_value(0),
             "Final cut on minimum multipole ell (0,2,4) to use in fit (multipole data only).")
         ("lmax", po::value<int>(&lmax)->default_value(2),
@@ -274,7 +274,7 @@ int main(int argc, char **argv) {
         baofit::AbsCorrelationDataCPtr prototype;
         if(french) {
             zdata = 2.30;
-            prototype = baofit::boss::createFrenchPrototype(zdata,rmin,rmax,muMin,muMax,rVetoMin,rVetoMax,ellmin,ellmax);
+            prototype = baofit::boss::createFrenchPrototype(zdata,rmin,rmax,rVetoMin,rVetoMax,ellmin,ellmax);
         }
         else if(sectors) {
             zdata = 2.30;
@@ -282,18 +282,19 @@ int main(int argc, char **argv) {
         }
         else if(dr9lrg) {
             zdata = 0.57;
-            prototype = baofit::boss::createDR9LRGPrototype(zdata,rmin,rmax,muMin,muMax,rVetoMin,rVetoMax,
+            prototype = baofit::boss::createDR9LRGPrototype(zdata,rmin,rmax,rVetoMin,rVetoMax,
                 "LRG/Sample4_North.cov",verbose);
         }
         else if(xiFormat) {
             zdata = 2.25;
             prototype = baofit::boss::createCosmolibXiPrototype(minz,dz,nz,xiRmin,xiRmax,xiNr,xiHexa,
-                rmin,rmax,muMin,muMax,rVetoMin,rVetoMax,ellmin,ellmax);
+                rmin,rmax,rVetoMin,rVetoMax,ellmin,ellmax);
         }
         else {
             zdata = 2.25;
             prototype = baofit::boss::createCosmolibPrototype(
-                minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,rmin,rmax,muMin,muMax,rVetoMin,rVetoMax,llmin,cosmology);
+                minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,rmin,rmax,muMin,muMax,
+                rVetoMin,rVetoMax,llmin,cosmology);
         }
         
         // Build a list of the data files we will read.
