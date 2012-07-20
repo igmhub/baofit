@@ -44,8 +44,8 @@ double muMin, double muMax, double rVetoMin, double rVetoMax, std::string const 
         ellBins(new likely::UniformSampling(0,0,1)), // only monopole for now
         zBins(new likely::UniformSampling(zref,zref,1));
     baofit::AbsCorrelationDataPtr
-        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins,rmin,rmax,rVetoMin,rVetoMax,
-            cosmo::Monopole,cosmo::Monopole));
+        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins,rmin,rmax,muMin,muMax,
+            rVetoMin,rVetoMax,cosmo::Monopole,cosmo::Monopole));
         
     // Pre-fill each bin with zero values.
     for(int index = 0; index < nbins; ++index) prototype->setData(index,0);
@@ -161,7 +161,7 @@ double muMin, double muMax, double rVetoMin, double rVetoMax, cosmo::Multipole e
         zBins(new likely::UniformSampling(zref,zref,1)),
         ellBins(new likely::UniformSampling(cosmo::Monopole,cosmo::Quadrupole,2));
     baofit::AbsCorrelationDataPtr
-        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins,rmin,rmax,
+        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins,rmin,rmax,muMin,muMax,
             rVetoMin,rVetoMax,ellmin,ellmax));
     return prototype;
 }
@@ -324,7 +324,8 @@ double muMin, double muMax, double rVetoMin, double rVetoMax) {
         zBins(new likely::UniformSampling(zref,zref,1));
 
     baofit::AbsCorrelationDataPtr
-        prototype(new baofit::ComovingCorrelationData(rBins,muBins,zBins,rmin,rmax,rVetoMin,rVetoMax));
+        prototype(new baofit::ComovingCorrelationData(rBins,muBins,zBins,rmin,rmax,
+            muMin,muMax,rVetoMin,rVetoMax));
 
     return prototype;    
 }
@@ -410,7 +411,7 @@ cosmo::AbsHomogeneousUniversePtr cosmology) {
 
     // Create the new BinnedData that we will fill.
     baofit::AbsCorrelationDataPtr
-        prototype(new baofit::QuasarCorrelationData(llBins,sepBins,zBins,rmin,rmax,llmin,
+        prototype(new baofit::QuasarCorrelationData(llBins,sepBins,zBins,rmin,rmax,muMin,muMax,llmin,
             rVetoMin,rVetoMax,cosmology));
 
     return prototype;
@@ -566,7 +567,7 @@ double muMin, double muMax, double rVetoMin, double rVetoMax, cosmo::Multipole e
         ellBins(new likely::NonUniformSampling(ellValues)),
         zBins(new likely::UniformSampling(minz+0.5*dz,minz+(nz-0.5)*dz,nz));
     baofit::AbsCorrelationDataPtr
-        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins,rmin,rmax,
+        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins,rmin,rmax,muMin,muMax,
             rVetoMin,rVetoMax,ellmin,ellmax));
     return prototype;
 }

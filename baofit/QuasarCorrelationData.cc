@@ -11,31 +11,36 @@ namespace local = baofit;
 
 local::QuasarCorrelationData::QuasarCorrelationData(
 likely::AbsBinningCPtr axis1, likely::AbsBinningCPtr axis2, likely::AbsBinningCPtr axis3,
-double rmin, double rmax, double llmin, double rVetoMin, double rVetoMax,
+double rmin, double rmax, double muMin, double muMax, double llmin, double rVetoMin, double rVetoMax,
 cosmo::AbsHomogeneousUniversePtr cosmology)
 : AbsCorrelationData(axis1,axis2,axis3,Coordinate)
 {
-    _initialize(rmin,rmax,llmin,rVetoMin,rVetoMax,cosmology);
+    _initialize(rmin,rmax,muMin,muMax,llmin,rVetoMin,rVetoMax,cosmology);
 }
 
 local::QuasarCorrelationData::QuasarCorrelationData(
-std::vector<likely::AbsBinningCPtr> axes, double rmin, double rmax, double llmin,
+std::vector<likely::AbsBinningCPtr> axes, double rmin, double rmax, double muMin, double muMax, double llmin,
 double rVetoMin, double rVetoMax, cosmo::AbsHomogeneousUniversePtr cosmology)
 : AbsCorrelationData(axes,Coordinate)
 {
     if(axes.size() != 3) {
         throw RuntimeError("QuasarCorrelationData: expected 3 axes.");
     }
-    _initialize(rmin,rmax,llmin,rVetoMin,rVetoMax,cosmology);
+    _initialize(rmin,rmax,muMin,muMax,llmin,rVetoMin,rVetoMax,cosmology);
 }
 
-void local::QuasarCorrelationData::_initialize(double rmin, double rmax, double llmin,
+void local::QuasarCorrelationData::_initialize(double rmin, double rmax, double muMin, double muMax, double llmin,
 double rVetoMin, double rVetoMax, cosmo::AbsHomogeneousUniversePtr cosmology) {
     if(rmin >= rmax) {
         throw RuntimeError("QuasarCorrelationData: expected rmin < rmax.");
     }
+    if(muMin >= muMax) {
+        throw RuntimeError("MultipoleCorrelationData: expected mu-min < mu-max.");
+    }
     _rmin = rmin;
     _rmax = rmax;
+    _muMin = muMin;
+    _muMax = muMax;
     _llmin = llmin;
     if(rVetoMin > rVetoMax) {
         throw RuntimeError("QuasarCorrelationData: expected rVetoMin <= rVetoMax.");
@@ -51,7 +56,8 @@ local::QuasarCorrelationData::~QuasarCorrelationData() { }
 
 local::QuasarCorrelationData *local::QuasarCorrelationData::clone(bool binningOnly) const {
     return binningOnly ?
-        new QuasarCorrelationData(getAxisBinning(),_rmin,_rmax,_llmin,_rVetoMin,_rVetoMax,_cosmology) :
+        new QuasarCorrelationData(getAxisBinning(),_rmin,_rmax,_muMin,_muMax,_llmin,
+            _rVetoMin,_rVetoMax,_cosmology) :
         new QuasarCorrelationData(*this);
 }
 

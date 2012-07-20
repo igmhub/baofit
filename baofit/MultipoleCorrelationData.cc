@@ -12,26 +12,30 @@ namespace local = baofit;
 
 local::MultipoleCorrelationData::MultipoleCorrelationData(likely::AbsBinningCPtr axis1,
 likely::AbsBinningCPtr axis2, likely::AbsBinningCPtr axis3, double rmin, double rmax,
-double rVetoMin, double rVetoMax, cosmo::Multipole ellmin, cosmo::Multipole ellmax)
+double muMin, double muMax, double rVetoMin, double rVetoMax, cosmo::Multipole ellmin, cosmo::Multipole ellmax)
 : AbsCorrelationData(axis1,axis2,axis3,Multipole)
 {
-    _initialize(rmin,rmax,rVetoMin,rVetoMax,ellmin,ellmax);
+    _initialize(rmin,rmax,muMin,muMax,rVetoMin,rVetoMax,ellmin,ellmax);
 }
 
 local::MultipoleCorrelationData::MultipoleCorrelationData(std::vector<likely::AbsBinningCPtr> axes,
-double rmin, double rmax, double rVetoMin, double rVetoMax, cosmo::Multipole ellmin, cosmo::Multipole ellmax)
+double rmin, double rmax, double muMin, double muMax, double rVetoMin, double rVetoMax,
+cosmo::Multipole ellmin, cosmo::Multipole ellmax)
 : AbsCorrelationData(axes,Multipole)
 {
     if(axes.size() != 3) {
         throw RuntimeError("MultipoleCorrelationData: expected 3 axes.");
     }
-    _initialize(rmin,rmax,rVetoMin,rVetoMax,ellmin,ellmax);
+    _initialize(rmin,rmax,muMin,muMax,rVetoMin,rVetoMax,ellmin,ellmax);
 }
 
-void local::MultipoleCorrelationData::_initialize(double rmin, double rmax, double rVetoMin, double rVetoMax,
-cosmo::Multipole ellmin, cosmo::Multipole ellmax) {
+void local::MultipoleCorrelationData::_initialize(double rmin, double rmax, double muMin, double muMax,
+double rVetoMin, double rVetoMax, cosmo::Multipole ellmin, cosmo::Multipole ellmax) {
     if(rmin >= rmax) {
         throw RuntimeError("MultipoleCorrelationData: expected rmin < rmax.");
+    }
+    if(muMin >= muMax) {
+        throw RuntimeError("MultipoleCorrelationData: expected mu-min < mu-max.");
     }
     if(rVetoMin > rVetoMax) {
         throw RuntimeError("MultipoleCorrelationData: expected rVetoMin <= rVetoMax.");
@@ -41,6 +45,8 @@ cosmo::Multipole ellmin, cosmo::Multipole ellmax) {
     }
     _rmin = rmin;
     _rmax = rmax;
+    _muMin = muMin;
+    _muMax = muMax;
     _rVetoMin = rVetoMin;
     _rVetoMax = rVetoMax;
     _ellmin = ellmin;
@@ -52,7 +58,8 @@ local::MultipoleCorrelationData::~MultipoleCorrelationData() { }
 
 local::MultipoleCorrelationData *local::MultipoleCorrelationData::clone(bool binningOnly) const {
     return binningOnly ?
-        new MultipoleCorrelationData(getAxisBinning(),_rmin,_rmax,_rVetoMin,_rVetoMax,_ellmin,_ellmax) :
+        new MultipoleCorrelationData(getAxisBinning(),_rmin,_rmax,_muMin,_muMax,
+            _rVetoMin,_rVetoMax,_ellmin,_ellmax) :
         new MultipoleCorrelationData(*this);
 }
 

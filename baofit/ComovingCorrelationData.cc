@@ -7,33 +7,39 @@ namespace local = baofit;
 
 local::ComovingCorrelationData::ComovingCorrelationData(likely::AbsBinningCPtr rBins,
 likely::AbsBinningCPtr muBins, likely::AbsBinningCPtr zBins,
-double rmin, double rmax, double rVetoMin, double rVetoMax) 
+double rmin, double rmax, double muMin, double muMax, double rVetoMin, double rVetoMax) 
 : AbsCorrelationData(rBins,muBins,zBins,Coordinate)
 {
-    _initialize(rmin,rmax,rVetoMin,rVetoMax);
+    _initialize(rmin,rmax,muMin,muMax,rVetoMin,rVetoMax);
 }
 
 local::ComovingCorrelationData::ComovingCorrelationData(std::vector<likely::AbsBinningCPtr> axes,
-double rmin, double rmax, double rVetoMin, double rVetoMax) 
+double rmin, double rmax, double muMin, double muMax, double rVetoMin, double rVetoMax) 
 : AbsCorrelationData(axes,Coordinate)
 {
-    _initialize(rmin,rmax,rVetoMin,rVetoMax);
+    _initialize(rmin,rmax,muMin,muMax,rVetoMin,rVetoMax);
 }
 
 local::ComovingCorrelationData::~ComovingCorrelationData() { }
 
 local::ComovingCorrelationData *local::ComovingCorrelationData::clone(bool binningOnly) const {
     return binningOnly ?
-        new ComovingCorrelationData(getAxisBinning(),_rmin,_rmax,_rVetoMin,_rVetoMax) :
+        new ComovingCorrelationData(getAxisBinning(),_rmin,_rmax,_muMin,_muMax,_rVetoMin,_rVetoMax) :
         new ComovingCorrelationData(*this);
 }
 
-void local::ComovingCorrelationData::_initialize(double rmin, double rmax, double rVetoMin, double rVetoMax) {
+void local::ComovingCorrelationData::_initialize(double rmin, double rmax, double muMin, double muMax,
+double rVetoMin, double rVetoMax) {
     if(rmin >= rmax) {
         throw RuntimeError("ComovingCorrelationData: expected rmin < rmax.");
     }
+    if(muMin >= muMax) {
+        throw RuntimeError("MultipoleCorrelationData: expected mu-min < mu-max.");
+    }
     _rmin = rmin;
     _rmax = rmax;
+    _muMin = muMin;
+    _muMax = muMax;
     if(rVetoMin > rVetoMax) {
         throw RuntimeError("ComovingCorrelationData: expected rVetoMin <= rVetoMax.");
     }
