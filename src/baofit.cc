@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
         analysisOptions("Analysis options");
 
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin,
-        rVetoWidth,rVetoCenter,priorCenter,priorWidth,xiRmin,xiRmax;
+        rVetoWidth,rVetoCenter,priorCenter,priorWidth,xiRmin,xiRmax,muMin,muMax;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
         mcmcSave,mcmcInterval,mcSamples,xiNr;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,mcConfig,
@@ -126,6 +126,10 @@ int main(int argc, char **argv) {
             "Full width (Mpc/h) of co-moving separation window to veto in fit (zero for no veto).")
         ("rveto-center", po::value<double>(&rVetoCenter)->default_value(114),
             "Center (Mpc/h) of co-moving separation window to veto in fit.")
+        ("mu-min", po::value<double>(&muMin)->default_value(0),
+            "Final cut on minimum value of mu = rL/r to use in the fit.")
+        ("mu-max", po::value<double>(&muMax)->default_value(1),
+            "Final cut on maximum value of mu = rL/r to use in the fit.")
         ("llmin", po::value<double>(&llmin)->default_value(0),
             "Minimum value of log(lam2/lam1) to use in fit (cosmolib only).")
         ("lmin", po::value<int>(&lmin)->default_value(0),
