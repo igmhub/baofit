@@ -12,6 +12,8 @@
 #include "boost/bind.hpp"
 #include "boost/ref.hpp"
 
+#include <iostream>
+
 namespace local = baofit;
 
 local::CorrelationFitter::CorrelationFitter(AbsCorrelationDataCPtr data, AbsCorrelationModelPtr model)
@@ -78,8 +80,10 @@ std::string const &config) const {
 namespace baofit {
     // A simple MCMC callback that appends sample and fval to samples.
     void mcmcCallback(std::vector<double> &samples, std::vector<double> const &sample, double fval) {
+        static int ncall(0);
         samples.insert(samples.end(),sample.begin(),sample.end());
         samples.push_back(fval);
+        if(++ncall % 10 == 0) std::cout << "Saved " << ncall << " MCMC trials." << std::endl;
     }
 }
 
