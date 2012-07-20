@@ -274,26 +274,26 @@ int main(int argc, char **argv) {
         baofit::AbsCorrelationDataCPtr prototype;
         if(french) {
             zdata = 2.30;
-            prototype = baofit::boss::createFrenchPrototype(zdata,rmin,rmax,rVetoMin,rVetoMax,ellmin,ellmax);
+            prototype = baofit::boss::createFrenchPrototype(zdata,rmin,rmax,muMin,muMax,rVetoMin,rVetoMax,ellmin,ellmax);
         }
         else if(sectors) {
             zdata = 2.30;
-            prototype = baofit::boss::createSectorsPrototype(zdata,rmin,rmax,rVetoMin,rVetoMax);
+            prototype = baofit::boss::createSectorsPrototype(zdata,rmin,rmax,muMin,muMax,rVetoMin,rVetoMax);
         }
         else if(dr9lrg) {
             zdata = 0.57;
-            prototype = baofit::boss::createDR9LRGPrototype(zdata,rmin,rmax,rVetoMin,rVetoMax,
+            prototype = baofit::boss::createDR9LRGPrototype(zdata,rmin,rmax,muMin,muMax,rVetoMin,rVetoMax,
                 "LRG/Sample4_North.cov",verbose);
         }
         else if(xiFormat) {
             zdata = 2.25;
             prototype = baofit::boss::createCosmolibXiPrototype(minz,dz,nz,xiRmin,xiRmax,xiNr,xiHexa,
-                rmin,rmax,rVetoMin,rVetoMax,ellmin,ellmax);
+                rmin,rmax,muMin,muMax,rVetoMin,rVetoMax,ellmin,ellmax);
         }
         else {
             zdata = 2.25;
             prototype = baofit::boss::createCosmolibPrototype(
-                minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,rmin,rmax,rVetoMin,rVetoMax,llmin,cosmology);
+                minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,rmin,rmax,muMin,muMax,rVetoMin,rVetoMax,llmin,cosmology);
         }
         
         // Build a list of the data files we will read.
