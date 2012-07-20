@@ -56,7 +56,7 @@ void local::ComovingCorrelationData::finalize() {
         int index(*iter);
         double r(getRadius(index)), mu(getCosAngle(index)), z(getRedshift(index));
         // Keep this bin in our pruned dataset?
-        if(r >= _rmin && r < _rmax) {
+        if(r >= _rmin && r < _rmax && mu >= _muMin && mu <= _muMax) {
             if(r <= _rVetoMin || r >= _rVetoMax) keep.insert(index);
         }
     }

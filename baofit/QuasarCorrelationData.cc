@@ -70,7 +70,7 @@ void local::QuasarCorrelationData::finalize() {
         double r(getRadius(index)), mu(getCosAngle(index)), z(getRedshift(index));
         double ll(_binCenter[0]);
         // Keep this bin in our pruned dataset?
-        if(r >= _rmin && r < _rmax && ll >= _llmin) {
+        if(r >= _rmin && r < _rmax && mu >= _muMin && mu <= _muMax && ll >= _llmin) {
             if(r <= _rVetoMin || r >= _rVetoMax) {
                 keep.insert(index);
                 // Remember these values.
