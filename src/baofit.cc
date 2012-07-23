@@ -77,6 +77,7 @@ int main(int argc, char **argv) {
         ("max-plates", po::value<int>(&maxPlates)->default_value(0),
             "Maximum number of plates to load (zero uses all available plates).")
         ("check-posdef", "Checks that each covariance is positive-definite (slow).")
+        ("save-icov", "Saves the inverse covariance of the combined data after final cuts.")
         ;
     frenchOptions.add_options()
         ("french", "Correlation data files are in the French format (default is cosmolib).")
@@ -201,7 +202,7 @@ int main(int argc, char **argv) {
         dr9lrg(vm.count("dr9lrg")), unweighted(vm.count("unweighted")), anisotropic(vm.count("anisotropic")),
         fitEach(vm.count("fit-each")), reuseCov(vm.count("reuse-cov")), xiHexa(vm.count("xi-hexa")),
         xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")),
-        expanded(vm.count("expanded")), sectors(vm.count("sectors"));
+        expanded(vm.count("expanded")), sectors(vm.count("sectors")), saveICov(vm.count("save-icov"));
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
@@ -375,6 +376,21 @@ int main(int argc, char **argv) {
                 analyzer.getDecorrelatedWeights(analyzer.getCombined(),fmin->getParameters(),dweights);
             }
             combined->dump(out,dweights);
+            out.close();
+        }
+        // Save the combined inverse covariance, if requested.
+        if(saveICov) {
+            baofit::AbsCorrelationDataPtr combined = analyzer.getCombined();
+            std::string outName = outputPrefix + "icov.dat";
+            std::ofstream out(outName.c_str());
+            for(likely::BinnedData::IndexIterator iter1 = combined->begin();
+            iter1 != combined->end(); ++iter1) {
+                for(likely::BinnedData::IndexIterator iter2 = combined->begin();
+                iter2 != combined->end(); ++iter2) {
+                    out << *iter1 << ' ' << *iter2 << ' '
+                        << combined->getInverseCovariance(*iter1,*iter2) << std::endl;
+                }
+            }
             out.close();
         }
         if(ndump > 0) {
