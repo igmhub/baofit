@@ -18,8 +18,14 @@ Dump results of XiCorrelationFit in some format to allow plotting like data.
 
 Implement output of correlated errors, with sharing of off-diagonal contributions.
 
-Provide option to split BAO scale into separate transverse, perpendicular components.
-
 Implement options for integrating theory over bins with finite size.
 
 Re-implement applyTheoryOffsets for pseudo no-BAO mocks.
+
+Cleanup of anisotropic BAO model:
+ - add hexadecapole to multipole model
+ - use GSL interpolator derivatives
+ - implement priors on a,b
+ - infer whether to use a,b or scale based on errors?
+
+Add alpha-beta parameter to XiCorrelationModel.

@@ -28,8 +28,8 @@ double rmin, double rmax, double rVetoMin, double rVetoMax, cosmo::Multipole ell
     _initialize(rmin,rmax,rVetoMin,rVetoMax,ellmin,ellmax);
 }
 
-void local::MultipoleCorrelationData::_initialize(double rmin, double rmax, double rVetoMin, double rVetoMax,
-cosmo::Multipole ellmin, cosmo::Multipole ellmax) {
+void local::MultipoleCorrelationData::_initialize(double rmin, double rmax,
+double rVetoMin, double rVetoMax, cosmo::Multipole ellmin, cosmo::Multipole ellmax) {
     if(rmin >= rmax) {
         throw RuntimeError("MultipoleCorrelationData: expected rmin < rmax.");
     }

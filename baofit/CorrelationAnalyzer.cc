@@ -385,7 +385,7 @@ std::string const &saveName, int nsave) const {
 }
 
 void local::CorrelationAnalyzer::dumpResiduals(std::ostream &out, likely::FunctionMinimumPtr fmin,
-std::string const &script) const {
+std::string const &script, bool dumpGradients) const {
     if(getNData() == 0) {
         throw RuntimeError("CorrelationAnalyzer::dumpResiduals: no observations have been added.");
     }
@@ -396,10 +396,12 @@ std::string const &script) const {
     // Should check that these parameters are "congruent" (have same names?) with model params.
     // assert(parameters.isCongruent(model...))
     // Modify the parameters using the specified script, if any.
-    if(0 < script.length()) likely::modifyFitParameters(parameters, script);    
+    if(0 < script.length()) likely::modifyFitParameters(parameters, script);
     // Get the parameter values (floating + fixed)
-    likely::Parameters parameterValues;
+    likely::Parameters parameterValues,parameterErrors;
     likely::getFitParameterValues(parameters,parameterValues);
+    int npar = fmin->getNParameters();
+    if(dumpGradients) likely::getFitParameterErrors(parameters,parameterErrors);
     // Loop over 3D bins in the combined dataset.
     std::vector<double> centers;
     for(likely::BinnedData::IndexIterator iter = combined->begin(); iter != combined->end(); ++iter) {
@@ -413,18 +415,39 @@ std::string const &script) const {
         double error = combined->hasCovariance() ? std::sqrt(combined->getCovariance(index,index)) : 0;
         double z = combined->getRedshift(index);
         double r = combined->getRadius(index);
-        double predicted;
+        double predicted,mu;
+        cosmo::Multipole multipole;
         if(type == AbsCorrelationData::Coordinate) {
-            double mu = combined->getCosAngle(index);
+            mu = combined->getCosAngle(index);
             predicted = _model->evaluate(r,mu,z,parameterValues);
             out  << ' ' << r << ' ' << mu << ' ' << z;
         }
         else {
-            cosmo::Multipole multipole = combined->getMultipole(index);
+            multipole = combined->getMultipole(index);
             predicted = _model->evaluate(r,multipole,z,parameterValues);
             out  << ' ' << r << ' ' << (int)multipole << ' ' << z;
         }
-        out << ' ' << predicted << ' ' << data << ' ' << error << std::endl;
+        out << ' ' << predicted << ' ' << data << ' ' << error;
+        if(dumpGradients) {
+            for(int ipar = 0; ipar < npar; ++ipar) {
+                double gradient(0), dpar(0.1*parameterErrors[ipar]);
+                if(dpar > 0) {
+                    double p0 = parameterValues[ipar];
+                    parameterValues[ipar] = p0 + 0.5*dpar;
+                    double predHi = (type == AbsCorrelationData::Coordinate) ?
+                        _model->evaluate(r,mu,z,parameterValues) :
+                        _model->evaluate(r,multipole,z,parameterValues);
+                    parameterValues[ipar] = p0 - 0.5*dpar;
+                    double predLo = (type == AbsCorrelationData::Coordinate) ?
+                        _model->evaluate(r,mu,z,parameterValues) :
+                        _model->evaluate(r,multipole,z,parameterValues);
+                    gradient = (predHi - predLo)/dpar;
+                    parameterValues[ipar] = p0;
+                }
+                out << ' ' << gradient;
+            }
+        }
+        out << std::endl;
     }
 }
 

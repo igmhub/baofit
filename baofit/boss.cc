@@ -6,6 +6,7 @@
 #include "baofit/AbsCorrelationData.h"
 #include "baofit/MultipoleCorrelationData.h"
 #include "baofit/QuasarCorrelationData.h"
+#include "baofit/ComovingCorrelationData.h"
 
 #include "cosmo/AbsHomogeneousUniverse.h"
 
@@ -43,8 +44,8 @@ double rVetoMin, double rVetoMax, std::string const &covName, bool verbose) {
         ellBins(new likely::UniformSampling(0,0,1)), // only monopole for now
         zBins(new likely::UniformSampling(zref,zref,1));
     baofit::AbsCorrelationDataPtr
-        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins,rmin,rmax,rVetoMin,rVetoMax,
-            cosmo::Monopole,cosmo::Monopole));
+        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins,rmin,rmax,
+            rVetoMin,rVetoMax,cosmo::Monopole,cosmo::Monopole));
         
     // Pre-fill each bin with zero values.
     for(int index = 0; index < nbins; ++index) prototype->setData(index,0);
@@ -314,11 +315,84 @@ std::vector<double> local::twoStepSampling(double breakpoint,double llmax,double
     return samplePoints;
 }
 
+baofit::AbsCorrelationDataCPtr local::createSectorsPrototype(double zref, double rmin, double rmax,
+double muMin, double muMax, double rVetoMin, double rVetoMax) {
+    // Initialize the fixed (r,mu,z) binning for this format.
+    likely::AbsBinningCPtr
+        rBins(new likely::UniformBinning(0,200,50)),
+        muBins(new likely::UniformBinning(0,1,50)),
+        zBins(new likely::UniformSampling(zref,zref,1));
+
+    baofit::AbsCorrelationDataPtr
+        prototype(new baofit::ComovingCorrelationData(rBins,muBins,zBins,rmin,rmax,
+            muMin,muMax,rVetoMin,rVetoMax));
+
+    return prototype;    
+}
+
+baofit::AbsCorrelationDataPtr local::loadSectors(std::string const &dataName,
+baofit::AbsCorrelationDataCPtr prototype, bool verbose) {
+
+    // Create the new AbsCorrelationData that we will fill.
+    baofit::AbsCorrelationDataPtr binnedData((baofit::ComovingCorrelationData *)(prototype->clone(true)));
+
+    int length(0);
+    boost::scoped_array<char> buffer;
+    {
+        // Get the length of the input file.
+        std::string paramsName(dataName + ".dat");
+        std::ifstream paramsIn(paramsName.c_str(),std::ios::binary);
+        paramsIn.seekg(0, std::ios::end);
+        length = paramsIn.tellg();
+        if(length % 4 != 0) throw RuntimeError("loadSectors: unexpected file length.");
+
+        // Read the input file into memory.
+        buffer.reset(new char[length]);
+        paramsIn.seekg(0, std::ios::beg);
+        paramsIn.read(buffer.get(),length);
+        paramsIn.close();
+    }
+    
+    // Parse the input file in memory.
+    int *iter = (int*)buffer.get(), *end = iter + length/4;
+    while(iter != end) {
+        int cmd = *iter++;
+        int count = *iter++;
+        if(0 == cmd) {
+            // Load Cinv.data bin contents.
+            bool weighted(true);
+            for(int i = 0; i < count; ++i) {
+                int index = *iter++;
+                double cinvData = *((double*)iter);
+                iter += 2;
+                binnedData->setData(index, cinvData, weighted);
+            }
+        }
+        else if(1 == cmd) {
+            // Load inverse covariances.
+            for(int i = 0; i < count; ++i) {
+                int index1 = *iter++, index2 = *iter++;
+                double cinv = *((double*)iter);
+                iter += 2;
+                binnedData->setInverseCovariance(index1, index2, cinv);
+            }
+        }
+        else {
+            throw RuntimeError("loadSectors: unexpected command byte in input file.");
+        }
+        if(iter > end) throw RuntimeError("loadSectors: internal parsing error.");
+    }
+
+    // Compress our binned data to take advantage of a very sparse (diagonal) covariance matrix.
+    binnedData->compress();
+    return binnedData;   
+}
+
 // Creates a prototype QuasarCorrelationData with the specified binning and cosmology.
 baofit::AbsCorrelationDataCPtr local::createCosmolibPrototype(
 double minsep, double dsep, int nsep, double minz, double dz, int nz,
 double minll, double maxll, double dll, double dll2,
-double rmin, double rmax, double rVetoMin, double rVetoMax, double llmin,
+double rmin, double rmax, double muMin, double muMax, double rVetoMin, double rVetoMax, double llmin,
 cosmo::AbsHomogeneousUniversePtr cosmology) {
 
     // Initialize the (logLambda,separation,redshift) binning from command-line params.
@@ -337,7 +411,8 @@ cosmo::AbsHomogeneousUniversePtr cosmology) {
 
     // Create the new BinnedData that we will fill.
     baofit::AbsCorrelationDataPtr
-        prototype(new baofit::QuasarCorrelationData(llBins,sepBins,zBins,rmin,rmax,llmin,cosmology));
+        prototype(new baofit::QuasarCorrelationData(llBins,sepBins,zBins,rmin,rmax,muMin,muMax,llmin,
+            rVetoMin,rVetoMax,cosmology));
 
     return prototype;
 }

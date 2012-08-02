@@ -83,9 +83,11 @@ namespace baofit {
         // Dumps the data, prediction, and diagonal error for each bin of the combined
         // data set to the specified output stream. The fit result is assumed to correspond
         // to model that is currently associated with this analyzer. Use the optional script
-        // to modify the parameters used in the model.
+        // to modify the parameters used in the model. By default, the gradient of each
+        // bin with respect to each floating parameter is append to each output row, unless
+        // dumpGradients = false.
         void dumpResiduals(std::ostream &out, likely::FunctionMinimumPtr fmin,
-            std::string const &script = "") const;
+            std::string const &script = "", bool dumpGradients = true) const;
         // Dumps the model predictions for the specified fit parameters to the specified
         // output stream. The input parameters are assumed to correspond to the model that is
         // currently associated with this analyzer. Use the optional script to modify

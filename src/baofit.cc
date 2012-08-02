@@ -25,11 +25,11 @@ int main(int argc, char **argv) {
         analysisOptions("Analysis options");
 
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin,
-        rVetoWidth,rVetoCenter,priorCenter,priorWidth,xiRmin,xiRmax;
+        rVetoWidth,rVetoCenter,priorCenter,priorWidth,xiRmin,xiRmax,muMin,muMax;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
         mcmcSave,mcmcInterval,mcSamples,xiNr;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,mcConfig,
-        platelistName,platerootName,modelConfig,iniName,refitConfig,minMethod,xiMethod;
+        platelistName,platerootName,modelConfig,iniName,refitConfig,minMethod,xiMethod,outputPrefix;
 
     // Default values in quotes below are to avoid roundoff errors leading to ugly --help
     // messages. See http://stackoverflow.com/questions/1734916/
@@ -64,6 +64,7 @@ int main(int argc, char **argv) {
             "Center of BAO scale prior window to use in fit.")
         ("model-config", po::value<std::string>(&modelConfig)->default_value(""),
             "Model parameters configuration script.")
+        ("anisotropic", "Uses anisotropic a,b parameters instead of isotropic scale.")
         ;
     dataOptions.add_options()
         ("data", po::value<std::string>(&dataName)->default_value(""),
@@ -76,12 +77,14 @@ int main(int argc, char **argv) {
         ("max-plates", po::value<int>(&maxPlates)->default_value(0),
             "Maximum number of plates to load (zero uses all available plates).")
         ("check-posdef", "Checks that each covariance is positive-definite (slow).")
+        ("save-icov", "Saves the inverse covariance of the combined data after final cuts.")
         ;
     frenchOptions.add_options()
         ("french", "Correlation data files are in the French format (default is cosmolib).")
         ("unweighted", "Does not read covariance data.")
         ("expanded", "Data uses the expanded format.")
         ("use-quad", "Uses quadrupole correlations.")
+        ("sectors", "Correlation data file in r-mu format by angular sector.")
         ;
     cosmolibOptions.add_options()
         ("weighted", "Data vectors are inverse-covariance weighted.")
@@ -124,12 +127,18 @@ int main(int argc, char **argv) {
             "Full width (Mpc/h) of co-moving separation window to veto in fit (zero for no veto).")
         ("rveto-center", po::value<double>(&rVetoCenter)->default_value(114),
             "Center (Mpc/h) of co-moving separation window to veto in fit.")
+        ("mu-min", po::value<double>(&muMin)->default_value(0),
+            "Final cut on minimum value of mu = rL/r to use in the fit (coordinate data only).")
+        ("mu-max", po::value<double>(&muMax)->default_value(1),
+            "Final cut on maximum value of mu = rL/r to use in the fit (coordinate data only).")
         ("llmin", po::value<double>(&llmin)->default_value(0),
-            "Minimum value of log(lam2/lam1) to use in fit (cosmolib only).")
+            "Minimum value of log(lam2/lam1) to use in fit (multipole data only).")
         ("lmin", po::value<int>(&lmin)->default_value(0),
             "Final cut on minimum multipole ell (0,2,4) to use in fit (multipole data only).")
         ("lmax", po::value<int>(&lmax)->default_value(2),
             "Final cut on maximum multipole ell (0,2,4) to use in fit (multipole data only).")
+        ("output-prefix", po::value<std::string>(&outputPrefix)->default_value(""),
+            "Prefix to use for all analysis output files.")
         ("ndump", po::value<int>(&ndump)->default_value(100),
             "Number of points spanning [rmin,rmax] to use for dumping models (zero for no dumps).")
         ("decorrelated", "Combined data is saved with decorrelated errors.")
@@ -190,9 +199,10 @@ int main(int argc, char **argv) {
     // Extract boolean options.
     bool verbose(0 == vm.count("quiet")), french(vm.count("french")), weighted(vm.count("weighted")),
         checkPosDef(vm.count("check-posdef")), fixCovariance(0 == vm.count("naive-covariance")),
-        dr9lrg(vm.count("dr9lrg")), unweighted(vm.count("unweighted")),
+        dr9lrg(vm.count("dr9lrg")), unweighted(vm.count("unweighted")), anisotropic(vm.count("anisotropic")),
         fitEach(vm.count("fit-each")), reuseCov(vm.count("reuse-cov")), xiHexa(vm.count("xi-hexa")),
-        xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")), expanded(vm.count("expanded"));
+        xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")),
+        expanded(vm.count("expanded")), sectors(vm.count("sectors")), saveICov(vm.count("save-icov"));
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
@@ -233,7 +243,8 @@ int main(int argc, char **argv) {
         else {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
             model.reset(new baofit::BaoCorrelationModel(
-                modelrootName,fiducialName,nowigglesName,broadbandName,zref,priorMin,priorMax));
+                modelrootName,fiducialName,nowigglesName,broadbandName,zref,
+                anisotropic,priorMin,priorMax));
         }
              
         // Configure our fit model parameters, if requested.
@@ -266,6 +277,10 @@ int main(int argc, char **argv) {
             zdata = 2.30;
             prototype = baofit::boss::createFrenchPrototype(zdata,rmin,rmax,rVetoMin,rVetoMax,ellmin,ellmax);
         }
+        else if(sectors) {
+            zdata = 2.30;
+            prototype = baofit::boss::createSectorsPrototype(zdata,rmin,rmax,muMin,muMax,rVetoMin,rVetoMax);
+        }
         else if(dr9lrg) {
             zdata = 0.57;
             prototype = baofit::boss::createDR9LRGPrototype(zdata,rmin,rmax,rVetoMin,rVetoMax,
@@ -279,7 +294,8 @@ int main(int argc, char **argv) {
         else {
             zdata = 2.25;
             prototype = baofit::boss::createCosmolibPrototype(
-                minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,rmin,rmax,rVetoMin,rVetoMax,llmin,cosmology);
+                minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,rmin,rmax,muMin,muMax,
+                rVetoMin,rVetoMax,llmin,cosmology);
         }
         
         // Build a list of the data files we will read.
@@ -321,6 +337,9 @@ int main(int argc, char **argv) {
                 analyzer.addData(baofit::boss::loadFrench(*filename,prototype,
                     verbose,unweighted,expanded,checkPosDef));
             }
+            else if(sectors) {
+                analyzer.addData(baofit::boss::loadSectors(*filename,prototype,verbose));
+            }
             else if(dr9lrg) {
                 analyzer.addData(baofit::boss::loadDR9LRG(*filename,prototype,verbose));
             }
@@ -347,7 +366,8 @@ int main(int argc, char **argv) {
         likely::FunctionMinimumPtr fmin = analyzer.fitCombined();
         // Dump the combined multipole data points with decorrelated errors, if possible.
         if(french || dr9lrg || xiFormat) {
-            std::ofstream out("combined.dat");
+            std::string outName = outputPrefix + "combined.dat";
+            std::ofstream out(outName.c_str());
             boost::shared_ptr<baofit::MultipoleCorrelationData> combined =
                 boost::dynamic_pointer_cast<baofit::MultipoleCorrelationData>(analyzer.getCombined());
             std::vector<double> dweights;
@@ -358,27 +378,46 @@ int main(int argc, char **argv) {
             combined->dump(out,dweights);
             out.close();
         }
+        // Save the combined inverse covariance, if requested.
+        if(saveICov) {
+            baofit::AbsCorrelationDataPtr combined = analyzer.getCombined();
+            std::string outName = outputPrefix + "icov.dat";
+            std::ofstream out(outName.c_str());
+            for(likely::BinnedData::IndexIterator iter1 = combined->begin();
+            iter1 != combined->end(); ++iter1) {
+                for(likely::BinnedData::IndexIterator iter2 = combined->begin();
+                iter2 != combined->end(); ++iter2) {
+                    out << *iter1 << ' ' << *iter2 << ' '
+                        << combined->getInverseCovariance(*iter1,*iter2) << std::endl;
+                }
+            }
+            out.close();
+        }
         if(ndump > 0) {
             // Dump the best-fit model.
-            std::ofstream out("fit.dat");
+            std::string outName = outputPrefix + "fit.dat";
+            std::ofstream out(outName.c_str());
             analyzer.dumpModel(out,fmin->getFitParameters(),ndump);
             out.close();
         }
         if(xiPoints.length()==0 && ndump > 0) {
             // Dump the best-fit model with its peak contribution forced to zero.
-            std::ofstream out("fit-smooth.dat");
+            std::string outName = outputPrefix + "fit-smooth.dat";
+            std::ofstream out(outName.c_str());
             analyzer.dumpModel(out,fmin->getFitParameters(),ndump,"value[BAO amplitude]=0");
             out.close();
         }
         {
             // Dump the best-fit residuals for each data bin.
-            std::ofstream out("residuals.dat");
+            std::string outName = outputPrefix + "residuals.dat";
+            std::ofstream out(outName.c_str());
             analyzer.dumpResiduals(out,fmin);
             out.close();
         }
         // Generate a Markov-chain for marginalization, if requested.
         if(mcmcSave > 0) {
-            analyzer.generateMarkovChain(mcmcSave,mcmcInterval,fmin,"mcmc.dat",ndump);
+            std::string outName = outputPrefix + "mcmc.dat";
+            analyzer.generateMarkovChain(mcmcSave,mcmcInterval,fmin,outName,ndump);
         }
         // Refit the combined sample, if requested.
         likely::FunctionMinimumPtr fmin2;
@@ -389,7 +428,8 @@ int main(int argc, char **argv) {
             fmin2 = analyzer.fitCombined(refitConfig);
             if(ndump > 0) {
                 // Dump the best-fit model.
-                std::ofstream out("refit.dat");
+                std::string outName = outputPrefix + "refit.dat";
+                std::ofstream out(outName.c_str());
                 analyzer.dumpModel(out,fmin2->getFitParameters(),ndump);
                 out.close();
             }
@@ -398,20 +438,24 @@ int main(int argc, char **argv) {
         }
         // Generate and fit MC samples, if requested.
         if(mcSamples > 0) {
-            analyzer.doMCSampling(mcSamples,mcConfig,fmin,fmin2,refitConfig,"mc.dat",ndump);
+            std::string outName = outputPrefix + "mc.dat";
+            analyzer.doMCSampling(mcSamples,mcConfig,fmin,fmin2,refitConfig,outName,ndump);
         }
         // Perform a bootstrap analysis, if requested.
         if(bootstrapTrials > 0) {
+            std::string outName = outputPrefix + "bs.dat";
             analyzer.doBootstrapAnalysis(bootstrapTrials,bootstrapSize,fixCovariance,
-                fmin,fmin2,refitConfig,"bs.dat",ndump);
+                fmin,fmin2,refitConfig,outName,ndump);
         }
         // Perform a jackknife analysis, if requested.
         if(jackknifeDrop > 0) {
-            analyzer.doJackknifeAnalysis(jackknifeDrop,fmin,fmin2,refitConfig,"jk.dat",ndump);
+            std::string outName = outputPrefix + "jk.dat";
+            analyzer.doJackknifeAnalysis(jackknifeDrop,fmin,fmin2,refitConfig,outName,ndump);
         }
         // Fit each observation separately, if requested.
         if(fitEach) {
-            analyzer.fitEach(fmin,fmin2,refitConfig,"each.dat",ndump);
+            std::string outName = outputPrefix + "each.dat";
+            analyzer.fitEach(fmin,fmin2,refitConfig,outName,ndump);
         }
     }
     catch(baofit::RuntimeError const &e) {
