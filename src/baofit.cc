@@ -27,7 +27,7 @@ int main(int argc, char **argv) {
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin,
         rVetoWidth,rVetoCenter,priorCenter,priorWidth,xiRmin,xiRmax,muMin,muMax;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
-        mcmcSave,mcmcInterval,mcSamples,xiNr;
+      mcmcSave,mcmcInterval,mcSamples,xiNr,reuseCov;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,mcConfig,
         platelistName,platerootName,modelConfig,iniName,refitConfig,minMethod,xiMethod,outputPrefix;
 
@@ -88,7 +88,8 @@ int main(int argc, char **argv) {
         ;
     cosmolibOptions.add_options()
         ("weighted", "Data vectors are inverse-covariance weighted.")
-        ("reuse-cov", "Reuse covariance estimated for first-realization of each plate.")
+        ("reuse-cov", po::value<int>(&reuseCov)->default_value(-1,"-1"),
+	 "Reuse covariance estimated for n-th realization of each plate (if >=0).")
         ("minll", po::value<double>(&minll)->default_value(0.0002,"0.0002"),
             "Minimum log(lam2/lam1).")
         ("maxll", po::value<double>(&maxll)->default_value(0.02,"0.02"),
@@ -200,7 +201,7 @@ int main(int argc, char **argv) {
     bool verbose(0 == vm.count("quiet")), french(vm.count("french")), weighted(vm.count("weighted")),
         checkPosDef(vm.count("check-posdef")), fixCovariance(0 == vm.count("naive-covariance")),
         dr9lrg(vm.count("dr9lrg")), unweighted(vm.count("unweighted")), anisotropic(vm.count("anisotropic")),
-        fitEach(vm.count("fit-each")), reuseCov(vm.count("reuse-cov")), xiHexa(vm.count("xi-hexa")),
+        fitEach(vm.count("fit-each")), xiHexa(vm.count("xi-hexa")),
         xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")),
         expanded(vm.count("expanded")), sectors(vm.count("sectors")), saveICov(vm.count("save-icov"));
 

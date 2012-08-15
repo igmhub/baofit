@@ -27,6 +27,7 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include <sstream>
 
 namespace local = baofit::boss;
 
@@ -419,7 +420,7 @@ cosmo::AbsHomogeneousUniversePtr cosmology) {
 
 // Loads a binned correlation function in cosmolib format and returns a BinnedData object.
 baofit::AbsCorrelationDataPtr local::loadCosmolib(std::string const &dataName,
-baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted, bool reuseCov,
+baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted, int reuseCov,
 bool checkPosDef) {
 
     // Create the new AbsCorrelationData that we will fill.
@@ -469,14 +470,16 @@ bool checkPosDef) {
 
     // Do we need to reuse the covariance estimated for the first realization of this plate?
     std::string covName;
-    if(reuseCov) {
+    if(reuseCov>=0) {
         // Parse the data name.
         boost::regex namePattern("([a-zA-Z0-9/_\\.]+/)?([0-9]+_)([0-9]+)\\.cat\\.([0-9]+)");
         boost::match_results<std::string::const_iterator> what;
         if(!boost::regex_match(dataName,what,namePattern)) {
             throw RuntimeError("loadCosmolib: cannot parse name \"" + dataName + "\"");
         }
-        covName = what[1]+what[2]+"1.cat."+what[4];
+	std::stringstream covnum;
+	covnum << reuseCov;
+        covName = what[1]+what[2]+covnum.str()+".cat."+what[4];
     }
     else {
         covName = dataName;
