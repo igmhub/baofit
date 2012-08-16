@@ -476,7 +476,7 @@ bool checkPosDef) {
         boost::match_results<std::string::const_iterator> what;
         if(!boost::regex_match(dataName,what,namePattern)) {
             throw RuntimeError("loadCosmolib: cannot parse name \"" + dataName + "\"");
-        }
+	}
 	std::stringstream covnum;
 	covnum << reuseCov;
         covName = what[1]+what[2]+covnum.str()+".cat."+what[4];
@@ -629,7 +629,7 @@ AbsCorrelationDataCPtr prototype, bool verbose, bool weighted, int reuseCov, boo
 
     // Do we need to reuse the covariance estimated for the first realization of this plate?
     std::string covName;
-    if(reuseCov) {
+    if(reuseCov>=0) {
         // Parse the data name.
         boost::regex namePattern("([a-zA-Z0-9/_\\.]+/)?([0-9]+_)([0-9]+)\\.cat\\.([0-9]+)");
         boost::match_results<std::string::const_iterator> what;
