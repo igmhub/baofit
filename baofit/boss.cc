@@ -576,7 +576,7 @@ double rVetoMin, double rVetoMax, cosmo::Multipole ellmin, cosmo::Multipole ellm
 }
 
 baofit::AbsCorrelationDataPtr local::loadCosmolibXi(std::string const &dataName,
-AbsCorrelationDataCPtr prototype, bool verbose, bool weighted, bool reuseCov, bool checkPosDef) {
+AbsCorrelationDataCPtr prototype, bool verbose, bool weighted, int reuseCov, bool checkPosDef) {
     
     // Create the new AbsCorrelationData that we will fill.
     baofit::AbsCorrelationDataPtr binnedData((baofit::MultipoleCorrelationData *)(prototype->clone(true)));
@@ -636,7 +636,9 @@ AbsCorrelationDataCPtr prototype, bool verbose, bool weighted, bool reuseCov, bo
         if(!boost::regex_match(dataName,what,namePattern)) {
             throw RuntimeError("loadCosmolib: cannot parse name \"" + dataName + "\"");
         }
-        covName = what[1]+what[2]+"1.cat."+what[4];
+	std::stringstream covnum;
+	covnum << reuseCov;
+        covName = what[1]+what[2]+covnum.str()+".cat."+what[4];
     }
     else {
         covName = dataName;
