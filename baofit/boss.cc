@@ -27,7 +27,6 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
-#include <sstream>
 
 namespace local = baofit::boss;
 
@@ -476,10 +475,8 @@ bool checkPosDef) {
         boost::match_results<std::string::const_iterator> what;
         if(!boost::regex_match(dataName,what,namePattern)) {
             throw RuntimeError("loadCosmolib: cannot parse name \"" + dataName + "\"");
-	}
-	std::stringstream covnum;
-	covnum << reuseCov;
-        covName = what[1]+what[2]+covnum.str()+".cat."+what[4];
+	    }
+        covName = what[1]+what[2]+boost::lexical_cast<std::string>(reuseCov)+".cat."+what[4];
     }
     else {
         covName = dataName;
@@ -636,9 +633,7 @@ AbsCorrelationDataCPtr prototype, bool verbose, bool weighted, int reuseCov, boo
         if(!boost::regex_match(dataName,what,namePattern)) {
             throw RuntimeError("loadCosmolib: cannot parse name \"" + dataName + "\"");
         }
-	std::stringstream covnum;
-	covnum << reuseCov;
-        covName = what[1]+what[2]+covnum.str()+".cat."+what[4];
+        covName = what[1]+what[2]+boost::lexical_cast<std::string>(reuseCov)+".cat."+what[4];
     }
     else {
         covName = dataName;
