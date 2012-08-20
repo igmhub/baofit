@@ -88,7 +88,7 @@ int main(int argc, char **argv) {
         ;
     cosmolibOptions.add_options()
         ("weighted", "Data vectors are inverse-covariance weighted.")
-        ("reuse-cov", po::value<int>(&reuseCov)->default_value(-1,"-1"),
+        ("reuse-cov", po::value<int>(&reuseCov)->default_value(-1),
 	 "Reuse covariance estimated for n-th realization of each plate (if >=0).")
         ("minll", po::value<double>(&minll)->default_value(0.0002,"0.0002"),
             "Minimum log(lam2/lam1).")
