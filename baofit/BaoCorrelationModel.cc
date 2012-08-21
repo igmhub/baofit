@@ -203,7 +203,7 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
             */
         }
         else {
-	  rPeak = r*scale;
+	        rPeak = r*scale;
             muPeak = mu;
         }
         double fid((*_fid)(rPeak,muPeak)), nw((*_nw)(rPeak,muPeak));
