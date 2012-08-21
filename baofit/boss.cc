@@ -461,8 +461,9 @@ bool checkPosDef) {
         binnedData->setData(index, weighted ? cinvData : data, weighted);        
     }
     paramsIn.close();
+    int ndata = binnedData->getNBinsWithData();
     if(false) {
-        std::cout << "Read " << binnedData->getNBinsWithData() << " of "
+        std::cout << "Read " << ndata << " of "
             << binnedData->getNBinsTotal() << " data values from " << paramsName << std::endl;
     }
     
@@ -501,6 +502,11 @@ bool checkPosDef) {
             throw RuntimeError("loadCosmolib: error reading line " +
                 boost::lexical_cast<std::string>(lines) + " of " + paramsName);
         }
+        // Check for invalid offsets.
+        if(offset1 < 0 || offset2 < 0 || offset1 >= ndata || offset2 >= ndata) {
+            throw RuntimeError("loadCosmolib: invalid covariance indices on line " +
+                boost::lexical_cast<std::string>(lines) + " of " + paramsName);
+        }
         // Add this covariance to our dataset.
         if(icov) value = -value; // !?! see line #388 of Observed2Point.cpp
         int index1 = *(binnedData->begin()+offset1), index2 = *(binnedData->begin()+offset2);
@@ -513,7 +519,6 @@ bool checkPosDef) {
     }
     covIn.close();
     if(false) {
-        int ndata = binnedData->getNBinsWithData();
         int ncov = (ndata*(ndata+1))/2;
         std::cout << "Read " << lines << " of " << ncov
             << " covariance values from " << covName << std::endl;
@@ -618,8 +623,9 @@ AbsCorrelationDataCPtr prototype, bool verbose, bool weighted, int reuseCov, boo
         binnedData->setData(index, weighted ? cinvData : data, weighted);
     }
     paramsIn.close();
+    int ndata = binnedData->getNBinsWithData();
     if(false) {
-        std::cout << "Read " << binnedData->getNBinsWithData() << " of "
+        std::cout << "Read " << ndata << " of "
             << binnedData->getNBinsTotal() << " data values from " << paramsName << std::endl;
     }
     
@@ -658,6 +664,11 @@ AbsCorrelationDataCPtr prototype, bool verbose, bool weighted, int reuseCov, boo
             throw RuntimeError("loadCosmolib: error reading line " +
                 boost::lexical_cast<std::string>(lines) + " of " + paramsName);
         }
+        // Check for invalid offsets.
+        if(offset1 < 0 || offset2 < 0 || offset1 >= ndata || offset2 >= ndata) {
+            throw RuntimeError("loadCosmolib: invalid covariance indices on line " +
+                boost::lexical_cast<std::string>(lines) + " of " + paramsName);
+        }
         // Add this covariance to our dataset.
         value = -value; // !?! see line #388 of Observed2Point.cpp
         int index1 = *(binnedData->begin()+offset1), index2 = *(binnedData->begin()+offset2);
@@ -665,7 +676,6 @@ AbsCorrelationDataCPtr prototype, bool verbose, bool weighted, int reuseCov, boo
     }
     covIn.close();
     if(false) {
-        int ndata = binnedData->getNBinsWithData();
         int ncov = (ndata*(ndata+1))/2;
         std::cout << "Read " << lines << " of " << ncov
             << " covariance values from " << covName << std::endl;
