@@ -37,6 +37,7 @@ _scalePriorMin(scalePriorMin), _scalePriorMax(scalePriorMax)
     // BAO peak parameters
     defineParameter("BAO amplitude",1,0.15);
     defineParameter("BAO scale",1,0.02);
+    defineParameter("alpha-scale",0,0.5);
 
     defineParameter("BAO scale a",0,0.1);
     defineParameter("BAO scale b",0,0.1);
@@ -150,6 +151,7 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     double alpha_beta = getParameterValue("alpha-beta");
     double ampl = getParameterValue("BAO amplitude");
     double scale = getParameterValue("BAO scale");
+    double alpha_scale = getParameterValue("alpha-scale");
     double xio = getParameterValue("BBand1 xio");
     double a0 = getParameterValue("BBand1 a0");
     double a1 = getParameterValue("BBand1 a1");
@@ -159,6 +161,7 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     // Calculate redshift evolution.
     double zratio((1+z)/(1+_zref));
     double zfactor = std::pow(zratio,alpha_bias);
+    scale *=  std::pow(zratio,alpha_scale);
     beta *= std::pow(zratio,alpha_beta);
     // Build a model with xi(ell=0,2,4) = c(ell).
     cosmo::RsdCorrelationFunction bband2Model(
@@ -200,7 +203,7 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
             */
         }
         else {
-            rPeak = r*scale;
+	        rPeak = r*scale;
             muPeak = mu;
         }
         double fid((*_fid)(rPeak,muPeak)), nw((*_nw)(rPeak,muPeak));
@@ -225,6 +228,7 @@ bool anyChanged) const {
     double alpha_beta = getParameterValue("alpha-beta");
     double ampl = getParameterValue("BAO amplitude");
     double scale = getParameterValue("BAO scale");
+    double alpha_scale = getParameterValue("alpha-scale");
     double xio = getParameterValue("BBand1 xio");
     double a0 = getParameterValue("BBand1 a0");
     double a1 = getParameterValue("BBand1 a1");
@@ -234,6 +238,7 @@ bool anyChanged) const {
     // Calculate redshift evolution.
     double zratio((1+z)/(1+_zref));
     double zfactor = std::pow(zratio,alpha_bias);
+    scale *=  std::pow(zratio,alpha_scale);
     beta *= std::pow(zratio,alpha_beta);
     // Calculate the redshift-space distortion scale factor for this multipole.
     double rsdScale, bband2, rsq(r*r);

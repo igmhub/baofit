@@ -419,7 +419,7 @@ cosmo::AbsHomogeneousUniversePtr cosmology) {
 
 // Loads a binned correlation function in cosmolib format and returns a BinnedData object.
 baofit::AbsCorrelationDataPtr local::loadCosmolib(std::string const &dataName,
-baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted, bool reuseCov,
+baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted, int reuseCov,
 bool checkPosDef) {
 
     // Create the new AbsCorrelationData that we will fill.
@@ -461,22 +461,23 @@ bool checkPosDef) {
         binnedData->setData(index, weighted ? cinvData : data, weighted);        
     }
     paramsIn.close();
+    int ndata = binnedData->getNBinsWithData();
     if(false) {
-        std::cout << "Read " << binnedData->getNBinsWithData() << " of "
+        std::cout << "Read " << ndata << " of "
             << binnedData->getNBinsTotal() << " data values from " << paramsName << std::endl;
     }
     
 
     // Do we need to reuse the covariance estimated for the first realization of this plate?
     std::string covName;
-    if(reuseCov) {
+    if(reuseCov>=0) {
         // Parse the data name.
         boost::regex namePattern("([a-zA-Z0-9/_\\.]+/)?([0-9]+_)([0-9]+)\\.cat\\.([0-9]+)");
         boost::match_results<std::string::const_iterator> what;
         if(!boost::regex_match(dataName,what,namePattern)) {
             throw RuntimeError("loadCosmolib: cannot parse name \"" + dataName + "\"");
-        }
-        covName = what[1]+what[2]+"1.cat."+what[4];
+	    }
+        covName = what[1]+what[2]+boost::lexical_cast<std::string>(reuseCov)+".cat."+what[4];
     }
     else {
         covName = dataName;
@@ -501,6 +502,11 @@ bool checkPosDef) {
             throw RuntimeError("loadCosmolib: error reading line " +
                 boost::lexical_cast<std::string>(lines) + " of " + paramsName);
         }
+        // Check for invalid offsets.
+        if(offset1 < 0 || offset2 < 0 || offset1 >= ndata || offset2 >= ndata) {
+            throw RuntimeError("loadCosmolib: invalid covariance indices on line " +
+                boost::lexical_cast<std::string>(lines) + " of " + paramsName);
+        }
         // Add this covariance to our dataset.
         if(icov) value = -value; // !?! see line #388 of Observed2Point.cpp
         int index1 = *(binnedData->begin()+offset1), index2 = *(binnedData->begin()+offset2);
@@ -513,7 +519,6 @@ bool checkPosDef) {
     }
     covIn.close();
     if(false) {
-        int ndata = binnedData->getNBinsWithData();
         int ncov = (ndata*(ndata+1))/2;
         std::cout << "Read " << lines << " of " << ncov
             << " covariance values from " << covName << std::endl;
@@ -573,7 +578,7 @@ double rVetoMin, double rVetoMax, cosmo::Multipole ellmin, cosmo::Multipole ellm
 }
 
 baofit::AbsCorrelationDataPtr local::loadCosmolibXi(std::string const &dataName,
-AbsCorrelationDataCPtr prototype, bool verbose, bool weighted, bool reuseCov, bool checkPosDef) {
+AbsCorrelationDataCPtr prototype, bool verbose, bool weighted, int reuseCov, bool checkPosDef) {
     
     // Create the new AbsCorrelationData that we will fill.
     baofit::AbsCorrelationDataPtr binnedData((baofit::MultipoleCorrelationData *)(prototype->clone(true)));
@@ -618,22 +623,23 @@ AbsCorrelationDataCPtr prototype, bool verbose, bool weighted, bool reuseCov, bo
         binnedData->setData(index, weighted ? cinvData : data, weighted);
     }
     paramsIn.close();
+    int ndata = binnedData->getNBinsWithData();
     if(false) {
-        std::cout << "Read " << binnedData->getNBinsWithData() << " of "
+        std::cout << "Read " << ndata << " of "
             << binnedData->getNBinsTotal() << " data values from " << paramsName << std::endl;
     }
     
 
     // Do we need to reuse the covariance estimated for the first realization of this plate?
     std::string covName;
-    if(reuseCov) {
+    if(reuseCov>=0) {
         // Parse the data name.
         boost::regex namePattern("([a-zA-Z0-9/_\\.]+/)?([0-9]+_)([0-9]+)\\.cat\\.([0-9]+)");
         boost::match_results<std::string::const_iterator> what;
         if(!boost::regex_match(dataName,what,namePattern)) {
             throw RuntimeError("loadCosmolib: cannot parse name \"" + dataName + "\"");
         }
-        covName = what[1]+what[2]+"1.cat."+what[4];
+        covName = what[1]+what[2]+boost::lexical_cast<std::string>(reuseCov)+".cat."+what[4];
     }
     else {
         covName = dataName;
@@ -658,6 +664,11 @@ AbsCorrelationDataCPtr prototype, bool verbose, bool weighted, bool reuseCov, bo
             throw RuntimeError("loadCosmolib: error reading line " +
                 boost::lexical_cast<std::string>(lines) + " of " + paramsName);
         }
+        // Check for invalid offsets.
+        if(offset1 < 0 || offset2 < 0 || offset1 >= ndata || offset2 >= ndata) {
+            throw RuntimeError("loadCosmolib: invalid covariance indices on line " +
+                boost::lexical_cast<std::string>(lines) + " of " + paramsName);
+        }
         // Add this covariance to our dataset.
         value = -value; // !?! see line #388 of Observed2Point.cpp
         int index1 = *(binnedData->begin()+offset1), index2 = *(binnedData->begin()+offset2);
@@ -665,7 +676,6 @@ AbsCorrelationDataCPtr prototype, bool verbose, bool weighted, bool reuseCov, bo
     }
     covIn.close();
     if(false) {
-        int ndata = binnedData->getNBinsWithData();
         int ncov = (ndata*(ndata+1))/2;
         std::cout << "Read " << lines << " of " << ncov
             << " covariance values from " << covName << std::endl;
