@@ -14,6 +14,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <algorithm>
 
 namespace po = boost::program_options;
 
@@ -172,7 +173,7 @@ int main(int argc, char **argv) {
         .add(frenchOptions).add(cosmolibOptions).add(analysisOptions);
     po::variables_map vm;
 
-    // Parse command line options first.
+    // Parse command line options first so they override anything in an INI file (except for --model-config)
     try {
         po::store(po::parse_command_line(argc, argv, allOptions), vm);
         po::notify(vm);
@@ -185,6 +186,8 @@ int main(int argc, char **argv) {
         std::cout << allOptions << std::endl;
         return 1;
     }
+    // Make a copy of any command-line model-config options.
+    std::vector<std::string> modelConfigSave = modelConfig;
     // If an INI file was specified, load it now.
     if(0 < iniName.length()) {
         try {
@@ -198,6 +201,10 @@ int main(int argc, char **argv) {
             return -1;
         }        
     }
+    // Shift any command-line model-config options after any INI file options.
+    int nSave = modelConfigSave.size();
+    std::copy(modelConfig.begin()+nSave,modelConfig.end(),modelConfig.begin());
+    std::copy(modelConfigSave.begin(),modelConfigSave.end(),modelConfig.end()-nSave);
     
     // Extract boolean options.
     bool verbose(0 == vm.count("quiet")), french(vm.count("french")), weighted(vm.count("weighted")),
@@ -250,10 +257,10 @@ int main(int argc, char **argv) {
                 anisotropic,priorMin,priorMax));
         }
              
-        // Configure our fit model parameters, if requested.
+        // Configure our fit model parameters by applying all model-config options in turn,
+        // starting with those in the INI file and ending with any command-line options.
         BOOST_FOREACH(std::string const &config, modelConfig) {
-            std::cout << "modelConfig >>" << config << "<<" << std::endl;
-            if(0 < config.length()) model->configureFitParameters(config);
+            model->configureFitParameters(config);
         }
 
         if(verbose) std::cout << "Models initialized." << std::endl;
