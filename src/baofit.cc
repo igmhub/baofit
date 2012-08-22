@@ -8,6 +8,7 @@
 #include "boost/program_options.hpp"
 #include "boost/format.hpp"
 #include "boost/smart_ptr.hpp"
+#include "boost/foreach.hpp"
 
 #include <fstream>
 #include <iostream>
@@ -29,7 +30,8 @@ int main(int argc, char **argv) {
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
       mcmcSave,mcmcInterval,mcSamples,xiNr,reuseCov;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,mcConfig,
-        platelistName,platerootName,modelConfig,iniName,refitConfig,minMethod,xiMethod,outputPrefix;
+        platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix;
+    std::vector<std::string> modelConfig;
 
     // Default values in quotes below are to avoid roundoff errors leading to ugly --help
     // messages. See http://stackoverflow.com/questions/1734916/
@@ -62,8 +64,8 @@ int main(int argc, char **argv) {
             "Full width of BAO scale prior window to use in fit (zero for no prior).")
         ("prior-center", po::value<double>(&priorCenter)->default_value(1),
             "Center of BAO scale prior window to use in fit.")
-        ("model-config", po::value<std::string>(&modelConfig)->default_value(""),
-            "Model parameters configuration script.")
+        ("model-config", po::value<std::vector<std::string> >(&modelConfig)->composing(),
+            "Model parameters configuration script (option can appear multiple times).")
         ("anisotropic", "Uses anisotropic a,b parameters instead of isotropic scale.")
         ;
     dataOptions.add_options()
@@ -249,7 +251,10 @@ int main(int argc, char **argv) {
         }
              
         // Configure our fit model parameters, if requested.
-         if(0 < modelConfig.length()) model->configureFitParameters(modelConfig);
+        BOOST_FOREACH(std::string const &config, modelConfig) {
+            std::cout << "modelConfig >>" << config << "<<" << std::endl;
+            if(0 < config.length()) model->configureFitParameters(config);
+        }
 
         if(verbose) std::cout << "Models initialized." << std::endl;
     }
