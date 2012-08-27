@@ -8,11 +8,13 @@
 #include "boost/program_options.hpp"
 #include "boost/format.hpp"
 #include "boost/smart_ptr.hpp"
+#include "boost/foreach.hpp"
 
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
+#include <algorithm>
 
 namespace po = boost::program_options;
 
@@ -29,7 +31,8 @@ int main(int argc, char **argv) {
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
       mcmcSave,mcmcInterval,mcSamples,xiNr,reuseCov;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,mcConfig,
-        platelistName,platerootName,modelConfig,iniName,refitConfig,minMethod,xiMethod,outputPrefix;
+        platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix;
+    std::vector<std::string> modelConfig;
 
     // Default values in quotes below are to avoid roundoff errors leading to ugly --help
     // messages. See http://stackoverflow.com/questions/1734916/
@@ -62,8 +65,8 @@ int main(int argc, char **argv) {
             "Full width of BAO scale prior window to use in fit (zero for no prior).")
         ("prior-center", po::value<double>(&priorCenter)->default_value(1),
             "Center of BAO scale prior window to use in fit.")
-        ("model-config", po::value<std::string>(&modelConfig)->default_value(""),
-            "Model parameters configuration script.")
+        ("model-config", po::value<std::vector<std::string> >(&modelConfig)->composing(),
+            "Model parameters configuration script (option can appear multiple times).")
         ("anisotropic", "Uses anisotropic a,b parameters instead of isotropic scale.")
         ;
     dataOptions.add_options()
@@ -170,7 +173,7 @@ int main(int argc, char **argv) {
         .add(frenchOptions).add(cosmolibOptions).add(analysisOptions);
     po::variables_map vm;
 
-    // Parse command line options first.
+    // Parse command line options first so they override anything in an INI file (except for --model-config)
     try {
         po::store(po::parse_command_line(argc, argv, allOptions), vm);
         po::notify(vm);
@@ -183,6 +186,8 @@ int main(int argc, char **argv) {
         std::cout << allOptions << std::endl;
         return 1;
     }
+    // Make a copy of any command-line model-config options.
+    std::vector<std::string> modelConfigSave = modelConfig;
     // If an INI file was specified, load it now.
     if(0 < iniName.length()) {
         try {
@@ -196,6 +201,10 @@ int main(int argc, char **argv) {
             return -1;
         }        
     }
+    // Shift any command-line model-config options after any INI file options.
+    int nSave = modelConfigSave.size();
+    std::copy(modelConfig.begin()+nSave,modelConfig.end(),modelConfig.begin());
+    std::copy(modelConfigSave.begin(),modelConfigSave.end(),modelConfig.end()-nSave);
     
     // Extract boolean options.
     bool verbose(0 == vm.count("quiet")), french(vm.count("french")), weighted(vm.count("weighted")),
@@ -248,8 +257,11 @@ int main(int argc, char **argv) {
                 anisotropic,priorMin,priorMax));
         }
              
-        // Configure our fit model parameters, if requested.
-         if(0 < modelConfig.length()) model->configureFitParameters(modelConfig);
+        // Configure our fit model parameters by applying all model-config options in turn,
+        // starting with those in the INI file and ending with any command-line options.
+        BOOST_FOREACH(std::string const &config, modelConfig) {
+            model->configureFitParameters(config);
+        }
 
         if(verbose) std::cout << "Models initialized." << std::endl;
     }
