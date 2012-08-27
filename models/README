@@ -20,10 +20,10 @@ cosmocalc --verbose --omega-matter 0.27 --omega-baryon 0.046327 --hubble-constan
 
 For the corresponding no wiggles model, use:
 
-cosmocalc --verbose --omega-matter 0.27 --omega-baryon 0.046327 --hubble-constant 0.7 --spectral-index 0.97 --sigma8 0.79627 -z 2.25 --kmin 1e-4 --kmax 1e2 --nk 2048 --save-power EH98_nowiggles_matterpower.dat --no-wiggles
-cosmocalc --verbose --omega-matter 0.27 --omega-baryon 0.046327 --hubble-constant 0.7 --spectral-index 0.97 --sigma8 0.79627 -z 2.25 --rmin 5 --rmax 215 --nr 211 --save-correlation EH98_nowiggles.0.dat --no-wiggles
-cosmocalc --verbose --omega-matter 0.27 --omega-baryon 0.046327 --hubble-constant 0.7 --spectral-index 0.97 --sigma8 0.79627 -z 2.25 --rmin 5 --rmax 215 --nr 211 --save-correlation EH98_nowiggles.2.dat --no-wiggles --quad
-cosmocalc --verbose --omega-matter 0.27 --omega-baryon 0.046327 --hubble-constant 0.7 --spectral-index 0.97 --sigma8 0.79627 -z 2.25 --rmin 5 --rmax 215 --nr 211 --save-correlation EH98_nowiggles.4.dat --no-wiggles --hexa
+cosmocalc --verbose --omega-matter 0.27 --omega-baryon 0.046327 --hubble-constant 0.7 --spectral-index 0.97 --sigma8 0.79627 -z 2.25 --kmin 1e-4 --kmax 1e2 --nk 2048 --save-power EH98NoWiggles_matterpower.dat --no-wiggles
+cosmocalc --verbose --omega-matter 0.27 --omega-baryon 0.046327 --hubble-constant 0.7 --spectral-index 0.97 --sigma8 0.79627 -z 2.25 --rmin 5 --rmax 215 --nr 211 --save-correlation EH98NoWiggles.0.dat --no-wiggles
+cosmocalc --verbose --omega-matter 0.27 --omega-baryon 0.046327 --hubble-constant 0.7 --spectral-index 0.97 --sigma8 0.79627 -z 2.25 --rmin 5 --rmax 215 --nr 211 --save-correlation EH98NoWiggles.2.dat --no-wiggles --quad
+cosmocalc --verbose --omega-matter 0.27 --omega-baryon 0.046327 --hubble-constant 0.7 --spectral-index 0.97 --sigma8 0.79627 -z 2.25 --rmin 5 --rmax 215 --nr 211 --save-correlation EH98NoWiggles.4.dat --no-wiggles --hexa
 
 For quick visual checks on generated models, use gnuplot, e.g. for r^2 weighting:
 
