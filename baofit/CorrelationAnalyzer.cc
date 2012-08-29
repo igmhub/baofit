@@ -7,6 +7,7 @@
 #include "baofit/CorrelationFitter.h"
 
 #include "likely/FunctionMinimum.h"
+#include "likely/FitParameter.h"
 #include "likely/CovarianceMatrix.h"
 #include "likely/FitParameterStatistics.h"
 
@@ -19,6 +20,8 @@
 #include <iostream>
 #include <fstream>
 #include <cmath>
+#include <algorithm>
+#include <iterator>
 
 namespace local = baofit;
 
@@ -54,6 +57,48 @@ local::AbsCorrelationDataPtr local::CorrelationAnalyzer::getCombined(bool verbos
             << ") bins with data after (before) finalizing." << std::endl;
     }
     return combined;    
+}
+
+bool local::CorrelationAnalyzer::printScaleZEff(likely::FunctionMinimumCPtr fmin, double zref,
+std::string const &scaleName) const {
+    likely::FitParameters params = fmin->getFitParameters();
+    std::vector<std::string> pnames;
+    bool onlyFloating(true);
+    likely::getFitParameterNames(params,pnames,onlyFloating);
+    // Is "gamma-scale" a floating parameter of this fit?
+    std::vector<std::string>::iterator found = std::find(pnames.begin(),pnames.end(),"gamma-scale");
+    if(found == pnames.end()) return false;
+    int gammaIndex = std::distance(pnames.begin(),found);
+    // Is scaleName a floating parameter of this fit?
+    found = std::find(pnames.begin(),pnames.end(),scaleName);
+    if(found == pnames.end()) return false;
+    int scaleIndex = std::distance(pnames.begin(),found);
+    // Look up the fit results for gamma,scale
+    likely::Parameters pvalues = fmin->getParameters(onlyFloating);
+    likely::Parameters perrors = fmin->getErrors(onlyFloating);
+    double scale(pvalues[scaleIndex]), dscale(perrors[scaleIndex]);
+    double gamma(pvalues[gammaIndex]), dgamma(perrors[gammaIndex]);
+    // Look up the (scale,gamma) covariance.
+    likely::CovarianceMatrixCPtr cov = fmin->getCovariance();
+    if(!cov) return false;
+    double rho(cov->getCovariance(scaleIndex,gammaIndex)/(dscale*dgamma));
+    // Calculate zeff
+    double a = dscale/(scale*dgamma), b = 1/(2*gamma);
+    double logz = -b - a*rho + std::sqrt(b*b - a*a*(1-rho*rho));
+    double zEff = std::exp(logz)*(1 + zref) - 1;
+    // Calculate the scale at zref.
+    double ratio = (1+zEff)/(1+zref);
+    double evol = std::pow(ratio,gamma);
+    double scaleEff = scale*evol;
+    // Calculate the scale error at zref.
+    double logRatio = std::log(ratio);
+    double tmp = scale*dgamma*logRatio;
+    double dscaleEff = evol*std::sqrt(dscale*dscale + 2*rho*scale*dscale*dgamma*logRatio + tmp*tmp);
+    // Print results.
+    std::vector<double> errors(1,dscaleEff);
+    std::cout << boost::format("%18s") % scaleName << "(zeff = " << boost::format("%.3f") % zEff << ") = "
+        << likely::roundValueWithError(scaleEff,errors) << std::endl;
+    return true;
 }
 
 likely::FunctionMinimumPtr local::CorrelationAnalyzer::fitCombined(std::string const &config) const {
