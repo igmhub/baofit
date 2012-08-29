@@ -108,24 +108,6 @@ _scalePriorMin(scalePriorMin), _scalePriorMax(scalePriorMax)
 
 local::BaoCorrelationModel::~BaoCorrelationModel() { }
 
-// Evaluates -log(prior(scale)) where the prior is Gaussian for scale < min or scale > max,
-// and equal to one for min < scale < max.
-double local::BaoCorrelationModel::_evaluatePrior(bool anyChanged) const {
-    // First check if any prior is requested
-    if(_scalePriorMin >= _scalePriorMax) return 0;
-
-    double scale = getParameterValue("BAO scale");
-    if(scale < _scalePriorMin) {
-        double diff(scale - _scalePriorMin);
-        return diff*diff/_scalePriorNorm;
-    }
-    if(scale > _scalePriorMax) {
-        double diff(scale - _scalePriorMax);
-        return diff*diff/_scalePriorNorm;
-    }
-    return 0;
-}
-
 namespace baofit {
     // Define a function object class that simply returns a constant. This could also be done
     // with boost::lambda using (_1 = value), but I don't know how to create a lambda functor

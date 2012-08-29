@@ -33,8 +33,6 @@ namespace baofit {
         // Returns the correlation function for the specified multipole at co-moving pair separation
         // r and average pair redshift z.
         virtual double _evaluate(double r, cosmo::Multipole multipole, double z, bool anyChanged) const;
-        // Returns our prior on the BAO scale, if any.
-        virtual double _evaluatePrior(bool anyChanged) const;
 	private:
         double _zref, _scalePriorMin, _scalePriorMax, _scalePriorNorm;
         bool _anisotropic;
