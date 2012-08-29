@@ -30,7 +30,7 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
     defineParameter("alpha-beta",0,0.1);
     // BAO peak parameters
     defineParameter("BAO amplitude",1,0.15);
-    defineParameter("BAO scale",1,0.02);
+    defineParameter("BAO alpha-iso",1,0.02);
     defineParameter("alpha-scale",0,0.5);
 
     defineParameter("BAO alpha-parallel",1,0.1);
@@ -126,7 +126,7 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     double alpha_bias = getParameterValue("alpha-bias");
     double alpha_beta = getParameterValue("alpha-beta");
     double ampl = getParameterValue("BAO amplitude");
-    double scale = getParameterValue("BAO scale");
+    double scale = getParameterValue("BAO alpha-iso");
     double alpha_scale = getParameterValue("alpha-scale");
     double xio = getParameterValue("BBand1 xio");
     double a0 = getParameterValue("BBand1 a0");
@@ -203,7 +203,7 @@ bool anyChanged) const {
     double alpha_bias = getParameterValue("alpha-bias");
     double alpha_beta = getParameterValue("alpha-beta");
     double ampl = getParameterValue("BAO amplitude");
-    double scale = getParameterValue("BAO scale");
+    double scale = getParameterValue("BAO alpha-iso");
     double alpha_scale = getParameterValue("alpha-scale");
     double xio = getParameterValue("BBand1 xio");
     double a0 = getParameterValue("BBand1 a0");
