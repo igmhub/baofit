@@ -126,6 +126,8 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     double gamma_beta = getParameterValue("gamma-beta");
     double ampl = getParameterValue("BAO amplitude");
     double scale = getParameterValue("BAO alpha-iso");
+    double scale_parallel = getParameterValue("BAO alpha-parallel");
+    double scale_perp = getParameterValue("BAO alpha-perp");
     double gamma_scale = getParameterValue("gamma-scale");
     double xio = getParameterValue("BBand1 xio");
     double a0 = getParameterValue("BBand1 a0");
@@ -136,7 +138,10 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     // Calculate redshift evolution.
     double zratio((1+z)/(1+_zref));
     double zfactor = std::pow(zratio,gamma_bias);
-    scale *=  std::pow(zratio,gamma_scale);
+    double scaleFactor = std::pow(zratio,gamma_scale);
+    scale *= scaleFactor;
+    scale_parallel *= scaleFactor;
+    scale_perp *= scaleFactor;
     beta *= std::pow(zratio,gamma_beta);
     // Build a model with xi(ell=0,2,4) = c(ell).
     cosmo::RsdCorrelationFunction bband2Model(
@@ -164,8 +169,8 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     if(ampl != 0) {
         double rPeak, muPeak;
         if(_anisotropic) {
-            double ap1 = getParameterValue("BAO alpha-parallel");
-            double bp1 = getParameterValue("BAO alpha-perp");
+            double ap1(scale_parallel);
+            double bp1(scale_perp);
             double musq(mu*mu);
             // Exact (r,mu) transformation
             double rscale = std::sqrt(ap1*ap1*musq + (1-musq)*bp1*bp1);
@@ -203,6 +208,8 @@ bool anyChanged) const {
     double gamma_beta = getParameterValue("gamma-beta");
     double ampl = getParameterValue("BAO amplitude");
     double scale = getParameterValue("BAO alpha-iso");
+    double scale_parallel = getParameterValue("BAO alpha-parallel");
+    double scale_perp = getParameterValue("BAO alpha-perp");
     double gamma_scale = getParameterValue("gamma-scale");
     double xio = getParameterValue("BBand1 xio");
     double a0 = getParameterValue("BBand1 a0");
@@ -213,7 +220,10 @@ bool anyChanged) const {
     // Calculate redshift evolution.
     double zratio((1+z)/(1+_zref));
     double zfactor = std::pow(zratio,gamma_bias);
-    scale *=  std::pow(zratio,gamma_scale);
+    double scaleFactor = std::pow(zratio,gamma_scale);
+    scale *= scaleFactor;
+    scale_parallel *= scaleFactor;
+    scale_perp *= scaleFactor;
     beta *= std::pow(zratio,gamma_beta);
     // Calculate the redshift-space distortion scale factor for this multipole.
     double rsdScale, bband2, rsq(r*r);
@@ -248,8 +258,8 @@ bool anyChanged) const {
             double nw2p = ((*_nw)(r+dr,cosmo::Quadrupole) - (*_nw)(r-dr,cosmo::Quadrupole))/(2*dr);
             double nw4p = ((*_nw)(r+dr,cosmo::Hexadecapole) - (*_nw)(r-dr,cosmo::Hexadecapole))/(2*dr);
         
-            double a = getParameterValue("BAO alpha-parallel") - 1;
-            double b = getParameterValue("BAO alpha-perp") - 1;
+            double a(scale_parallel-1);
+            double b(scale_perp-1);
 
             // !! TODO: add hexadecapole terms below
             switch(multipole) {
