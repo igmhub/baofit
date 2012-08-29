@@ -371,6 +371,11 @@ int main(int argc, char **argv) {
     try {
         // Always fit the combined sample.
         likely::FunctionMinimumPtr fmin = analyzer.fitCombined();
+        // Print out some extra info if this fit has floating "BAO alpha-*" and "gamma-alpha" parameters.
+        std::cout << std::endl;
+        analyzer.printScaleZEff(fmin,zref,"BAO alpha-iso");
+        analyzer.printScaleZEff(fmin,zref,"BAO alpha-parallel");
+        analyzer.printScaleZEff(fmin,zref,"BAO alpha-perp");
         // Dump the combined multipole data points with decorrelated errors, if possible.
         if(french || dr9lrg || xiFormat) {
             std::string outName = outputPrefix + "combined.dat";

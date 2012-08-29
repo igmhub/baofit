@@ -100,6 +100,12 @@ namespace baofit {
         // the specified parameter values.
         void getDecorrelatedWeights(AbsCorrelationDataCPtr data, likely::Parameters const &params,
             std::vector<double> &dweights) const;
+        // Calculates and prints the redshift where the error on the parameter named scaleName
+        // has a minimum, assuming that it evolves according to a parameter named "gamma-alpha".
+        // Returns true if successful, or false unless both scaleName and "gamma-alpha" are
+        // floating parameters of the specified function minimum. Uses the specified zref to
+        // calculate the redshift evolution of the scale and its error.
+        bool printScaleZEff(likely::FunctionMinimumCPtr fmin, double zref, std::string const &scaleName) const;
 	private:
         std::string _method;
         double _rmin, _rmax, _zdata;
