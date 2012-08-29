@@ -25,14 +25,3 @@ likely::Parameters const &params) {
     resetParameterValuesChanged();
     return result;
 }
-
-double local::AbsCorrelationModel::evaluatePrior(likely::Parameters const &params) {
-    bool anyChanged = updateParameterValues(params);
-    double result = _evaluatePrior(anyChanged);
-    resetParameterValuesChanged();
-    return result;    
-}
-
-double local::AbsCorrelationModel::_evaluatePrior(bool anyChanged) const {
-    return 0;
-}

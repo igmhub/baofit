@@ -17,18 +17,12 @@ namespace local = baofit;
 
 local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName,
     std::string const &fiducialName, std::string const &nowigglesName,
-    std::string const &broadbandName, double zref, bool anisotropic,
-    double scalePriorMin, double scalePriorMax)
-: AbsCorrelationModel("BAO Correlation Model"), _zref(zref), _anisotropic(anisotropic),
-_scalePriorMin(scalePriorMin), _scalePriorMax(scalePriorMax)
+    std::string const &broadbandName, double zref, bool anisotropic)
+: AbsCorrelationModel("BAO Correlation Model"), _zref(zref), _anisotropic(anisotropic)
 {
     if(zref < 0) {
         throw RuntimeError("BaoCorrelationModel: expected zref >= 0.");
     }
-    if(scalePriorMin > scalePriorMax) {
-        throw RuntimeError("BaoCorrelationModel: expected scalePriorMin <= scalePriorMax.");
-    }
-    _scalePriorNorm = 2*0.01*0.01; // 2*sigma^2
     // Linear bias parameters
     defineParameter("beta",1.4,0.1);
     defineParameter("(1+beta)*bias",-0.336,0.03);
@@ -107,24 +101,6 @@ _scalePriorMin(scalePriorMin), _scalePriorMax(scalePriorMax)
 }
 
 local::BaoCorrelationModel::~BaoCorrelationModel() { }
-
-// Evaluates -log(prior(scale)) where the prior is Gaussian for scale < min or scale > max,
-// and equal to one for min < scale < max.
-double local::BaoCorrelationModel::_evaluatePrior(bool anyChanged) const {
-    // First check if any prior is requested
-    if(_scalePriorMin >= _scalePriorMax) return 0;
-
-    double scale = getParameterValue("BAO scale");
-    if(scale < _scalePriorMin) {
-        double diff(scale - _scalePriorMin);
-        return diff*diff/_scalePriorNorm;
-    }
-    if(scale > _scalePriorMax) {
-        double diff(scale - _scalePriorMax);
-        return diff*diff/_scalePriorNorm;
-    }
-    return 0;
-}
 
 namespace baofit {
     // Define a function object class that simply returns a constant. This could also be done
@@ -313,5 +289,4 @@ void  local::BaoCorrelationModel::printToStream(std::ostream &out, std::string c
     AbsCorrelationModel::printToStream(out,formatSpec);
     out << std::endl << "Reference redshift = " << _zref << std::endl;
     out << "Using " << (_anisotropic ? "anisotropic":"isotropic") << " BAO scales." << std::endl;
-    out << "Isotropic BAO scale prior [" << _scalePriorMin << "," << _scalePriorMax << "]" << std::endl;
 }
