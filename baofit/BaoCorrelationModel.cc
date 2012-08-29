@@ -33,8 +33,8 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
     defineParameter("BAO scale",1,0.02);
     defineParameter("alpha-scale",0,0.5);
 
-    defineParameter("BAO scale a",0,0.1);
-    defineParameter("BAO scale b",0,0.1);
+    defineParameter("BAO alpha-parallel",1,0.1);
+    defineParameter("BAO alpha-perp",1,0.1);
 
     // Broadband Model 1 parameters
     defineParameter("BBand1 xio",0,0.001);
@@ -165,17 +165,17 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     if(ampl != 0) {
         double rPeak, muPeak;
         if(_anisotropic) {
-            double a = getParameterValue("BAO scale a");
-            double b = getParameterValue("BAO scale b");
-            double musq(mu*mu),ap1(1+a),bp1(1+b);
+            double ap1 = getParameterValue("BAO alpha-parallel");
+            double bp1 = getParameterValue("BAO alpha-perp");
+            double musq(mu*mu);
             // Exact (r,mu) transformation
             double rscale = std::sqrt(ap1*ap1*musq + (1-musq)*bp1*bp1);
             rPeak = r*rscale;
             muPeak = mu*ap1/rscale;
             // Linear approximation, equivalent to multipole model below
             /*
-            rPeak = r*(1 + a*musq + b*(1-musq));
-            muPeak = mu*(1 + (a-b)*(1-musq));
+            rPeak = r*(1 + (ap1-1)*musq + (bp1-1)*(1-musq));
+            muPeak = mu*(1 + (ap1-bp1)*(1-musq));
             */
         }
         else {
@@ -249,9 +249,8 @@ bool anyChanged) const {
             double nw2p = ((*_nw)(r+dr,cosmo::Quadrupole) - (*_nw)(r-dr,cosmo::Quadrupole))/(2*dr);
             double nw4p = ((*_nw)(r+dr,cosmo::Hexadecapole) - (*_nw)(r-dr,cosmo::Hexadecapole))/(2*dr);
         
-            //double a = scale - 1, b = a;
-            double a = getParameterValue("BAO scale a");
-            double b = getParameterValue("BAO scale b");
+            double a = getParameterValue("BAO alpha-parallel") - 1;
+            double b = getParameterValue("BAO alpha-perp") - 1;
 
             // !! TODO: add hexadecapole terms below
             switch(multipole) {
