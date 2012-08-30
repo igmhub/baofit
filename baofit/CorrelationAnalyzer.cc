@@ -372,9 +372,10 @@ std::string const &refitConfig, std::string const &saveName, int nsave) const {
             if(sampleMinRefit->getStatus() != likely::FunctionMinimum::OK) ok = false;
         }
         if(ok) {
-            // Accumulate the fit results.
-            fitStats->update(sampleMin);
-            if(refitStats) refitStats->update(sampleMinRefit);
+            // Accumulate the fit results if the fit was successful.
+            bool onlyFloating(true);
+            fitStats->update(sampleMin->getParameters(onlyFloating),sampleMin->getMinValue());
+            if(refitStats) refitStats->update(sampleMinRefit->getParameters(onlyFloating),sampleMinRefit->getMinValue());
             // Save the fit results, if requested.
             output.saveSample(sampleMin->getFitParameters(),sampleMin->getMinValue(),
                 sampleMinRefit ? sampleMinRefit->getFitParameters() : likely::FitParameters(),
@@ -415,18 +416,29 @@ std::string const &saveName, int nsave) const {
     // Generate the MCMC chains, saving the results in a vector.
     std::vector<double> samples;
     fitter.mcmc(fminCopy, nchain, interval, samples);
-    // Output the results.
+    // Output the results and accumulate statistics.
     SamplingOutput output(fmin,likely::FunctionMinimumCPtr(),saveName,nsave,*this);
     likely::FitParameters parameters(fmin->getFitParameters());
+    likely::FitParameterStatistics paramStats(parameters);
     int npar = parameters.size();
+    bool onlyFloating(true);
     std::vector<double>::const_iterator iter(samples.begin()), next;
     for(int i = 0; i < nchain; ++i) {
+        // Copy the parameter values for this MCMC sample into pvalues.
         next = iter+npar;
-        likely::setFitParameterValues(parameters,iter,next);
+        likely::Parameters pvalues(iter,next);
+        // Get the chi-square corresponding to these parameter values.
         double fval = *next++;
         iter = next;
+        // Output this sample.
+        likely::setFitParameterValues(parameters,pvalues);
         output.saveSample(parameters,fval);
+        // Accumulate stats on floating parameters.
+        likely::Parameters pfloating;
+        likely::getFitParameterValues(parameters,pfloating,onlyFloating);
+        paramStats.update(pfloating,fval);
     }
+    paramStats.printToStream(std::cout);
 }
 
 void local::CorrelationAnalyzer::dumpResiduals(std::ostream &out, likely::FunctionMinimumPtr fmin,
