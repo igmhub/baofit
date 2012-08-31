@@ -110,22 +110,23 @@ void local::QuasarCorrelationData::fixCovariance() {
 	  //C += pow((ll1-0.02)*(ll2-0.02),2.0) *10.0;
 	  //std::cout << C << std::endl; 
 
-	  
+	  std::cout <<C;
 	  ///debugging
 	  assert(i1==i2); // this assert passes.
-	  C+=0.0001;
+	  C+=1;
 	  setCovariance(i1,i2,C);
 	  
-	}
+	} else setCovariance(i1,i2,0.0);
     }
   }
 
-  // if (0) {
-  // for (int i=0; i<1512;i++) for (int j=0; j<=i;j++) 
-  // 			      if (getCovariance(i,j)!=0.0)
-  // 				  std::cout << i <<" " <<j <<" "<<getInverseCovariance(i,j)<<" AA"<<std::endl;
-  // throw;
-  // }
+  std::cout << getInverseCovariance(0,0) << std::endl;
+   if (0) {
+   for (int i=0; i<1512;i++) for (int j=0; j<=i;j++) 
+  			      if (getCovariance(i,j)!=0.0)
+   				  std::cout << i <<" " <<j <<" "<<getInverseCovariance(i,j)<<" AA"<<std::endl;
+   //   throw;
+   }
 }
 
 
