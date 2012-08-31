@@ -37,7 +37,7 @@ namespace baofit {
         AbsCorrelationDataCPtr createCosmolibPrototype(double minsep, double dsep, int nsep,
             double minz, double dz, int nz, double minll, double maxll, double dll, double dll2,
             double rmin, double rmax, double muMin, double muMax,
-            double rVetoMin, double rVetoMax, double llmin, cosmo::AbsHomogeneousUniversePtr cosmology);
+	    double rVetoMin, double rVetoMax, double llmin, bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology);
 
         AbsCorrelationDataPtr loadCosmolib(std::string const &dataName,
             AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted,

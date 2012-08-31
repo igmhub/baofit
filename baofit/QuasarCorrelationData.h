@@ -18,9 +18,9 @@ namespace baofit {
 	    // log(lambda2/lambda1) > llmin when the finalize() method is called.
 		QuasarCorrelationData(likely::AbsBinningCPtr axis1, likely::AbsBinningCPtr axis2,
 		    likely::AbsBinningCPtr axis3, double rmin, double rmax, double muMin, double muMax, double llmin,
-		    double rVetoMin, double rVetoMax, cosmo::AbsHomogeneousUniversePtr cosmology);
+		    bool fixCov, double rVetoMin, double rVetoMax, cosmo::AbsHomogeneousUniversePtr cosmology);
         QuasarCorrelationData(std::vector<likely::AbsBinningCPtr> axes, double rmin, double rmax,
-            double muMin, double muMax, double llmin, double rVetoMin, double rVetoMax,
+		    double muMin, double muMax, double llmin, bool fixCov, double rVetoMin, double rVetoMax,
             cosmo::AbsHomogeneousUniversePtr cosmology);
 		virtual ~QuasarCorrelationData();
 		// Polymorphic shallow copy so this type of data can be used with likely::BinnedDataResampler.
@@ -30,10 +30,19 @@ namespace baofit {
         // Returns the cosine of the angle between the separation vector and
         // the line of sight (aka mu) associated with the specified global index.
         virtual double getCosAngle(int index) const;
-        // Returns the redshift associated with the specified global index.
-        virtual double getRedshift(int index) const;
-        // Finalize a quasar dataset by pruning to the limits specified in our constructor,
-        // and tabulating the co-moving coordinates at the center of each remaining bin with data.
+        // Returns the loglambda, separation, redshift associated with the specified global index.
+        virtual double getLogLambda(int index) const;
+	virtual double getSeparation(int index) const;
+	virtual double getRedshift(int index) const;
+
+	// This fixes covariance by adding the correct terms for a typical BAO analysis
+	// that throw away unwanted modes spuriosly appearing (for not yet completelly understood
+	// reasons)
+	virtual void fixCovariance();
+	
+	// Finalize a quasar dataset by pruning to the limits specified in our constructor, optionally
+	// fixing covariance and tabulating the co-moving coordinates at the center of each remaining
+	// bin with data.
         // No further changes to our "shape" are possible after finalizing. See the documentation
         // for BinnedData::finalize() for details.
         virtual void finalize();
@@ -41,15 +50,16 @@ namespace baofit {
         void transform(double ll, double sep, double dsep, double z, double &r, double &mu) const;
 	private:
         void _initialize(double rmin, double rmax, double muMin, double muMax,
-            double llmin, double rVetoMin, double rVetoMax, cosmo::AbsHomogeneousUniversePtr cosmology);
+	double llmin, bool fixCov, double rVetoMin, double rVetoMax, cosmo::AbsHomogeneousUniversePtr cosmology);
         double _rmin, _rmax, _muMin, _muMax, _llmin, _rVetoMin, _rVetoMax;
+	bool _fixCov;
         cosmo::AbsHomogeneousUniversePtr _cosmology;
         std::vector<double> _rLookup, _muLookup, _zLookup;
         // Calculates and saves (r,mu,z) for the specified global index.
         void _setIndex(int index) const;
         mutable int _lastIndex;
         mutable std::vector<double> _binCenter,_binWidth;
-        mutable double _rLast, _muLast, _zLast;
+        mutable double _rLast, _muLast, _llLast, _sepLast, _zLast;
         double _arcminToRad;
 	}; // QuasarCorrelationData
 } // baofit
