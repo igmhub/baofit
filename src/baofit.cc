@@ -396,12 +396,16 @@ int main(int argc, char **argv) {
             baofit::AbsCorrelationDataPtr combined = analyzer.getCombined();
             std::string outName = outputPrefix + "icov.dat";
             std::ofstream out(outName.c_str());
-            for(likely::BinnedData::IndexIterator iter1 = combined->begin();
-            iter1 != combined->end(); ++iter1) {
-                for(likely::BinnedData::IndexIterator iter2 = combined->begin();
-                iter2 != combined->end(); ++iter2) {
-                    out << *iter1 << ' ' << *iter2 << ' '
-                        << combined->getInverseCovariance(*iter1,*iter2) << std::endl;
+            for(likely::BinnedData::IndexIterator iter1 = combined->begin(); iter1 != combined->end(); ++iter1) {
+                int index1(*iter1);
+                // Save all diagonal elements.
+                out << index1 << ' ' << index1 << ' ' << combined->getInverseCovariance(index1,index1) << std::endl;
+                // Loop over pairs with index2 > index1
+                for(likely::BinnedData::IndexIterator iter2 = iter1; ++iter2 != combined->end();) {
+                    int index2(*iter2);
+                    // Only save non-zero off-diagonal elements.
+                    double Cinv(combined->getInverseCovariance(index1,index2));
+                    if(Cinv != 0) out << index1 << ' ' << index2 << ' ' << Cinv << std::endl;
                 }
             }
             out.close();
