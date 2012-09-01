@@ -51,10 +51,13 @@ namespace baofit {
         // fits will be concatenated on each line. Setting fixCovariance to false means that
         // fits will use a covariance matrix that does not correctly account for double
         // counting. See likely::BinnedDataResampler::bootstrap for details.
+	// it ptname is specified, it will calculate the covariance matrix of the resampled
+	// *data* realizations and save it to the corresponding file.
         int doBootstrapAnalysis(int bootstrapTrials, int bootstrapSize, bool fixCovariance,
             likely::FunctionMinimumPtr fmin,
             likely::FunctionMinimumPtr fmin2 = likely::FunctionMinimumPtr(),
-            std::string const &refitConfig = "", std::string const &saveName = "", int nsave = 0) const;
+            std::string const &refitConfig = "", std::string const &saveName = "",
+				std::string const &ptname = "" , int nsave = 0) const;
         // Performs a jackknife analysis and returns the number of fits that failed. Set
         // jackknifeDrop to the number of observations to drop from each sample. See
         // doBootstrapAnalysis for a description of the other parameters.

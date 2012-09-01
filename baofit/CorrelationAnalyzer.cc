@@ -10,6 +10,7 @@
 #include "likely/FitParameter.h"
 #include "likely/CovarianceMatrix.h"
 #include "likely/FitParameterStatistics.h"
+#include "likely/CovarianceAccumulator.h"
 
 #include "boost/smart_ptr.hpp"
 #include "boost/format.hpp"
@@ -139,21 +140,44 @@ namespace baofit {
     };
     class CorrelationAnalyzer::BootstrapSampler : public CorrelationAnalyzer::AbsSampler {
     public:
-        BootstrapSampler(int trials, int size, bool fix, likely::BinnedDataResampler const &resampler)
-        : _trials(trials), _size(size), _fix(fix), _resampler(resampler), _next(0) { }
+      BootstrapSampler(int trials, int size, bool fix, likely::BinnedDataResampler const &resampler, std::string ptname)
+	: _trials(trials), _size(size), _fix(fix), _resampler(resampler), _next(0), _covacc(NULL), _dsize(0),
+	  _dopts (ptname.size()>0), _ptname(ptname) { }
         virtual AbsCorrelationDataCPtr nextSample() {
             AbsCorrelationDataPtr sample;
             if(++_next <= _trials) {
                 sample = boost::dynamic_pointer_cast<baofit::AbsCorrelationData>(
                     _resampler.bootstrap(_size,_fix));
+
+		if (_dopts) {
+		  if (!_covacc) {
+		    _dsize = sample->getNBinsWithData();
+		    _covacc.reset(new likely::CovarianceAccumulator(_dsize));
+		  }
+		  
+		  std::vector<double> dvec(_dsize);
+		  for (int i=0; i<_dsize; i++) dvec[i] = sample->getData(i);
+		  _covacc->accumulate(dvec);
+		}
+		
                 sample->finalize();
             }
             return sample;
         }
+      ~BootstrapSampler() {
+	if (_dopts) {
+ 	  std::ofstream outfile;
+	  outfile.open(_ptname.c_str());
+	  _covacc->getCovariance()->printToStream(outfile);
+	  outfile.close();
+	}
+      }
     private:
-        int _trials, _size, _next;
-        bool _fix;
+        int _trials, _size, _next, _dsize;
+        bool _fix, _dopts;
+        std::string _ptname;
         likely::BinnedDataResampler const &_resampler;
+        boost::scoped_ptr<likely::CovarianceAccumulator> _covacc;
     };
     class CorrelationAnalyzer::EachSampler : public CorrelationAnalyzer::AbsSampler {
     public:
@@ -216,7 +240,7 @@ int nsave) const {
 
 int local::CorrelationAnalyzer::doBootstrapAnalysis(int bootstrapTrials, int bootstrapSize,
 bool fixCovariance, likely::FunctionMinimumPtr fmin, likely::FunctionMinimumPtr fmin2,
-std::string const &refitConfig, std::string const &saveName, int nsave) const {
+    std::string const &refitConfig, std::string const &saveName, std::string const &ptname, int nsave) const {
     if(bootstrapTrials <= 0) {
         throw RuntimeError("CorrelationAnalyzer::doBootstrapAnalysis: expected bootstrapTrials > 0.");
     }
@@ -227,7 +251,7 @@ std::string const &refitConfig, std::string const &saveName, int nsave) const {
         throw RuntimeError("CorrelationAnalyzer::doBootstrapAnalysis: need > 1 observation.");
     }
     if(0 == bootstrapSize) bootstrapSize = getNData();
-    CorrelationAnalyzer::BootstrapSampler sampler(bootstrapTrials,bootstrapSize,fixCovariance,_resampler);
+    CorrelationAnalyzer::BootstrapSampler sampler(bootstrapTrials,bootstrapSize,fixCovariance,_resampler, ptname);
     return doSamplingAnalysis(sampler, "Bootstrap", fmin, fmin2, refitConfig, saveName, nsave);
 }
 
