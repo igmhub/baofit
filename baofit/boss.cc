@@ -417,6 +417,93 @@ cosmo::AbsHomogeneousUniversePtr cosmology) {
     return prototype;
 }
 
+// Loads a binned correlation function in cosmolib demo format and returns a BinnedData object.
+baofit::AbsCorrelationDataPtr local::loadCosmolibDemo(std::string const &dataName,
+baofit::AbsCorrelationDataCPtr prototype, bool verbose) {
+    // Create the new AbsCorrelationData that we will fill.
+    baofit::AbsCorrelationDataPtr binnedData((baofit::QuasarCorrelationData *)(prototype->clone(true)));
+
+    // General stuff we will need for reading both files.
+    std::string line;
+    int lines;
+    
+    // import boost spirit parser symbols
+    using qi::double_;
+    using qi::int_;
+    using qi::_1;
+    using phoenix::ref;
+    using phoenix::push_back;
+
+    // Loop over lines in the parameter file.
+    std::string paramsName(dataName + ".data");
+    std::ifstream paramsIn(paramsName.c_str());
+    if(!paramsIn.good()) throw RuntimeError("loadCosmolibDemo: Unable to open " + paramsName);
+    lines = 0;
+    int index;
+    double data;
+    std::vector<double> bin(3);
+    while(std::getline(paramsIn,line)) {
+        lines++;
+        bin.resize(0);
+        bool ok = qi::phrase_parse(line.begin(),line.end(),
+            (
+                int_[ref(index) = _1] >> double_[ref(data) = _1]
+            ),
+            ascii::space);
+        if(!ok) {
+            throw RuntimeError("loadCosmolibDemo: error reading line " +
+                boost::lexical_cast<std::string>(lines) + " of " + paramsName);
+        }
+        binnedData->setData(index,data);
+    }
+    paramsIn.close();
+    int ndata = binnedData->getNBinsWithData();
+    int nbins = binnedData->getNBinsTotal();
+    if(verbose) {
+        std::cout << "Read " << ndata << " of "
+            << binnedData->getNBinsTotal() << " data values from " << paramsName << std::endl;
+    }
+
+    // Loop over lines in the covariance file.
+    std::string covName = dataName + ".icov";
+    std::ifstream covIn(covName.c_str());
+    if(!covIn.good()) throw RuntimeError("loadCosmolibDemo: Unable to open " + covName);
+    lines = 0;
+    double value;
+    int index1,index2;
+    while(std::getline(covIn,line)) {
+        lines++;
+        bin.resize(0);
+        bool ok = qi::phrase_parse(line.begin(),line.end(),
+            (
+                int_[ref(index1) = _1] >> int_[ref(index2) = _1] >> double_[ref(value) = _1]
+            ),
+            ascii::space);
+        if(!ok) {
+            throw RuntimeError("loadCosmolibDemo: error reading line " +
+                boost::lexical_cast<std::string>(lines) + " of " + paramsName);
+        }
+        // Check for invalid offsets.
+        if(index1 < 0 || index2 < 0 || index1 >= nbins || index2 >= nbins ||
+        !binnedData->hasData(index1) || !binnedData->hasData(index2)) {
+            throw RuntimeError("loadCosmolibDemo: invalid covariance indices on line " +
+                boost::lexical_cast<std::string>(lines) + " of " + paramsName);
+        }
+        // Add this covariance to our dataset.
+        binnedData->setInverseCovariance(index1,index2,value);
+    }
+    covIn.close();
+    if(verbose) {
+        int ncov = (ndata*(ndata+1))/2;
+        std::cout << "Read " << lines << " of " << ncov
+            << " covariance values from " << covName << std::endl;
+    }
+
+    // Compress our binned data to take advantage of a potentially sparse covariance matrix.
+    binnedData->compress();
+    return binnedData;
+}
+
 // Loads a binned correlation function in cosmolib format and returns a BinnedData object.
 baofit::AbsCorrelationDataPtr local::loadCosmolib(std::string const &dataName,
 baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted, int reuseCov,
@@ -466,7 +553,6 @@ bool checkPosDef) {
         std::cout << "Read " << ndata << " of "
             << binnedData->getNBinsTotal() << " data values from " << paramsName << std::endl;
     }
-    
 
     // Do we need to reuse the covariance estimated for the first realization of this plate?
     std::string covName;
@@ -486,7 +572,7 @@ bool checkPosDef) {
 
     // Loop over lines in the covariance file.
     std::ifstream covIn(covName.c_str());
-    if(!covIn.good()) throw RuntimeError("Unable to open " + covName);
+    if(!covIn.good()) throw RuntimeError("loadCosmolib: Unable to open " + covName);
     lines = 0;
     double value;
     int offset1,offset2;
