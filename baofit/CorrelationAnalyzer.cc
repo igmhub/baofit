@@ -261,7 +261,6 @@ std::string const &refitConfig, std::string const &saveName, int nsave) const {
     }
     // Configure the fit parameters for generating the truth vector.
     likely::FitParameters parameters = fmin->getFitParameters();
-    std::cout << ">>" << mcConfig << "<<" << std::endl;
     likely::modifyFitParameters(parameters,mcConfig);
     std::vector<double> pvalues;
     likely::getFitParameterValues(parameters,pvalues);
