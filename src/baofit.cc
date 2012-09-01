@@ -159,6 +159,7 @@ int main(int argc, char **argv) {
             "Number of MC samples to generate and fit.")
         ("mc-config", po::value<std::string>(&mcConfig)->default_value(""),
             "Fit parameter configuration to apply before generating samples.")
+        ("mc-save", "Saves first generated MC sample.")
         ("random-seed", po::value<int>(&randomSeed)->default_value(1966),
             "Random seed to use for generating bootstrap samples.")
         ("min-method", po::value<std::string>(&minMethod)->default_value("mn2::vmetric"),
@@ -207,7 +208,7 @@ int main(int argc, char **argv) {
         checkPosDef(vm.count("check-posdef")), fixCovariance(0 == vm.count("naive-covariance")),
         dr9lrg(vm.count("dr9lrg")), unweighted(vm.count("unweighted")), anisotropic(vm.count("anisotropic")),
         fitEach(vm.count("fit-each")), xiHexa(vm.count("xi-hexa")),
-        xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")),
+        xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")), mcSave(vm.count("mc-save")),
         expanded(vm.count("expanded")), sectors(vm.count("sectors")), saveICov(vm.count("save-icov"));
 
     // Check for the required filename parameters.
@@ -451,7 +452,9 @@ int main(int argc, char **argv) {
         // Generate and fit MC samples, if requested.
         if(mcSamples > 0) {
             std::string outName = outputPrefix + "mc.dat";
-            analyzer.doMCSampling(mcSamples,mcConfig,fmin,fmin2,refitConfig,outName,ndump);
+            std::string mcSaveName;
+            if(mcSave) mcSaveName = outputPrefix + "mcsave.dat";
+            analyzer.doMCSampling(mcSamples,mcConfig,mcSaveName,fmin,fmin2,refitConfig,outName,ndump);
         }
         // Perform a bootstrap analysis, if requested.
         if(bootstrapTrials > 0) {

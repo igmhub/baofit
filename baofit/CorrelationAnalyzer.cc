@@ -174,8 +174,8 @@ namespace baofit {
     };
     class CorrelationAnalyzer::MCSampler : public CorrelationAnalyzer::AbsSampler {
     public:
-        MCSampler(int ngen, AbsCorrelationDataPtr prototype, std::vector<double> truth)
-        : _remaining(ngen), _prototype(prototype), _truth(truth) { }
+        MCSampler(int ngen, AbsCorrelationDataPtr prototype, std::vector<double> truth, std::string const &filename)
+        : _remaining(ngen), _prototype(prototype), _truth(truth), _first(true), _filename(filename) { }
         virtual AbsCorrelationDataCPtr nextSample() {
             AbsCorrelationDataPtr sample;
             if(_remaining-- > 0) {
@@ -191,11 +191,22 @@ namespace baofit {
                     sample->setData(*iter,(*nextTruth++)+(*nextNoise++));
                 }
                 // We don't finalize here because the prototype should already be finalized.
+                // Save this file?
+                if(_first && _filename.length() > 0) {
+                    std::ofstream out(_filename.c_str());
+                    for(likely::BinnedData::IndexIterator iter = sample->begin(); iter != sample->end(); ++iter) {
+                        out << *iter << ' ' << sample->getData(*iter) << std::endl;
+                    }
+                    out.close();
+                }
+                _first = false;
             }
             return sample;
         }
     private:
         int _remaining;
+        bool _first;
+        std::string _filename;
         AbsCorrelationDataPtr _prototype;
         std::vector<double> _truth, _noise;
     };
@@ -237,7 +248,7 @@ std::string const &refitConfig, std::string const &saveName, int nsave) const {
     return doSamplingAnalysis(sampler, "Individual", fmin, fmin2, refitConfig, saveName, nsave);    
 }
 
-int local::CorrelationAnalyzer::doMCSampling(int ngen, std::string const &mcConfig,
+int local::CorrelationAnalyzer::doMCSampling(int ngen, std::string const &mcConfig, std::string const &mcSaveFile,
 likely::FunctionMinimumPtr fmin, likely::FunctionMinimumPtr fmin2,
 std::string const &refitConfig, std::string const &saveName, int nsave) const {
     if(ngen <= 0) {
@@ -250,6 +261,7 @@ std::string const &refitConfig, std::string const &saveName, int nsave) const {
     }
     // Configure the fit parameters for generating the truth vector.
     likely::FitParameters parameters = fmin->getFitParameters();
+    std::cout << ">>" << mcConfig << "<<" << std::endl;
     likely::modifyFitParameters(parameters,mcConfig);
     std::vector<double> pvalues;
     likely::getFitParameterValues(parameters,pvalues);
@@ -259,7 +271,7 @@ std::string const &refitConfig, std::string const &saveName, int nsave) const {
     std::vector<double> truth;
     fitter.getPrediction(pvalues,truth);
     // Build the sampler for this analysis.
-    CorrelationAnalyzer::MCSampler sampler(ngen,prototype,truth);
+    CorrelationAnalyzer::MCSampler sampler(ngen,prototype,truth,mcSaveFile);
     return doSamplingAnalysis(sampler, "MonteCarlo", fmin, fmin2, refitConfig, saveName, nsave);
 }
 
