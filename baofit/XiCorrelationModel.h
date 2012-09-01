@@ -8,6 +8,7 @@
 #include "likely/types.h"
 
 #include <string>
+#include <vector>
 
 namespace baofit {
 	class XiCorrelationModel : public AbsCorrelationModel {
