@@ -1,0 +1,74 @@
+Models initialized.
+Fit Model "BAO Correlation Model" has initial parameters:
+                beta =     1.400000
+       (1+beta)*bias =    -0.336000
+       BAO amplitude =     1.000000 +/-     0.150000 $    1.00 \pm 0.15 $
+       BAO alpha-iso =     1.000000 +/-     0.020000 $  1.000 \pm 0.020 $ box prior @ (0.85,1.15)
+  BAO alpha-parallel =     1.000000
+      BAO alpha-perp =     1.000000
+          gamma-bias =     3.800000
+          gamma-beta =     0.000000
+         gamma-scale =     0.000000 +/-     0.500000 $      0.0 \pm 0.5 $ gauss prior @ (-0.5,0.5)
+          BBand1 xio =     0.000000
+           BBand1 a0 =     0.000000
+           BBand1 a1 =     0.000000
+           BBand1 a2 =     0.000000
+   BBand2 mono const =     0.000000 +/-     0.000100 $ 0.00000 \pm 0.00010 $
+   BBand2 quad const =     0.000000 +/-     0.000100 $ 0.00000 \pm 0.00010 $
+   BBand2 hexa const =     0.000000 +/-     0.000100 $ 0.00000 \pm 0.00010 $
+     BBand2 mono 1/r =     0.000000 +/-     0.010000 $  0.000 \pm 0.010 $
+     BBand2 quad 1/r =     0.000000 +/-     0.020000 $  0.000 \pm 0.020 $
+     BBand2 hexa 1/r =     0.000000 +/-     0.040000 $    0.00 \pm 0.04 $
+ BBand2 mono 1/(r*r) =     0.000000 +/-     0.600000 $      0.0 \pm 0.6 $
+ BBand2 quad 1/(r*r) =     0.000000 +/-     1.200000 $      0.0 \pm 1.2 $
+ BBand2 hexa 1/(r*r) =     0.000000 +/-     2.400000 $      0.0 \pm 2.4 $
+
+Reference redshift = 2.25
+Using isotropic BAO scales.
+Read 845 of 1674 data values from ../demo/Aln2.data
+Read 26707 of 357435 covariance values from ../demo/Aln2.icov
+Combined data has 845 (845) bins with data after (before) finalizing.
+
+Results of combined fit: chiSquare / dof = 830.211 / (845-12), prob = 0.51099, log(det(Covariance)) = -18783
+
+FMIN Value =   415.105290 at:
+                beta =     1.400000
+       (1+beta)*bias =    -0.336000
+       BAO amplitude =     0.981528 +/-     0.068130 $    0.98 \pm 0.07 $
+       BAO alpha-iso =     0.997045 +/-     0.006847 $  0.997 \pm 0.007 $ box prior @ (0.85,1.15)
+  BAO alpha-parallel =     1.000000
+      BAO alpha-perp =     1.000000
+          gamma-bias =     3.800000
+          gamma-beta =     0.000000
+         gamma-scale =     0.031989 +/-     0.079013 $    0.03 \pm 0.08 $ gauss prior @ (-0.5,0.5)
+          BBand1 xio =     0.000000
+           BBand1 a0 =     0.000000
+           BBand1 a1 =     0.000000
+           BBand1 a2 =     0.000000
+   BBand2 mono const =    -0.000525 +/-     0.000403 $ -0.0005 \pm 0.0004 $
+   BBand2 quad const =     0.000551 +/-     0.000355 $ 0.00055 \pm 0.00035 $
+   BBand2 hexa const =     0.003280 +/-     0.001858 $ 0.0033 \pm 0.0019 $
+     BBand2 mono 1/r =     0.085694 +/-     0.064793 $    0.09 \pm 0.06 $
+     BBand2 quad 1/r =    -0.050525 +/-     0.047900 $   -0.05 \pm 0.05 $
+     BBand2 hexa 1/r =    -0.504085 +/-     0.312473 $   -0.50 \pm 0.31 $
+ BBand2 mono 1/(r*r) =    -2.308831 +/-     1.972402 $     -2.3 \pm 2.0 $
+ BBand2 quad 1/(r*r) =     1.134413 +/-     1.847628 $      1.1 \pm 1.8 $
+ BBand2 hexa 1/(r*r) =    22.517868 +/-    12.778663 $        23 \pm 13 $
+
+Number of function evaluations used: 645
+
+FMIN Errors & Correlations =
+       BAO amplitude :     0.068130
+       BAO alpha-iso :     0.079492     0.006847
+         gamma-scale :    -0.031753    -0.598508     0.079013
+   BBand2 mono const :    -0.141224     0.128585    -0.005431     0.000403
+   BBand2 quad const :     0.380123    -0.115477     0.001784    -0.774404     0.000355
+   BBand2 hexa const :     0.083217    -0.049316     0.017120    -0.556854     0.331408     0.001858
+     BBand2 mono 1/r :     0.136811    -0.141013     0.006755    -0.927646     0.847188     0.563611     0.064793
+     BBand2 quad 1/r :    -0.393615     0.095799    -0.001589     0.465992    -0.881867     0.032271    -0.539047     0.047900
+     BBand2 hexa 1/r :    -0.082967     0.043903    -0.016449     0.493073    -0.311928    -0.977045    -0.503405     0.001638     0.312473
+ BBand2 mono 1/(r*r) :    -0.101819     0.148347    -0.009082     0.892321    -0.857585    -0.456577    -0.978344     0.618019     0.418591     1.972402
+ BBand2 quad 1/(r*r) :     0.358281    -0.079153     0.001912    -0.259372     0.731310    -0.228815     0.322952    -0.961257     0.183401    -0.424430     1.847628
+ BBand2 hexa 1/(r*r) :     0.077536    -0.037942     0.014996    -0.429380     0.279989     0.927928     0.440501    -0.014425    -0.983287    -0.371678    -0.154353    12.778663
+
+     BAO alpha-iso(zeff = 2.423) = 0.999 +/- 0.005
