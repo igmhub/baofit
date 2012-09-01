@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <stdexcept>
 
 namespace po = boost::program_options;
 
@@ -260,15 +261,7 @@ int main(int argc, char **argv) {
 
         if(verbose) std::cout << "Models initialized." << std::endl;
     }
-    catch(cosmo::RuntimeError const &e) {
-        std::cerr << "ERROR during model initialization:\n  " << e.what() << std::endl;
-        return -2;
-    }
-    catch(likely::RuntimeError const &e) {
-        std::cerr << "ERROR during model initialization:\n  " << e.what() << std::endl;
-        return -2;
-    }
-    catch(baofit::RuntimeError const &e) {
+    catch(std::runtime_error const &e) {
         std::cerr << "ERROR during model initialization:\n  " << e.what() << std::endl;
         return -2;
     }
@@ -477,11 +470,7 @@ int main(int argc, char **argv) {
             analyzer.fitEach(fmin,fmin2,refitConfig,outName,ndump);
         }
     }
-    catch(baofit::RuntimeError const &e) {
-        std::cerr << "ERROR during fit:\n  " << e.what() << std::endl;
-        return -2;
-    }
-    catch(likely::RuntimeError const &e) {
+    catch(std::runtime_error const &e) {
         std::cerr << "ERROR during fit:\n  " << e.what() << std::endl;
         return -2;
     }
