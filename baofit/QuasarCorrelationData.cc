@@ -69,64 +69,48 @@ void local::QuasarCorrelationData::fixCovariance() {
     return;
   }
 
-  // if (0) {
-  //   std::cout.precision (20); 
-  //   for (int i=0; i<1500; i++) {
-  //     double C(getCovariance(i,30)), CI(getInverseCovariance(i,30));
-  //   if (C!=0.0)
-  //     std::cout << i <<" " <<C <<" " << CI <<std::endl;
-  //   }
-  //   }
-    
+  getData(*begin());
+
+  // caching of ll, sep, zz
+  // probably not the most elegant, but works.
+  std::vector<double> llc, sepc, zzc;
+  
   for(IndexIterator iter1 = begin(); iter1 != end(); ++iter1) {
     // Lookup the value of ll,sep,z at the center of this bin.
     int i1(*iter1);
     double ll1(getLogLambda(i1)), sep1(getSeparation(i1)), z1(getRedshift(i1)); 
-
-   
-    // std::cout.precision (20); 
-    // if (0) {
-    //   for (int i=0; i<1512;i++) for (int j=0; j<=i;j++)
-    // 				  if (getCovariance(i,j)!=0.0)
-    // 				    std::cout << i <<" " <<j <<" "<<getCovariance(i,j)<<" BB"<<std::endl;
-    // throw;
-    // }
+    llc.push_back(ll1);
+    sepc.push_back(sep1);
+    zzc.push_back(z1);
+    
    for(IndexIterator iter2 = begin(); iter2 != end(); ++iter2) {
         int i2(*iter2);
 	if (i2>i1) continue;
 	// we want to to iter1 end() but not beyond!!
-	double ll2(getLogLambda(i2)), sep2(getSeparation(i2)), z2(getRedshift(i2));
-	if ((z1==z2) && (sep1==sep2) && (ll1==ll2)) {
+	//double ll2(getLogLambda(i2)), sep2(getSeparation(i2)), z2(getRedshift(i2));
+	double ll2(llc[i2]), sep2(sepc[i2]), z2(zzc[i2]);
+	if ((z1==z2) && (sep1==sep2)) {
 	  
-	  //std::cout << i1 <<" " <<i2 << " " <<ll1 <<" " <<ll2 <<" " <<sep1 <<" " <<sep2 <<" " <<z1 <<" " <<z2 <<std::endl;
 	  double C(getCovariance(i1,i2));
-	  //std::cout << C <<" -> ";
 	  // this recipe is from chi2.
 	  // magic constants are set by the requirement that for
 	  // a certain cov, you should add something that is "large"
 	  // but at the same time does not make numerical errors unbearable
-	  //C += double(0.0001);
-	  //C += (ll1-0.02)*(ll2-0.02)*0.01;
-	  //C += pow((ll1-0.02)*(ll2-0.02),2.0) *10.0;
-	  //std::cout << C << std::endl; 
-
-	  std::cout <<C;
-	  ///debugging
-	  assert(i1==i2); // this assert passes.
-	  C+=1;
+	  C += double(0.0001);
+	  C += (ll1-0.02)*(ll2-0.02)*0.001;
+	  C += pow((ll1-0.02)*(ll2-0.02),2.0) *10.0;
 	  setCovariance(i1,i2,C);
-	  
-	} else setCovariance(i1,i2,0.0);
+	}
     }
   }
 
-  std::cout << getInverseCovariance(0,0) << std::endl;
-   if (0) {
-   for (int i=0; i<1512;i++) for (int j=0; j<=i;j++) 
-  			      if (getCovariance(i,j)!=0.0)
-   				  std::cout << i <<" " <<j <<" "<<getInverseCovariance(i,j)<<" AA"<<std::endl;
-   //   throw;
-   }
+//   std::cout << getInverseCovariance(0,0) << std::endl;
+//    if (0) {
+//    for (int i=0; i<1512;i++) for (int j=0; j<=i;j++) 
+//   			      if (getCovariance(i,j)!=0.0)
+//    				  std::cout << i <<" " <<j <<" "<<getInverseCovariance(i,j)<<" AA"<<std::endl;
+//    //   throw;
+//    }
 }
 
 
