@@ -5,12 +5,18 @@
 
 #include "baofit/AbsCorrelationModel.h"
 
+#include "cosmo/types.h"
+
 #include <vector>
 
 namespace baofit {
 	class PkCorrelationModel : public AbsCorrelationModel {
 	public:
-		PkCorrelationModel(double kmin, double kmax, int nk);
+	    // Creates a new correlation model parameterized as the sum of the specified tabulated smooth model
+	    // with a uniform B-spline in k*P(ell,k) added to each k-space multipole, with nk uniformly spaced
+	    // knots spanning the range (kmin,kmax) in h/Mpc.
+		PkCorrelationModel(std::string const &modelrootName, std::string const &nowigglesName,
+		    double kmin, double kmax, int nk);
 		virtual ~PkCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
@@ -24,6 +30,8 @@ namespace baofit {
         virtual double _evaluate(double r, cosmo::Multipole multipole, double z, bool anyChanged) const;
 	private:
 	    std::vector<double> _kValues;
+        cosmo::PowerSpectrumPtr _nwPower;
+	    cosmo::CorrelationFunctionPtr _nw0,_nw2,_nw4;
 	}; // PkCorrelationModel
 } // baofit
 
