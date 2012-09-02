@@ -96,9 +96,9 @@ void local::QuasarCorrelationData::fixCovariance() {
 	  // magic constants are set by the requirement that for
 	  // a certain cov, you should add something that is "large"
 	  // but at the same time does not make numerical errors unbearable
-	  C += double(0.0001);
-	  C += (ll1-0.02)*(ll2-0.02)*0.001;
-	  C += pow((ll1-0.02)*(ll2-0.02),2.0) *10.0;
+	  C += double(0.001);
+	  C += (ll1-0.02)*(ll2-0.02)*0.01;
+	  C += pow((ll1-0.02)*(ll2-0.02),2.0) *100.0;
 	  setCovariance(i1,i2,C);
 	}
     }
