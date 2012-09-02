@@ -28,9 +28,9 @@ int main(int argc, char **argv) {
         analysisOptions("Analysis options");
 
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin,
-        rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax;
+        rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax,kloSpline,khiSpline;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
-      mcmcSave,mcmcInterval,mcSamples,xiNr,reuseCov;
+      mcmcSave,mcmcInterval,mcSamples,xiNr,reuseCov,nSpline;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,mcConfig,
         platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix;
     std::vector<std::string> modelConfig;
@@ -58,6 +58,12 @@ int main(int argc, char **argv) {
             "Common path to prepend to all model filenames.")
         ("zref", po::value<double>(&zref)->default_value(2.25),
             "Reference redshift used by model correlation functions.")
+        ("n-spline", po::value<int>(&nSpline)->default_value(0),
+            "Number of spline knots to use spanning (klo,khi).")
+        ("klo-spline", po::value<double>(&kloSpline)->default_value(0.02,"0.02"),
+            "Minimum k in h/Mpc for k P(k) B-spline.")
+        ("khi-spline", po::value<double>(&khiSpline)->default_value(0.2,"0.2"),
+            "Maximum k in h/Mpc for k P(k) B-spline.")
         ("xi-points", po::value<std::string>(&xiPoints)->default_value(""),
             "Comma-separated list of r values (Mpc/h) to use for interpolating r^2 xi(r)")
         ("xi-method", po::value<std::string>(&xiMethod)->default_value("cspline"),
@@ -238,14 +244,17 @@ int main(int argc, char **argv) {
     likely::Random::instance()->setSeed(randomSeed);
     baofit::CorrelationAnalyzer analyzer(minMethod,rmin,rmax,verbose);
 
-    // Initialize the models we will use.
+    // Initialize the fit model we will use.
     cosmo::AbsHomogeneousUniversePtr cosmology;
     baofit::AbsCorrelationModelPtr model;
     try {
         // Build the homogeneous cosmology we will use.
         cosmology.reset(new cosmo::LambdaCdmRadiationUniverse(OmegaMatter,0,hubbleConstant));
         
-        if(xiPoints.length() > 0) {
+        if(nSpline > 0) {
+            model.reset(new baofit::PkCorrelationModel(modelrootName,nowigglesName,kloSpline,khiSpline,nSpline));
+        }
+        else if(xiPoints.length() > 0) {
             model.reset(new baofit::XiCorrelationModel(xiPoints,zref,xiMethod));
         }
         else {
@@ -260,7 +269,7 @@ int main(int argc, char **argv) {
             model->configureFitParameters(config);
         }
 
-        if(verbose) std::cout << "Models initialized." << std::endl;
+        if(verbose) std::cout << "Model initialized." << std::endl;
     }
     catch(std::runtime_error const &e) {
         std::cerr << "ERROR during model initialization:\n  " << e.what() << std::endl;
