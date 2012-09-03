@@ -29,10 +29,12 @@ namespace baofit {
         // r and average pair redshift z.
         virtual double _evaluate(double r, cosmo::Multipole multipole, double z, bool anyChanged) const;
 	private:
+        void _calculateNorm(double z) const;
 	    std::vector<double> _kValues;
         double _zref;
         cosmo::PowerSpectrumPtr _nwPower;
 	    cosmo::CorrelationFunctionPtr _nw0,_nw2,_nw4;
+        mutable double _norm0, _norm2, _norm4;
 	}; // PkCorrelationModel
 } // baofit
 

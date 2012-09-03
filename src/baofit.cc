@@ -428,7 +428,7 @@ int main(int argc, char **argv) {
             analyzer.dumpModel(out,fmin->getFitParameters(),ndump);
             out.close();
         }
-        if(xiPoints.length()==0 && ndump > 0) {
+        if(xiPoints.length()==0 && nSpline == 0 && ndump > 0) {
             // Dump the best-fit model with its peak contribution forced to zero.
             std::string outName = outputPrefix + "fit-smooth.dat";
             std::ofstream out(outName.c_str());
