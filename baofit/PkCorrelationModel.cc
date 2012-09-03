@@ -9,6 +9,8 @@
 
 #include "boost/format.hpp"
 
+#include "gsl/gsl_sf_expint.h"
+
 #include <cmath>
 
 namespace local = baofit;
@@ -141,7 +143,7 @@ double local::PkCorrelationModel::_getE(double kj, double r, cosmo::Multipole mu
 }
 
 double local::PkCorrelationModel::_sinIntegral(double x) const {
-    return 0;
+    return gsl_sf_Si(x);
 }
 
 double local::PkCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
