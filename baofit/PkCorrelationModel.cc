@@ -21,6 +21,7 @@ double klo, double khi, int nk, int splineOrder, double zref)
     if(klo >= khi) throw RuntimeError("PkCorrelationModel: expected khi > klo.");
     if(nk - splineOrder < 2) throw RuntimeError("PkCorrelationModel: expected nk - splineOrder >= 2.");
     if(zref < 0) throw RuntimeError("PkCorrelationModel: expected zref >= 0.");
+    if(splineOrder != 3) throw RuntimeError("PkCorrelationModel: only splineOrder = 3 is implemented so far.");
     // Precompute useful quantities
     _dk = (khi - klo)/(nk - 1);
     double pi(4*std::atan(1));
@@ -113,6 +114,33 @@ double local::PkCorrelationModel::_xi(double r, cosmo::Multipole multipole) cons
 }
 
 double local::PkCorrelationModel::_getE(double kj, double r, cosmo::Multipole multipole) const {
+    if(multipole == cosmo::Monopole) {
+        return (std::sin(kj*r) + (6 - 8*std::cos(_dk*r))*std::sin((2*_dk + kj)*r) + std::sin((4*_dk + kj)*r))/(std::pow(_dk,3)*std::pow(r,5));
+    }
+    else if(multipole == cosmo::Quadrupole) {
+        return -(3*kj*r*std::cos(kj*r) - 12*_dk*r*std::cos((_dk + kj)*r) - 12*kj*r*std::cos((_dk + kj)*r) + 36*_dk*r*std::cos((2*_dk + kj)*r) + 18*kj*r*std::cos((2*_dk + kj)*r) - 
+              36*_dk*r*std::cos((3*_dk + kj)*r) - 12*kj*r*std::cos((3*_dk + kj)*r) + 12*_dk*r*std::cos((4*_dk + kj)*r) + 3*kj*r*std::cos((4*_dk + kj)*r) + 5*std::sin(kj*r) - 
+              20*std::sin((_dk + kj)*r) + 30*std::sin((2*_dk + kj)*r) - 20*std::sin((3*_dk + kj)*r) + 5*std::sin((4*_dk + kj)*r) + 3*std::pow(kj,2)*std::pow(r,2)*_sinIntegral(kj*r) - 
+              12*std::pow(_dk + kj,2)*std::pow(r,2)*_sinIntegral((_dk + kj)*r) + 72*std::pow(_dk,2)*std::pow(r,2)*_sinIntegral((2*_dk + kj)*r) + 
+              72*_dk*kj*std::pow(r,2)*_sinIntegral((2*_dk + kj)*r) + 18*std::pow(kj,2)*std::pow(r,2)*_sinIntegral((2*_dk + kj)*r) - 
+              108*std::pow(_dk,2)*std::pow(r,2)*_sinIntegral((3*_dk + kj)*r) - 72*_dk*kj*std::pow(r,2)*_sinIntegral((3*_dk + kj)*r) - 
+              12*std::pow(kj,2)*std::pow(r,2)*_sinIntegral((3*_dk + kj)*r) + 48*std::pow(_dk,2)*std::pow(r,2)*_sinIntegral((4*_dk + kj)*r) + 
+              24*_dk*kj*std::pow(r,2)*_sinIntegral((4*_dk + kj)*r) + 3*std::pow(kj,2)*std::pow(r,2)*_sinIntegral((4*_dk + kj)*r))/(2.*std::pow(_dk,3)*std::pow(r,5));
+    }
+    else { // Hexadecapole
+        return -(15*kj*r*std::cos(kj*r) - 60*_dk*r*std::cos((_dk + kj)*r) - 60*kj*r*std::cos((_dk + kj)*r) + 180*_dk*r*std::cos((2*_dk + kj)*r) + 90*kj*r*std::cos((2*_dk + kj)*r) - 
+              180*_dk*r*std::cos((3*_dk + kj)*r) - 60*kj*r*std::cos((3*_dk + kj)*r) + 60*_dk*r*std::cos((4*_dk + kj)*r) + 15*kj*r*std::cos((4*_dk + kj)*r) + 11*std::sin(kj*r) - 
+              44*std::sin((_dk + kj)*r) + 66*std::sin((2*_dk + kj)*r) - 44*std::sin((3*_dk + kj)*r) + 11*std::sin((4*_dk + kj)*r) + 
+              5*(14 + 3*std::pow(kj,2)*std::pow(r,2))*_sinIntegral(kj*r) - 20*(14 + 3*std::pow(_dk,2)*std::pow(r,2) + 6*_dk*kj*std::pow(r,2) + 3*std::pow(kj,2)*std::pow(r,2))*
+               _sinIntegral((_dk + kj)*r) + 420*_sinIntegral((2*_dk + kj)*r) + 360*std::pow(_dk,2)*std::pow(r,2)*_sinIntegral((2*_dk + kj)*r) + 
+              360*_dk*kj*std::pow(r,2)*_sinIntegral((2*_dk + kj)*r) + 90*std::pow(kj,2)*std::pow(r,2)*_sinIntegral((2*_dk + kj)*r) - 280*_sinIntegral((3*_dk + kj)*r) - 
+              540*std::pow(_dk,2)*std::pow(r,2)*_sinIntegral((3*_dk + kj)*r) - 360*_dk*kj*std::pow(r,2)*_sinIntegral((3*_dk + kj)*r) - 
+              60*std::pow(kj,2)*std::pow(r,2)*_sinIntegral((3*_dk + kj)*r) + 70*_sinIntegral((4*_dk + kj)*r) + 240*std::pow(_dk,2)*std::pow(r,2)*_sinIntegral((4*_dk + kj)*r) + 
+              120*_dk*kj*std::pow(r,2)*_sinIntegral((4*_dk + kj)*r) + 15*std::pow(kj,2)*std::pow(r,2)*_sinIntegral((4*_dk + kj)*r))/(4.*std::pow(_dk,3)*std::pow(r,5));
+    }
+}
+
+double local::PkCorrelationModel::_sinIntegral(double x) const {
     return 0;
 }
 

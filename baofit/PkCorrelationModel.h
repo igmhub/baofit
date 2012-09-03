@@ -32,6 +32,7 @@ namespace baofit {
         void _calculateNorm(double z) const;
         double _xi(double r, cosmo::Multipole multipole) const;
         double _getE(double kj, double r, cosmo::Multipole multipole) const;
+        double _sinIntegral(double x) const;
 	    std::vector<double> _kValues;
         int _nk, _splineOrder;
         double _klo, _dk, _zref, _twopisq;
