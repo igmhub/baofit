@@ -14,13 +14,17 @@
 namespace local = baofit;
 
 local::PkCorrelationModel::PkCorrelationModel(std::string const &modelrootName, std::string const &nowigglesName,
-double kmin, double kmax, int nk, int splineOrder, double zref)
-: AbsCorrelationModel("P(ell,k) Correlation Model"), _zref(zref)
+double klo, double khi, int nk, int splineOrder, double zref)
+: AbsCorrelationModel("P(ell,k) Correlation Model"), _klo(klo), _nk(nk), _splineOrder(splineOrder), _zref(zref)
 {
     // Check inputs.
-    if(kmin >= kmax) throw RuntimeError("PkCorrelationModel: expected kmax > kmin.");
+    if(klo >= khi) throw RuntimeError("PkCorrelationModel: expected khi > klo.");
     if(nk - splineOrder < 2) throw RuntimeError("PkCorrelationModel: expected nk - splineOrder >= 2.");
     if(zref < 0) throw RuntimeError("PkCorrelationModel: expected zref >= 0.");
+    // Precompute useful quantities
+    _dk = (khi - klo)/(nk - 1);
+    double pi(4*std::atan(1));
+    _twopisq = 2*pi*pi;
     // Linear bias parameters
     defineParameter("beta",1.4,0.1);
     defineParameter("(1+beta)*bias",-0.336,0.03);
@@ -81,28 +85,58 @@ void local::PkCorrelationModel::_calculateNorm(double z) const {
     _norm4 *= getParameterValue("Pk s-4");
 }
 
+double local::PkCorrelationModel::_xi(double r, cosmo::Multipole multipole) const {
+    // Evaluate the smooth baseline model.
+    double xi(0), sign(1), twopisq();
+    boost::format name;
+    switch(multipole) {
+    case cosmo::Monopole:
+        xi = (*_nw0)(r);
+        name = boost::format("Pk b-0-%d");
+        break;
+    case cosmo::Quadrupole:
+        xi = (*_nw2)(r);
+        name = boost::format("Pk b-2-%d");
+        sign = -1;
+        break;
+    case cosmo::Hexadecapole:
+        xi = (*_nw4)(r);
+        name = boost::format("Pk b-4-%d");
+        break;
+    }
+    // Add the splined interpolation.
+    for(int j = 0; j <= _nk - _splineOrder - 2; ++j) {
+        double kj = _klo + _dk*j;
+        xi += sign/_twopisq*getParameterValue(boost::str(name % j))*_getE(kj,r,multipole);
+    }
+    return xi;
+}
+
+double local::PkCorrelationModel::_getE(double kj, double r, cosmo::Multipole multipole) const {
+    return 0;
+}
+
 double local::PkCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
+    // Calculate normalization factors.
     _calculateNorm(z);
-    // Evaluate the multipoles of the smooth baseline model.
-    double Pk0 = (*_nw0)(r), Pk2 = (*_nw2)(r), Pk4 = (*_nw4)(r);
     // Calculate the Legendre weights.
     double muSq(mu*mu);
     double L0(1), L2 = (3*muSq - 1)/2., L4 = (35*muSq*muSq - 30*muSq + 3)/8.;
-
-    return _norm0*Pk0*L0 + _norm2*Pk2*L2 + _norm4*Pk4*L4;
+    // Put the pieces together.
+    return _norm0*L0*_xi(r,cosmo::Monopole) + _norm2*L2*_xi(r,cosmo::Quadrupole) + _norm4*L4*_xi(r,cosmo::Hexadecapole);
 }
 
 double local::PkCorrelationModel::_evaluate(double r, cosmo::Multipole multipole, double z,
 bool anyChanged) const {
     _calculateNorm(z);
     if(multipole == cosmo::Hexadecapole) {
-        return _norm4*(*_nw4)(r);
+        return _norm4*_xi(r,cosmo::Hexadecapole);
     }
     else if(multipole == cosmo::Quadrupole) {
-        return _norm2*(*_nw2)(r);
+        return _norm2*_xi(r,cosmo::Quadrupole);
     }
     else { // Monopole
-        return _norm0*(*_nw0)(r);        
+        return _norm0*_xi(r,cosmo::Monopole);
     }
 }
 
