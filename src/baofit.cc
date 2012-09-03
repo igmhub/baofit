@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
       mcmcSave,mcmcInterval,mcSamples,xiNr,reuseCov,nSpline,splineOrder;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,mcConfig,
-        platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix;
+        platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig;
     std::vector<std::string> modelConfig;
 
     // Default values in quotes below are to avoid roundoff errors leading to ugly --help
@@ -72,6 +72,8 @@ int main(int argc, char **argv) {
             "Interpolation method to use in r^2 xi(r), use linear or cspline.")
         ("model-config", po::value<std::vector<std::string> >(&modelConfig)->composing(),
             "Model parameters configuration script (option can appear multiple times).")
+        ("alt-config", po::value<std::string>(&altConfig)->default_value(""),
+            "Parameter adjustments for dumping alternate best-fit model.")
         ("anisotropic", "Uses anisotropic a,b parameters instead of isotropic scale.")
         ;
     dataOptions.add_options()
@@ -428,11 +430,11 @@ int main(int argc, char **argv) {
             analyzer.dumpModel(out,fmin->getFitParameters(),ndump);
             out.close();
         }
-        if(xiPoints.length()==0 && nSpline == 0 && ndump > 0) {
-            // Dump the best-fit model with its peak contribution forced to zero.
-            std::string outName = outputPrefix + "fit-smooth.dat";
+        if(ndump > 0 && altConfig.length() > 0) {
+            // Dump an alternate best-fit model with some parameters modified (e.g., no BAO features)
+            std::string outName = outputPrefix + "alt.dat";
             std::ofstream out(outName.c_str());
-            analyzer.dumpModel(out,fmin->getFitParameters(),ndump,"value[BAO amplitude]=0");
+            analyzer.dumpModel(out,fmin->getFitParameters(),ndump,altConfig);
             out.close();
         }
         {
