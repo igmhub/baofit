@@ -12,18 +12,19 @@
 namespace local = baofit;
 
 local::PkCorrelationModel::PkCorrelationModel(std::string const &modelrootName, std::string const &nowigglesName,
-double kmin, double kmax, int nk)
+double kmin, double kmax, int nk, double zref)
 : AbsCorrelationModel("P(ell,k) Correlation Model")
 {
-    // Define the overall normalization parameters for each multipole.
-    // Calculate initial values assuming the following linear bias parameter values:
-    double bias = -0.14, beta = 1.4, gamma_bias = 3.8, gamma_beta = 0;
-    defineParameter("Pk norm ell 0",bias*bias*(1 + (2./3.)*beta + (1/5.)*beta*beta),0.002);
-    defineParameter("Pk norm ell 2",bias*bias*((4./3.)*beta + (4./7.)*beta*beta),0.002);
-    defineParameter("Pk norm ell 4",bias*bias*((8./35.)*beta*beta),0.001);
-    defineParameter("gamma Pk norm ell 0", gamma_bias,0.2);
-    defineParameter("gamma Pk norm ell 2", gamma_bias + gamma_beta,0.2);
-    defineParameter("gamma Pk norm ell 4", gamma_bias + 2*gamma_beta,0.2);
+    // Linear bias parameters
+    defineParameter("beta",1.4,0.1);
+    defineParameter("(1+beta)*bias",-0.336,0.03);
+    // Redshift evolution parameters
+    defineParameter("gamma-bias",3.8,0.3);
+    defineParameter("gamma-beta",0,0.1);
+    // Multiplicative broadband distortion factors.
+    defineParameter("Pk bspline s-0",1,0.1);
+    defineParameter("Pk bspline s-2",1,0.1);
+    defineParameter("Pk bspline s-4",1,0.1);
     // Load the interpolation data for the specified no-wiggles model.
     std::string root(modelrootName);
     if(0 < root.size() && root[root.size()-1] != '/') root += '/';
@@ -40,7 +41,7 @@ double kmin, double kmax, int nk)
             boost::str(fileName % root % nowigglesName % 4),method));
     }
     catch(likely::RuntimeError const &e) {
-        throw RuntimeError("BaoCorrelationModel: error while reading model interpolation data.");
+        throw RuntimeError("PkCorrelationModel: error while reading model interpolation data.");
     }
 }
 
@@ -57,4 +58,5 @@ bool anyChanged) const {
 
 void  local::PkCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
     AbsCorrelationModel::printToStream(out,formatSpec);
+    out << std::endl << "Reference redshift = " << _zref << std::endl;
 }

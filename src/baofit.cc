@@ -252,7 +252,8 @@ int main(int argc, char **argv) {
         cosmology.reset(new cosmo::LambdaCdmRadiationUniverse(OmegaMatter,0,hubbleConstant));
         
         if(nSpline > 0) {
-            model.reset(new baofit::PkCorrelationModel(modelrootName,nowigglesName,kloSpline,khiSpline,nSpline));
+            model.reset(new baofit::PkCorrelationModel(modelrootName,nowigglesName,
+                kloSpline,khiSpline,nSpline,zref));
         }
         else if(xiPoints.length() > 0) {
             model.reset(new baofit::XiCorrelationModel(xiPoints,zref,xiMethod));
