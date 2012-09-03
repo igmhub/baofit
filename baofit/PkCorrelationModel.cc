@@ -12,9 +12,12 @@
 namespace local = baofit;
 
 local::PkCorrelationModel::PkCorrelationModel(std::string const &modelrootName, std::string const &nowigglesName,
-double kmin, double kmax, int nk, double zref)
+double kmin, double kmax, int nk, int splineOrder, double zref)
 : AbsCorrelationModel("P(ell,k) Correlation Model")
 {
+    // Check inputs.
+    if(kmin >= kmax) throw RuntimeError("PkCorrelationModel: expected kmax > kmin.");
+    if(nk - splineOrder < 2) throw RuntimeError("PkCorrelationModel: expected nk - splineOrder >= 2.");
     // Linear bias parameters
     defineParameter("beta",1.4,0.1);
     defineParameter("(1+beta)*bias",-0.336,0.03);

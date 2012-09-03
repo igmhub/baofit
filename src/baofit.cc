@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin,
         rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax,kloSpline,khiSpline;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
-      mcmcSave,mcmcInterval,mcSamples,xiNr,reuseCov,nSpline;
+      mcmcSave,mcmcInterval,mcSamples,xiNr,reuseCov,nSpline,splineOrder;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,mcConfig,
         platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix;
     std::vector<std::string> modelConfig;
@@ -64,6 +64,8 @@ int main(int argc, char **argv) {
             "Minimum k in h/Mpc for k P(k) B-spline.")
         ("khi-spline", po::value<double>(&khiSpline)->default_value(0.2,"0.2"),
             "Maximum k in h/Mpc for k P(k) B-spline.")
+        ("order-spline", po::value<int>(&splineOrder)->default_value(3),
+            "Order of B-spline in k P(k).")
         ("xi-points", po::value<std::string>(&xiPoints)->default_value(""),
             "Comma-separated list of r values (Mpc/h) to use for interpolating r^2 xi(r)")
         ("xi-method", po::value<std::string>(&xiMethod)->default_value("cspline"),
@@ -253,7 +255,7 @@ int main(int argc, char **argv) {
         
         if(nSpline > 0) {
             model.reset(new baofit::PkCorrelationModel(modelrootName,nowigglesName,
-                kloSpline,khiSpline,nSpline,zref));
+                kloSpline,khiSpline,nSpline,splineOrder,zref));
         }
         else if(xiPoints.length() > 0) {
             model.reset(new baofit::XiCorrelationModel(xiPoints,zref,xiMethod));
