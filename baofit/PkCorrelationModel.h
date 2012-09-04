@@ -16,7 +16,7 @@ namespace baofit {
 	    // with a uniform B-spline in k*P(ell,k) added to each k-space multipole, with nk uniformly spaced
 	    // knots spanning the range (klo,khi) in h/Mpc.
 		PkCorrelationModel(std::string const &modelrootName, std::string const &nowigglesName,
-		    double klo, double khi, int nk, int splineOrder, double zref);
+		    double klo, double khi, int nk, int splineOrder, bool independentMultipoles, double zref);
 		virtual ~PkCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
@@ -37,6 +37,7 @@ namespace baofit {
         mutable double _rsave;
         int _nk, _splineOrder, _indexBase;
         double _klo, _dk, _dk2, _dk3, _zref, _twopisq;
+        bool _independentMultipoles;
         cosmo::PowerSpectrumPtr _nwPower;
 	    cosmo::CorrelationFunctionPtr _nw0,_nw2,_nw4;
         mutable double _norm0, _norm2, _norm4;

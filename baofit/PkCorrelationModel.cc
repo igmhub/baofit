@@ -16,8 +16,9 @@
 namespace local = baofit;
 
 local::PkCorrelationModel::PkCorrelationModel(std::string const &modelrootName, std::string const &nowigglesName,
-double klo, double khi, int nk, int splineOrder, double zref)
-: AbsCorrelationModel("P(ell,k) Correlation Model"), _klo(klo), _nk(nk), _splineOrder(splineOrder), _zref(zref)
+double klo, double khi, int nk, int splineOrder, bool independentMultipoles, double zref)
+: AbsCorrelationModel("P(ell,k) Correlation Model"), _klo(klo), _nk(nk), _splineOrder(splineOrder),
+_independentMultipoles(independentMultipoles), _zref(zref)
 {
     // Check inputs.
     if(klo >= khi) throw RuntimeError("PkCorrelationModel: expected khi > klo.");
@@ -46,6 +47,7 @@ double klo, double khi, int nk, int splineOrder, double zref)
     // B-spline coefficients for each multipole.
     boost::format name("Pk b-%d-%d");
     for(int ell = 0; ell <= 4; ell += 2) {
+        if(!_independentMultipoles && ell > 0) break;
         for(int j = 0; j <= nk - splineOrder - 2; ++j) {
             int index = defineParameter(boost::str(name % ell % j),0,0.1);
             if(_indexBase == -1) _indexBase = index;
@@ -150,12 +152,12 @@ double local::PkCorrelationModel::_xi(double r, cosmo::Multipole multipole) cons
         break;
     case cosmo::Quadrupole:
         xi = (*_nw2)(r);
-        offset += nj;
+        if(_independentMultipoles) offset += nj;
         sign = -1;
         break;
     case cosmo::Hexadecapole:
         xi = (*_nw4)(r);
-        offset += 2*nj;
+        if(_independentMultipoles) offset += 2*nj;
         break;
     }
     // Add the splined interpolation.

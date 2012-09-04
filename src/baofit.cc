@@ -66,6 +66,7 @@ int main(int argc, char **argv) {
             "Maximum k in h/Mpc for k P(k) B-spline.")
         ("order-spline", po::value<int>(&splineOrder)->default_value(3),
             "Order of B-spline in k P(k).")
+        ("multi-spline", "Fits independent parameters for each multipole.")
         ("xi-points", po::value<std::string>(&xiPoints)->default_value(""),
             "Comma-separated list of r values (Mpc/h) to use for interpolating r^2 xi(r)")
         ("xi-method", po::value<std::string>(&xiMethod)->default_value("cspline"),
@@ -221,7 +222,8 @@ int main(int argc, char **argv) {
         dr9lrg(vm.count("dr9lrg")), unweighted(vm.count("unweighted")), anisotropic(vm.count("anisotropic")),
         fitEach(vm.count("fit-each")), xiHexa(vm.count("xi-hexa")), demoFormat(vm.count("demo-format")),
         xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")), mcSave(vm.count("mc-save")),
-        expanded(vm.count("expanded")), sectors(vm.count("sectors")), saveICov(vm.count("save-icov"));
+        expanded(vm.count("expanded")), sectors(vm.count("sectors")), saveICov(vm.count("save-icov")),
+        multiSpline(vm.count("multi-spline"));
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
@@ -257,7 +259,7 @@ int main(int argc, char **argv) {
         
         if(nSpline > 0) {
             model.reset(new baofit::PkCorrelationModel(modelrootName,nowigglesName,
-                kloSpline,khiSpline,nSpline,splineOrder,zref));
+                kloSpline,khiSpline,nSpline,splineOrder,multiSpline,zref));
         }
         else if(xiPoints.length() > 0) {
             model.reset(new baofit::XiCorrelationModel(xiPoints,zref,xiMethod));
