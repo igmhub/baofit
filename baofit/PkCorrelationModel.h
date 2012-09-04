@@ -35,7 +35,7 @@ namespace baofit {
         double _sinIntegral(double x) const;
 	    std::vector<double> _kValues;
         int _nk, _splineOrder;
-        double _klo, _dk, _zref, _twopisq;
+        double _klo, _dk, _dk2, _dk3, _zref, _twopisq;
         cosmo::PowerSpectrumPtr _nwPower;
 	    cosmo::CorrelationFunctionPtr _nw0,_nw2,_nw4;
         mutable double _norm0, _norm2, _norm4;
