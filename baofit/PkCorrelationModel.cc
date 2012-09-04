@@ -32,6 +32,7 @@ double klo, double khi, int nk, int splineOrder, double zref)
     double pi(4*std::atan(1));
     _twopisq = 2*pi*pi;
     _sinInt.resize(nk);
+    _indexBase = -1;
     // Linear bias parameters
     defineParameter("beta",1.4,0.1);
     defineParameter("(1+beta)*bias",-0.336,0.03);
@@ -46,7 +47,8 @@ double klo, double khi, int nk, int splineOrder, double zref)
     boost::format name("Pk b-%d-%d");
     for(int ell = 0; ell <= 4; ell += 2) {
         for(int j = 0; j <= nk - splineOrder - 2; ++j) {
-            defineParameter(boost::str(name % ell % j),0,0.1);
+            int index = defineParameter(boost::str(name % ell % j),0,0.1);
+            if(_indexBase == -1) _indexBase = index;
         }
     }
     // Load the interpolation data for the specified no-wiggles model.
@@ -110,48 +112,55 @@ double local::PkCorrelationModel::_getE(int j, double r, cosmo::Multipole multip
     else if(multipole == cosmo::Quadrupole) {
         return -(3*kj*r*std::cos(kj*r) - 12*_dk*r*std::cos((_dk + kj)*r) - 12*kj*r*std::cos((_dk + kj)*r) + 36*_dk*r*std::cos((2*_dk + kj)*r) + 18*kj*r*std::cos((2*_dk + kj)*r) - 
               36*_dk*r*std::cos((3*_dk + kj)*r) - 12*kj*r*std::cos((3*_dk + kj)*r) + 12*_dk*r*std::cos((4*_dk + kj)*r) + 3*kj*r*std::cos((4*_dk + kj)*r) + 5*std::sin(kj*r) - 
-              20*std::sin((_dk + kj)*r) + 30*std::sin((2*_dk + kj)*r) - 20*std::sin((3*_dk + kj)*r) + 5*std::sin((4*_dk + kj)*r) + 3*kj2*r2*_sinInt[j] - 
-              12*(_dk2+2*_dk*kj+kj2)*r2*_sinInt[j+1] + 72*_dk2*r2*_sinInt[j+2] + 
-              72*_dk*kj*r2*_sinInt[j+2] + 18*kj2*r2*_sinInt[j+2] - 
-              108*_dk2*r2*_sinInt[j+3] - 72*_dk*kj*r2*_sinInt[j+3] - 
-              12*kj2*r2*_sinInt[j+3] + 48*_dk2*r2*_sinInt[j+4] + 
-              24*_dk*kj*r2*_sinInt[j+4] + 3*kj2*r2*_sinInt[j+4])/(2.*_dk3*r5);
+              20*std::sin((_dk + kj)*r) + 30*std::sin((2*_dk + kj)*r) - 20*std::sin((3*_dk + kj)*r) + 5*std::sin((4*_dk + kj)*r) +
+              3*kj2*r2*_sinInt[j] - 
+              12*(_dk2+2*_dk*kj+kj2)*r2*_sinInt[j+1] +
+              72*_dk2*r2*_sinInt[j+2] + 72*_dk*kj*r2*_sinInt[j+2] + 18*kj2*r2*_sinInt[j+2] - 
+              108*_dk2*r2*_sinInt[j+3] - 72*_dk*kj*r2*_sinInt[j+3] - 12*kj2*r2*_sinInt[j+3] +
+              48*_dk2*r2*_sinInt[j+4] + 24*_dk*kj*r2*_sinInt[j+4] + 3*kj2*r2*_sinInt[j+4]
+              )/(2.*_dk3*r5);
+/*
+3*kj2*r2*_sinInt[j] -
+(_dk2 + 2*_dk*kj + kj2)*12*r2*_sinInt[j+1] +
+(4*_dk2 + 4*_dk*kj + kj2)*18*r2*_sinInt[j+2] -
+(9*_dk2 + 6*_dk*kj + kj2)*12*r2*_sinInt[j+3] +
+48*_dk2*r2*_sinInt[j+4] + 24*_dk*kj*r2*_sinInt[j+4] + 3*kj2*r2*_sinInt[j+4])/(2.*_dk3*r5);
+*/
     }
     else { // Hexadecapole
         return -(15*kj*r*std::cos(kj*r) - 60*_dk*r*std::cos((_dk + kj)*r) - 60*kj*r*std::cos((_dk + kj)*r) + 180*_dk*r*std::cos((2*_dk + kj)*r) + 90*kj*r*std::cos((2*_dk + kj)*r) - 
               180*_dk*r*std::cos((3*_dk + kj)*r) - 60*kj*r*std::cos((3*_dk + kj)*r) + 60*_dk*r*std::cos((4*_dk + kj)*r) + 15*kj*r*std::cos((4*_dk + kj)*r) + 11*std::sin(kj*r) - 
               44*std::sin((_dk + kj)*r) + 66*std::sin((2*_dk + kj)*r) - 44*std::sin((3*_dk + kj)*r) + 11*std::sin((4*_dk + kj)*r) + 
-              5*(14 + 3*kj2*r2)*_sinInt[j] - 20*(14 + 3*_dk2*r2 + 6*_dk*kj*r2 + 3*kj2*r2)*
-               _sinInt[j+1] + 420*_sinInt[j+2] + 360*_dk2*r2*_sinInt[j+2] + 
-              360*_dk*kj*r2*_sinInt[j+2] + 90*kj2*r2*_sinInt[j+2] - 280*_sinInt[j+3] - 
-              540*_dk2*r2*_sinInt[j+3] - 360*_dk*kj*r2*_sinInt[j+3] - 
-              60*kj2*r2*_sinInt[j+3] + 70*_sinInt[j+4] + 240*_dk2*r2*_sinInt[j+4] + 
-              120*_dk*kj*r2*_sinInt[j+4] + 15*kj2*r2*_sinInt[j+4])/(4.*_dk3*r5);
+              5*(14 + 3*kj2*r2)*_sinInt[j] -
+              20*(14 + 3*_dk2*r2 + 6*_dk*kj*r2 + 3*kj2*r2)*_sinInt[j+1] +
+              420*_sinInt[j+2] + 360*_dk2*r2*_sinInt[j+2] + 360*_dk*kj*r2*_sinInt[j+2] + 90*kj2*r2*_sinInt[j+2] -
+              280*_sinInt[j+3] - 540*_dk2*r2*_sinInt[j+3] - 360*_dk*kj*r2*_sinInt[j+3] - 60*kj2*r2*_sinInt[j+3] +
+              70*_sinInt[j+4] + 240*_dk2*r2*_sinInt[j+4] + 120*_dk*kj*r2*_sinInt[j+4] + 15*kj2*r2*_sinInt[j+4]
+              )/(4.*_dk3*r5);
     }
 }
 
 double local::PkCorrelationModel::_xi(double r, cosmo::Multipole multipole) const {
     // Evaluate the smooth baseline model.
     double xi(0), sign(1), twopisq();
-    boost::format name;
+    int nj = _nk-_splineOrder-1, offset = _indexBase;
     switch(multipole) {
     case cosmo::Monopole:
         xi = (*_nw0)(r);
-        name = boost::format("Pk b-0-%d");
         break;
     case cosmo::Quadrupole:
         xi = (*_nw2)(r);
-        name = boost::format("Pk b-2-%d");
+        offset += nj;
         sign = -1;
         break;
     case cosmo::Hexadecapole:
         xi = (*_nw4)(r);
-        name = boost::format("Pk b-4-%d");
+        offset += 2*nj;
         break;
     }
     // Add the splined interpolation.
-    for(int j = 0; j <= _nk - _splineOrder - 2; ++j) {
-        xi += sign/_twopisq*getParameterValue(boost::str(name % j))*_getE(j,r,multipole);
+    for(int j = 0; j < nj; ++j) {
+        xi += sign/_twopisq*getParameterValue(offset+j)*_getE(j,r,multipole);
     }
     return xi;
 }
