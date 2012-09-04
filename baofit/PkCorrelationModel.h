@@ -31,9 +31,10 @@ namespace baofit {
 	private:
         void _calculateNorm(double z) const;
         double _xi(double r, cosmo::Multipole multipole) const;
-        double _getE(double kj, double r, cosmo::Multipole multipole) const;
-        double _sinIntegral(double x) const;
-	    std::vector<double> _kValues;
+        double _getE(int j, double r, cosmo::Multipole multipole) const;
+        void _fillSinIntegralCache(double r) const;
+	    mutable std::vector<double> _sinInt;
+        mutable double _rsave;
         int _nk, _splineOrder;
         double _klo, _dk, _dk2, _dk3, _zref, _twopisq;
         cosmo::PowerSpectrumPtr _nwPower;
