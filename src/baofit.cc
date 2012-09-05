@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
       mcmcSave,mcmcInterval,mcSamples,xiNr,reuseCov;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,mcConfig,
-        platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix;
+      mcmcConfig,platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix;
     std::vector<std::string> modelConfig;
 
     // Default values in quotes below are to avoid roundoff errors leading to ugly --help
@@ -155,6 +155,8 @@ int main(int argc, char **argv) {
             "Number of Markov chain Monte Carlo samples to save (zero for no MCMC analysis)")
         ("mcmc-interval", po::value<int>(&mcmcInterval)->default_value(10),
             "Interval for saving MCMC trials (larger for less correlations and longer running time)")
+        ("mcmc-config", po::value<std::string>(&mcmcConfig)->default_value(""),
+            "Fit parameter configuration to apply before running MCMC.")
         ("mc-samples", po::value<int>(&mcSamples)->default_value(0),
             "Number of MC samples to generate and fit.")
         ("mc-config", po::value<std::string>(&mcConfig)->default_value(""),
@@ -429,8 +431,11 @@ int main(int argc, char **argv) {
         // Generate a Markov-chain for marginalization, if requested.
         if(mcmcSave > 0) {
             std::string outName = outputPrefix + "mcmc.dat";
-            analyzer.generateMarkovChain(mcmcSave,mcmcInterval,fmin,outName,ndump);
-        }
+ 	    likely::FunctionMinimumPtr fmin2;
+	    if (0<mcmcConfig.size()) fmin2=analyzer.fitCombined(mcmcConfig);
+	    else fmin2=fmin;
+            analyzer.generateMarkovChain(mcmcSave, mcmcInterval,fmin2,outName,ndump);
+       }
         // Refit the combined sample, if requested.
         likely::FunctionMinimumPtr fmin2;
         if(0 < refitConfig.size()) {
