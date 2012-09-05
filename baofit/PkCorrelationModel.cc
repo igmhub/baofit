@@ -11,6 +11,7 @@
 
 #include "gsl/gsl_sf_expint.h"
 
+#include <fstream>
 #include <cmath>
 
 namespace local = baofit;
@@ -103,6 +104,23 @@ void local::PkCorrelationModel::_fillSinIntegralCache(double r) const {
         _sinInt[j] = gsl_sf_Si(kj*r);
     }
     _rsave = r;
+}
+
+double local::PkCorrelationModel::_getB(int j, double k) const {
+    double kj = _klo + _dk*j;
+    if(k <= kj) return 0;
+    double t = (k - kj)/((_splineOrder+1)*_dk);
+    if(t > 1) return 0;
+    // Use symmetry to put 0 < t <= 1/2
+    if(t > 0.5) t = 1-t;    
+    double result(0);
+    if(t < 0.25) {
+        result = (32./3.)*t*t*t;
+    }
+    else { // t <= 1/2
+        result = (2./3.) - 8*t*(1 - 4*t*(1 - t));
+    }
+    return result;
 }
 
 double local::PkCorrelationModel::_getE(int j, double r, cosmo::Multipole multipole) const {
@@ -199,4 +217,43 @@ bool anyChanged) const {
 void  local::PkCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
     AbsCorrelationModel::printToStream(out,formatSpec);
     out << std::endl << "Reference redshift = " << _zref << std::endl;
+}
+
+void local::PkCorrelationModel::dump(std::string const &dumpName, double kmin, double kmax, int nk,
+likely::Parameters const &params, double zref) {
+    if(kmax <= kmin || nk <= 2) throw RuntimeError("PkCorrelationModel::dump: bad inputs (kmin,kmax,nk).");
+    // Open the requested file.
+    std::ofstream out(dumpName.c_str());
+    // Load the requested parameters.
+    updateParameterValues(params);
+    // Calculate normalization factors.
+    _calculateNorm(zref);
+    // Loop over k values.
+    double dk = (kmax-kmin)/(nk-1);
+    int nj = _nk-_splineOrder-1;
+    for(int ik = 0; ik < nk; ++ik) {
+        double k = kmin + dk*ik;
+        // Calculate the smooth model's k*P(ell,k) values.
+        double kPk = k*(*_nwPower)(k);
+        double kPk0 = _norm0*kPk;
+        double kPk2 = _norm2*kPk;
+        double kPk4 = _norm4*kPk;
+        // Calculate the additive k*dP(ell,k) values.
+        double kdPk0(0), kdPk2(0), kdPk4(0);
+        for(int j = 0; j < nj; ++j) {
+            double kdPk = _getB(j,k);
+            double b0 = getParameterValue(_indexBase + j);
+            double b2(b0),b4(b0);
+            if(_independentMultipoles) {
+                b2 = getParameterValue(_indexBase + nj + j);
+                b4 = getParameterValue(_indexBase + 2*nj + j);
+            }
+            kdPk0 += _norm0*b0*kdPk;
+            kdPk2 += _norm2*b2*kdPk;
+            kdPk4 += _norm4*b4*kdPk;
+        }
+        out << k << ' ' << kPk0 << ' ' << kPk2 << ' ' << kPk4 << ' '
+            << kdPk0 << ' ' << kdPk2 << ' ' << kdPk4 << std::endl;
+    }
+    out.close();
 }

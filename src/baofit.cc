@@ -439,6 +439,13 @@ int main(int argc, char **argv) {
             analyzer.dumpModel(out,fmin->getFitParameters(),ndump,altConfig);
             out.close();
         }
+        if(ndump > 0 && nSpline > 0) {
+            // Dump the P(k) model corresponding to our best fit xi(r).
+            std::string outName = outputPrefix + "pk.dat";
+            boost::shared_ptr<baofit::PkCorrelationModel> pkModel =
+                boost::dynamic_pointer_cast<baofit::PkCorrelationModel>(model);
+            pkModel->dump(outName,0.01,0.3,ndump,fmin->getParameters(),zref);
+        }
         {
             // Dump the best-fit residuals for each data bin.
             std::string outName = outputPrefix + "residuals.dat";

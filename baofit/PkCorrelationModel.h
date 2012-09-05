@@ -20,6 +20,13 @@ namespace baofit {
 		virtual ~PkCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
+        // Dumps tabulated values of the k*P(k,zref) multipoles associated with the specified parameters
+        // to a file with the specified name. Values are tabulated in nk steps covering kmin-kmax. Each
+        // line consists of: k k*P0(k) k*P2(k) k*P4(k) k*dP0(k) k*dP2(k) k*dP4(k) with h/Mpc units.
+        // Note that the multipoles will only differ by normalization factors unless this object was
+        // created with independentMultipoles = true.
+        void dump(std::string const &dumpName, double kmin, double kmax, int nk,
+            likely::Parameters const &params, double zref);
 	protected:
 		// Returns the correlation function evaluated in redshift space where (r,mu) is
 		// the pair separation and z is their average redshift. The separation r should
@@ -32,6 +39,7 @@ namespace baofit {
         void _calculateNorm(double z) const;
         double _xi(double r, cosmo::Multipole multipole) const;
         double _getE(int j, double r, cosmo::Multipole multipole) const;
+        double _getB(int j, double k) const;
         void _fillSinIntegralCache(double r) const;
 	    mutable std::vector<double> _sinInt;
         mutable double _rsave;
