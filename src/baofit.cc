@@ -77,6 +77,7 @@ int main(int argc, char **argv) {
             "Maximum number of plates to load (zero uses all available plates).")
         ("check-posdef", "Checks that each covariance is positive-definite (slow).")
         ("save-icov", "Saves the inverse covariance of the combined data after final cuts.")
+        ("fix-aln-cov", "Fixes covariance matrix of points in 'aln' parametrization")
         ;
     frenchOptions.add_options()
         ("french", "Correlation data files are in the French format (default is cosmolib).")
@@ -149,6 +150,7 @@ int main(int argc, char **argv) {
             "Number of bootstrap trials to run if a platelist was provided.")
         ("bootstrap-size", po::value<int>(&bootstrapSize)->default_value(0),
             "Size of each bootstrap trial or zero to use the number of plates.")
+        ("points-cov", "Save covariance matrix from bootstrap data samples.")
         ("jackknife-drop", po::value<int>(&jackknifeDrop)->default_value(0),
             "Number of observations to drop from each jackknife sample (zero for no jackknife analysis)")
         ("mcmc-save", po::value<int>(&mcmcSave)->default_value(0),
@@ -210,7 +212,8 @@ int main(int argc, char **argv) {
         dr9lrg(vm.count("dr9lrg")), unweighted(vm.count("unweighted")), anisotropic(vm.count("anisotropic")),
         fitEach(vm.count("fit-each")), xiHexa(vm.count("xi-hexa")),
         xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")),
-        expanded(vm.count("expanded")), sectors(vm.count("sectors")), saveICov(vm.count("save-icov"));
+      expanded(vm.count("expanded")), sectors(vm.count("sectors")), saveICov(vm.count("save-icov")),
+      ptCov(vm.count("points-cov")), fixAlnCov(vm.count("fix-aln-cov"));
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
@@ -304,7 +307,7 @@ int main(int argc, char **argv) {
             zdata = 2.25;
             prototype = baofit::boss::createCosmolibPrototype(
                 minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,rmin,rmax,muMin,muMax,
-                rVetoMin,rVetoMax,llmin,cosmology);
+                rVetoMin,rVetoMax,llmin,fixAlnCov,cosmology);
         }
         
         // Build a list of the data files we will read.
@@ -431,7 +434,7 @@ int main(int argc, char **argv) {
         // Generate a Markov-chain for marginalization, if requested.
         if(mcmcSave > 0) {
             std::string outName = outputPrefix + "mcmc.dat";
-            analyzer.generateMarkovChain(mcmcSave, mcConfig, mcmcInterval,fmin,outName,ndump);
+            analyzer.generateMarkovChain(mcmcSave, mcmcConfig, mcmcInterval,fmin,outName,ndump);
         }
         // Refit the combined sample, if requested.
         likely::FunctionMinimumPtr fmin2;
@@ -458,8 +461,11 @@ int main(int argc, char **argv) {
         // Perform a bootstrap analysis, if requested.
         if(bootstrapTrials > 0) {
             std::string outName = outputPrefix + "bs.dat";
+	    std::string outPtCov = "";
+	    if (ptCov) outPtCov = outputPrefix + "ptc.dat";
+	      
             analyzer.doBootstrapAnalysis(bootstrapTrials,bootstrapSize,fixCovariance,
-                fmin,fmin2,refitConfig,outName,ndump);
+	     fmin,fmin2,refitConfig,outName, outPtCov, ndump);
         }
         // Perform a jackknife analysis, if requested.
         if(jackknifeDrop > 0) {
