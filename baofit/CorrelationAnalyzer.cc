@@ -400,8 +400,8 @@ std::string const &refitConfig, std::string const &saveName, int nsave) const {
     return nInvalid;
 }
 
-void local::CorrelationAnalyzer::generateMarkovChain(int nchain, int interval, likely::FunctionMinimumCPtr fmin,
-std::string const &saveName, int nsave) const {
+void local::CorrelationAnalyzer::generateMarkovChain(int nchain, const std::string &mcmcConfig, int interval,
+	likely::FunctionMinimumCPtr fmin, std::string const &saveName, int nsave) const {
     if(nchain <= 0) {
         throw RuntimeError("CorrelationAnalyzer::generateMarkovChain: expected nchain > 0.");
     }
@@ -419,6 +419,7 @@ std::string const &saveName, int nsave) const {
     // Output the results and accumulate statistics.
     SamplingOutput output(fmin,likely::FunctionMinimumCPtr(),saveName,nsave,*this);
     likely::FitParameters parameters(fmin->getFitParameters());
+    likely::modifyFitParameters(parameters,mcmcConfig);
     likely::FitParameterStatistics paramStats(parameters);
     int npar = parameters.size();
     bool onlyFloating(true);
