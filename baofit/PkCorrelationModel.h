@@ -44,7 +44,7 @@ namespace baofit {
 	    mutable std::vector<double> _sinInt;
         mutable double _rsave;
         int _nk, _splineOrder, _indexBase;
-        double _klo, _dk, _dk2, _dk3, _zref, _twopisq;
+        double _klo, _dk, _dk2, _dk3, _dk4, _zref, _twopisq;
         bool _independentMultipoles;
         cosmo::PowerSpectrumPtr _nwPower;
 	    cosmo::CorrelationFunctionPtr _nw0,_nw2,_nw4;

@@ -25,11 +25,14 @@ _independentMultipoles(independentMultipoles), _zref(zref)
     if(klo >= khi) throw RuntimeError("PkCorrelationModel: expected khi > klo.");
     if(nk - splineOrder < 2) throw RuntimeError("PkCorrelationModel: expected nk - splineOrder >= 2.");
     if(zref < 0) throw RuntimeError("PkCorrelationModel: expected zref >= 0.");
-    if(splineOrder != 3) throw RuntimeError("PkCorrelationModel: only splineOrder = 3 is implemented so far.");
+    if(splineOrder != 1 && splineOrder != 3) {
+        throw RuntimeError("PkCorrelationModel: only splineOrder = 1,3 is implemented so far.");
+    }
     // Precompute useful quantities
     _dk = (khi - klo)/(nk - 1);
     _dk2 = _dk*_dk;
     _dk3 = _dk2*_dk;
+    _dk4 = _dk3*_dk;
     _rsave = -1;
     double pi(4*std::atan(1));
     _twopisq = 2*pi*pi;
@@ -112,51 +115,82 @@ double local::PkCorrelationModel::_getB(int j, double k) const {
     double t = (k - kj)/((_splineOrder+1)*_dk);
     if(t > 1) return 0;
     // Use symmetry to put 0 < t <= 1/2
-    if(t > 0.5) t = 1-t;    
+    if(t > 0.5) t = 1-t;
     double result(0);
-    if(t < 0.25) {
-        result = (32./3.)*t*t*t;
+    if(_splineOrder == 3) {
+        if(t < 0.25) {
+            result = (32./3.)*t*t*t;
+        }
+        else { // t <= 1/2
+            result = (2./3.) - 8*t*(1 - 4*t*(1 - t));
+        }
     }
-    else { // t <= 1/2
-        result = (2./3.) - 8*t*(1 - 4*t*(1 - t));
+    else { // _splineOrder == 1
+        result = 2*t;
     }
     return result;
 }
 
 double local::PkCorrelationModel::_getE(int j, double r, cosmo::Multipole multipole) const {
     double kj = _klo + _dk*j;
-    double r2(r*r),r5(r2*r2*r),kj2(kj*kj);
-    if(multipole == cosmo::Monopole) {
-        return (std::sin(kj*r) + (6 - 8*std::cos(_dk*r))*std::sin((2*_dk + kj)*r) + std::sin((4*_dk + kj)*r))/(_dk3*r5);
+    double r2(r*r),r3(r2*r),r5(r3*r2),kj2(kj*kj),kj3(kj2*kj),kj4(kj2*kj2),kj5(kj3*kj2),kj6(kj3*kj3);
+    if(_splineOrder == 3) {
+        if(multipole == cosmo::Monopole) {
+            return (std::sin(kj*r) + (6 - 8*std::cos(_dk*r))*std::sin((2*_dk + kj)*r) + std::sin((4*_dk + kj)*r))/(_dk3*r5);
+        }
+        else if(multipole == cosmo::Quadrupole) {
+            return -(3*kj*r*std::cos(kj*r) - 12*_dk*r*std::cos((_dk + kj)*r) - 12*kj*r*std::cos((_dk + kj)*r) + 36*_dk*r*std::cos((2*_dk + kj)*r) + 18*kj*r*std::cos((2*_dk + kj)*r) - 
+                  36*_dk*r*std::cos((3*_dk + kj)*r) - 12*kj*r*std::cos((3*_dk + kj)*r) + 12*_dk*r*std::cos((4*_dk + kj)*r) + 3*kj*r*std::cos((4*_dk + kj)*r) + 5*std::sin(kj*r) - 
+                  20*std::sin((_dk + kj)*r) + 30*std::sin((2*_dk + kj)*r) - 20*std::sin((3*_dk + kj)*r) + 5*std::sin((4*_dk + kj)*r) +
+                  3*kj2*r2*_sinInt[j] - 
+                  12*(_dk2+2*_dk*kj+kj2)*r2*_sinInt[j+1] +
+                  72*_dk2*r2*_sinInt[j+2] + 72*_dk*kj*r2*_sinInt[j+2] + 18*kj2*r2*_sinInt[j+2] - 
+                  108*_dk2*r2*_sinInt[j+3] - 72*_dk*kj*r2*_sinInt[j+3] - 12*kj2*r2*_sinInt[j+3] +
+                  48*_dk2*r2*_sinInt[j+4] + 24*_dk*kj*r2*_sinInt[j+4] + 3*kj2*r2*_sinInt[j+4]
+                  )/(2.*_dk3*r5);
+        }
+        else { // Hexadecapole
+            return -(15*kj*r*std::cos(kj*r) - 60*_dk*r*std::cos((_dk + kj)*r) - 60*kj*r*std::cos((_dk + kj)*r) + 180*_dk*r*std::cos((2*_dk + kj)*r) + 90*kj*r*std::cos((2*_dk + kj)*r) - 
+                  180*_dk*r*std::cos((3*_dk + kj)*r) - 60*kj*r*std::cos((3*_dk + kj)*r) + 60*_dk*r*std::cos((4*_dk + kj)*r) + 15*kj*r*std::cos((4*_dk + kj)*r) + 11*std::sin(kj*r) - 
+                  44*std::sin((_dk + kj)*r) + 66*std::sin((2*_dk + kj)*r) - 44*std::sin((3*_dk + kj)*r) + 11*std::sin((4*_dk + kj)*r) + 
+                  5*(14 + 3*kj2*r2)*_sinInt[j] -
+                  20*(14 + 3*_dk2*r2 + 6*_dk*kj*r2 + 3*kj2*r2)*_sinInt[j+1] +
+                  420*_sinInt[j+2] + 360*_dk2*r2*_sinInt[j+2] + 360*_dk*kj*r2*_sinInt[j+2] + 90*kj2*r2*_sinInt[j+2] -
+                  280*_sinInt[j+3] - 540*_dk2*r2*_sinInt[j+3] - 360*_dk*kj*r2*_sinInt[j+3] - 60*kj2*r2*_sinInt[j+3] +
+                  70*_sinInt[j+4] + 240*_dk2*r2*_sinInt[j+4] + 120*_dk*kj*r2*_sinInt[j+4] + 15*kj2*r2*_sinInt[j+4]
+                  )/(4.*_dk3*r5);
+        }
     }
-    else if(multipole == cosmo::Quadrupole) {
-        return -(3*kj*r*std::cos(kj*r) - 12*_dk*r*std::cos((_dk + kj)*r) - 12*kj*r*std::cos((_dk + kj)*r) + 36*_dk*r*std::cos((2*_dk + kj)*r) + 18*kj*r*std::cos((2*_dk + kj)*r) - 
-              36*_dk*r*std::cos((3*_dk + kj)*r) - 12*kj*r*std::cos((3*_dk + kj)*r) + 12*_dk*r*std::cos((4*_dk + kj)*r) + 3*kj*r*std::cos((4*_dk + kj)*r) + 5*std::sin(kj*r) - 
-              20*std::sin((_dk + kj)*r) + 30*std::sin((2*_dk + kj)*r) - 20*std::sin((3*_dk + kj)*r) + 5*std::sin((4*_dk + kj)*r) +
-              3*kj2*r2*_sinInt[j] - 
-              12*(_dk2+2*_dk*kj+kj2)*r2*_sinInt[j+1] +
-              72*_dk2*r2*_sinInt[j+2] + 72*_dk*kj*r2*_sinInt[j+2] + 18*kj2*r2*_sinInt[j+2] - 
-              108*_dk2*r2*_sinInt[j+3] - 72*_dk*kj*r2*_sinInt[j+3] - 12*kj2*r2*_sinInt[j+3] +
-              48*_dk2*r2*_sinInt[j+4] + 24*_dk*kj*r2*_sinInt[j+4] + 3*kj2*r2*_sinInt[j+4]
-              )/(2.*_dk3*r5);
-/*
-3*kj2*r2*_sinInt[j] -
-(_dk2 + 2*_dk*kj + kj2)*12*r2*_sinInt[j+1] +
-(4*_dk2 + 4*_dk*kj + kj2)*18*r2*_sinInt[j+2] -
-(9*_dk2 + 6*_dk*kj + kj2)*12*r2*_sinInt[j+3] +
-48*_dk2*r2*_sinInt[j+4] + 24*_dk*kj*r2*_sinInt[j+4] + 3*kj2*r2*_sinInt[j+4])/(2.*_dk3*r5);
-*/
-    }
-    else { // Hexadecapole
-        return -(15*kj*r*std::cos(kj*r) - 60*_dk*r*std::cos((_dk + kj)*r) - 60*kj*r*std::cos((_dk + kj)*r) + 180*_dk*r*std::cos((2*_dk + kj)*r) + 90*kj*r*std::cos((2*_dk + kj)*r) - 
-              180*_dk*r*std::cos((3*_dk + kj)*r) - 60*kj*r*std::cos((3*_dk + kj)*r) + 60*_dk*r*std::cos((4*_dk + kj)*r) + 15*kj*r*std::cos((4*_dk + kj)*r) + 11*std::sin(kj*r) - 
-              44*std::sin((_dk + kj)*r) + 66*std::sin((2*_dk + kj)*r) - 44*std::sin((3*_dk + kj)*r) + 11*std::sin((4*_dk + kj)*r) + 
-              5*(14 + 3*kj2*r2)*_sinInt[j] -
-              20*(14 + 3*_dk2*r2 + 6*_dk*kj*r2 + 3*kj2*r2)*_sinInt[j+1] +
-              420*_sinInt[j+2] + 360*_dk2*r2*_sinInt[j+2] + 360*_dk*kj*r2*_sinInt[j+2] + 90*kj2*r2*_sinInt[j+2] -
-              280*_sinInt[j+3] - 540*_dk2*r2*_sinInt[j+3] - 360*_dk*kj*r2*_sinInt[j+3] - 60*kj2*r2*_sinInt[j+3] +
-              70*_sinInt[j+4] + 240*_dk2*r2*_sinInt[j+4] + 120*_dk*kj*r2*_sinInt[j+4] + 15*kj2*r2*_sinInt[j+4]
-              )/(4.*_dk3*r5);
+    else { // _splineOrder == 1
+        if(multipole == cosmo::Monopole) {
+            return -((std::sin(kj*r) - 2*std::sin((_dk + kj)*r) + std::sin((2*_dk + kj)*r))/(_dk*r3));
+        }
+        else if(multipole == cosmo::Quadrupole) {
+            return (std::sin(kj*r) - 2*std::sin((_dk + kj)*r) + std::sin((2*_dk + kj)*r) - 3*_sinInt[j] + 6*_sinInt[j+1] - 3*_sinInt[j+2])/(_dk*r3);
+        }
+        else { // Hexadecapole
+            double tmp = 2*_dk2 + 3*_dk*kj + kj2;
+            double kjj = kj + _dk, kjjj = kjj + _dk;
+            return -(140*_dk4*kj*r*std::cos(kj*r) + 420*_dk3*kj2*r*std::cos(kj*r) + 455*_dk2*kj3*r*std::cos(kj*r) + 210*_dk*kj4*r*std::cos(kj*r) + 
+                  35*kj5*r*std::cos(kj*r) - 280*_dk3*kj2*r*std::cos((_dk + kj)*r) - 560*_dk2*kj3*r*std::cos((_dk + kj)*r) - 
+                  350*_dk*kj4*r*std::cos((_dk + kj)*r) - 70*kj5*r*std::cos((_dk + kj)*r) + 70*_dk3*kj2*r*std::cos((2*_dk + kj)*r) + 
+                  175*_dk2*kj3*r*std::cos((2*_dk + kj)*r) + 140*_dk*kj4*r*std::cos((2*_dk + kj)*r) + 35*kj5*r*std::cos((2*_dk + kj)*r) - 
+                  140*_dk4*std::sin(kj*r) - 420*_dk3*kj*std::sin(kj*r) - 455*_dk2*kj2*std::sin(kj*r) - 210*_dk*kj3*std::sin(kj*r) - 
+                  35*kj4*std::sin(kj*r) + 8*_dk4*kj2*r2*std::sin(kj*r) + 24*_dk3*kj3*r2*std::sin(kj*r) + 
+                  26*_dk2*kj4*r2*std::sin(kj*r) + 12*_dk*kj5*r2*std::sin(kj*r) + 2*kj6*r2*std::sin(kj*r) + 
+                  280*_dk2*kj2*std::sin((_dk + kj)*r) + 280*_dk*kj3*std::sin((_dk + kj)*r) + 70*kj4*std::sin((_dk + kj)*r) - 
+                  16*_dk4*kj2*r2*std::sin((_dk + kj)*r) - 48*_dk3*kj3*r2*std::sin((_dk + kj)*r) - 
+                  52*_dk2*kj4*r2*std::sin((_dk + kj)*r) - 24*_dk*kj5*r2*std::sin((_dk + kj)*r) - 
+                  4*kj6*r2*std::sin((_dk + kj)*r) - 35*_dk2*kj2*std::sin((2*_dk + kj)*r) - 70*_dk*kj3*std::sin((2*_dk + kj)*r) - 
+                  35*kj4*std::sin((2*_dk + kj)*r) + 8*_dk4*kj2*r2*std::sin((2*_dk + kj)*r) + 
+                  24*_dk3*kj3*r2*std::sin((2*_dk + kj)*r) + 26*_dk2*kj4*r2*std::sin((2*_dk + kj)*r) + 
+                  12*_dk*kj5*r2*std::sin((2*_dk + kj)*r) + 2*kj6*r2*std::sin((2*_dk + kj)*r) + 
+                  15*kj2*tmp*tmp*r2*_sinInt[j] - 
+                  30*kj2*tmp*tmp*r2*_sinInt[j+1] + 
+                  60*_dk4*kj2*r2*_sinInt[j+2] + 180*_dk3*kj3*r2*_sinInt[j+2] + 
+                  195*_dk2*kj4*r2*_sinInt[j+2] + 90*_dk*kj5*r2*_sinInt[j+2] + 
+                  15*kj6*r2*_sinInt[j+2])/(2.*_dk*kj2*kjj*kjj*kjjj*kjj*r5);
+        }
     }
 }
 
