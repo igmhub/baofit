@@ -40,8 +40,8 @@ namespace baofit {
         double _xi(double r, cosmo::Multipole multipole) const;
         double _getE(int j, double r, cosmo::Multipole multipole) const;
         double _getB(int j, double k) const;
-        void _fillSinIntegralCache(double r) const;
-	    mutable std::vector<double> _sinInt;
+        void _fillCache(double r) const;
+	    mutable std::vector<double> _sinInt, _sin, _cos;
         mutable double _rsave;
         int _nk, _splineOrder, _indexBase;
         double _klo, _dk, _dk2, _dk3, _dk4, _zref, _twopisq;
