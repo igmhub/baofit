@@ -444,7 +444,7 @@ int main(int argc, char **argv) {
             std::string outName = outputPrefix + "pk.dat";
             boost::shared_ptr<baofit::PkCorrelationModel> pkModel =
                 boost::dynamic_pointer_cast<baofit::PkCorrelationModel>(model);
-            pkModel->dump(outName,0.01,0.3,ndump,fmin->getParameters(),zref);
+            pkModel->dump(outName,0.001,0.35,ndump,fmin->getParameters(),zref);
         }
         {
             // Dump the best-fit residuals for each data bin.
