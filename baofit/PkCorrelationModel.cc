@@ -102,7 +102,7 @@ void local::PkCorrelationModel::_calculateNorm(double z) const {
 
 void local::PkCorrelationModel::_fillSinIntegralCache(double r) const {
     if(r == _rsave) return;
-    for(int j = 0; j <= _nk; ++j) {
+    for(int j = 0; j < _nk; ++j) {
         double kj = _klo + _dk*j;
         _sinInt[j] = gsl_sf_Si(kj*r);
     }
