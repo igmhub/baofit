@@ -25,8 +25,8 @@ _independentMultipoles(independentMultipoles), _zref(zref)
     if(klo >= khi) throw RuntimeError("PkCorrelationModel: expected khi > klo.");
     if(nk - splineOrder < 2) throw RuntimeError("PkCorrelationModel: expected nk - splineOrder >= 2.");
     if(zref < 0) throw RuntimeError("PkCorrelationModel: expected zref >= 0.");
-    if(splineOrder != 1 && splineOrder != 3) {
-        throw RuntimeError("PkCorrelationModel: only splineOrder = 1,3 is implemented so far.");
+    if(splineOrder != 0 && splineOrder != 1 && splineOrder != 3) {
+        throw RuntimeError("PkCorrelationModel: only splineOrder = 0,1,3 are implemented so far.");
     }
     // Precompute useful quantities
     _dk = (khi - klo)/(nk - 1);
@@ -129,8 +129,11 @@ double local::PkCorrelationModel::_getB(int j, double k) const {
             result = (2./3.) - 8*t*(1 - 4*t*(1 - t));
         }
     }
-    else { // _splineOrder == 1
+    else if(_splineOrder == 1) {
         result = 2*t;
+    }
+    else { // _splineOrder == 0
+        return 1;
     }
     return result;
 }
@@ -165,7 +168,7 @@ double local::PkCorrelationModel::_getE(int j, double r, cosmo::Multipole multip
                   )/(4.*_dk3*r5);
         }
     }
-    else { // _splineOrder == 1
+    else if(_splineOrder == 1) {
         if(multipole == cosmo::Monopole) {
             return -((_sin[j] - 2*_sin[j+1] + _sin[j+2])/(_dk*r3));
         }
@@ -195,6 +198,21 @@ double local::PkCorrelationModel::_getE(int j, double r, cosmo::Multipole multip
                   195*_dk2*kj4*r2*_sinInt[j+2] + 90*_dk*kj5*r2*_sinInt[j+2] + 
                   15*kj6*r2*_sinInt[j+2])/(2.*_dk*kj2*kjj*kjj*kjjj*kjj*r5);
         }
+    }
+    else { // _splineOrder == 0
+        if(multipole == cosmo::Monopole) {
+            return (_cos[j] - _cos[j+1])/r2;
+        }
+        else if(multipole == cosmo::Quadrupole) {
+            return (-(kj*(_dk + kj)*r*_cos[j]) + kj*(_dk + kj)*r*_cos[j+1] + 3*((_dk + kj)*_sin[j] -
+                kj*_sin[j+1]))/(kj*(_dk + kj)*r3);
+        }
+        else { // Hexadecapole
+            double kjj = kj + _dk, kjj3 = kjj*kjj*kjj;
+            return (kj*kjj3*r*(-35 + kj2*r2)*_cos[j] - kj3*(_dk + kj)*r*(-35 + _dk2*r2 + 2*_dk*kj*r2 + kj2*r2)*_cos[j+1] - 
+                 5*(kjj3*(-7 + 2*kj2*r2)*_sin[j] - kj3*(-7 + 2*_dk2*r2 + 4*_dk*kj*r2 + 2*kj2*r2)*_sin[j+1]))/(kj3*kjj3*r5);
+        }
+        
     }
 }
 
