@@ -11,6 +11,7 @@
 #include <vector>
 
 namespace baofit {
+	// Represents a two-point correlation model parameterized as an interpolation in each multipole.
 	class XiCorrelationModel : public AbsCorrelationModel {
 	public:
 	    // Creates a new interpolating correlation model.

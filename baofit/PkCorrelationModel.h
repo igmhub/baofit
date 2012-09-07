@@ -10,6 +10,8 @@
 #include <vector>
 
 namespace baofit {
+	// Represents a two-point correlation model parameterized in k space as a band-limited interpolated
+	// correction to a smooth power spectrum.
 	class PkCorrelationModel : public AbsCorrelationModel {
 	public:
 	    // Creates a new correlation model parameterized as the sum of the specified tabulated smooth model

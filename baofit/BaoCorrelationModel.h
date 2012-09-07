@@ -11,9 +11,9 @@
 #include <vector>
 
 namespace baofit {
+	// Represents a two-point correlation model parameterized in terms of the relative scale and amplitude
+	// of a BAO peak, with possible broadband distortion.
 	class BaoCorrelationModel : public AbsCorrelationModel {
-	// Represents a two-point correlation model parameterized for measuring the scale
-	// and significance of a BAO peak.
 	public:
 	    // Creates a new model using the specified tabulated correlation functions at the specified
 	    // reference redshift. Set scalePriorMin < scalePriorMax to enable an optional top-hat prior
