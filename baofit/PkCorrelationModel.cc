@@ -39,24 +39,19 @@ _independentMultipoles(independentMultipoles), _zref(zref)
     _sinInt.resize(nk);
     _sin.resize(nk);
     _cos.resize(nk);
-    _indexBase = -1;
     // Linear bias parameters
     defineParameter("beta",1.4,0.1);
     defineParameter("(1+beta)*bias",-0.336,0.03);
     // Redshift evolution parameters
     defineParameter("gamma-bias",3.8,0.3);
-    defineParameter("gamma-beta",0,0.1);
-    // Multiplicative broadband distortion factors.
-    defineParameter("Pk s-0",1,0.1);
-    defineParameter("Pk s-2",1,0.1);
-    defineParameter("Pk s-4",1,0.1);
+    _indexBase = 1 + defineParameter("gamma-beta",0,0.1);
+
     // B-spline coefficients for each multipole.
     boost::format name("Pk b-%d-%d");
     for(int ell = 0; ell <= 4; ell += 2) {
         if(!_independentMultipoles && ell > 0) break;
         for(int j = 0; j <= nk - splineOrder - 2; ++j) {
-            int index = defineParameter(boost::str(name % ell % j),0,0.1);
-            if(_indexBase == -1) _indexBase = index;
+            defineParameter(boost::str(name % ell % j),0,0.1);
         }
     }
     // Load the interpolation data for the specified no-wiggles model.
@@ -110,10 +105,6 @@ void local::PkCorrelationModel::_calculateNorm(double z) const {
     _norm0 = biasSq*(1 + beta*(2./3. + (1./5.)*beta));
     _norm2 = biasSq*beta*(4./3. + (4./7.)*beta);
     _norm4 = biasSq*beta*beta*(8./35.);
-    // Apply multiplicative distortion.
-    _norm0 *= getParameterValue("Pk s-0");
-    _norm2 *= getParameterValue("Pk s-2");
-    _norm4 *= getParameterValue("Pk s-4");
 }
 
 void local::PkCorrelationModel::_fillCache(double r) const {
