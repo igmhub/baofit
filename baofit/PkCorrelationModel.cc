@@ -210,7 +210,7 @@ double local::PkCorrelationModel::_getE(int j, double r, cosmo::Multipole multip
                   30*kj2*tmp*tmp*r2*_sinInt[j+1] + 
                   60*_dk4*kj2*r2*_sinInt[j+2] + 180*_dk3*kj3*r2*_sinInt[j+2] + 
                   195*_dk2*kj4*r2*_sinInt[j+2] + 90*_dk*kj5*r2*_sinInt[j+2] + 
-                  15*kj6*r2*_sinInt[j+2])/(2.*_dk*kj2*kjj*kjj*kjjj*kjj*r5);
+                  15*kj6*r2*_sinInt[j+2])/(2.*_dk*kj2*kjj*kjj*kjjj*kjjj*r5);
         }
     }
     else { // _splineOrder == 0
