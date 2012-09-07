@@ -30,6 +30,18 @@ namespace baofit {
         // methods. Any registered changes to parameter values are reset after calling any of these.
         virtual double _evaluate(double r, double mu, double z, bool changed) const = 0;
         virtual double _evaluate(double r, cosmo::Multipole multipole, double z, bool changed) const = 0;
+        // Defines the standard set of linear bias parameters used by _getNormFactor below. Returns
+        // the index of the last parameter defined.
+        int _defineLinearBiasParameters(double zref);
+        // Evaluates the redshift evolution p(z) of a parameter for which p(zref)=p0 according to
+        // p(z) = ((1+z)/(1+zref))^gamma.
+        double _redshiftEvolution(double p0, double gamma, double z) const;
+        // Updates the multipole normalization factors b^2(z)*C_ell(beta(z)) returned by getNormFactor(ell).
+        double _getNormFactor(cosmo::Multipole multipole, double z) const;
+    private:
+        int _indexBase;
+        double _zref;
+        mutable double _normFactor0, _normFactor2, _normFactor4;
 	}; // AbsCorrelationModel
 } // baofit
 
