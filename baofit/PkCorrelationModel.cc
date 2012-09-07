@@ -32,7 +32,7 @@ _independentMultipoles(independentMultipoles), _zref(zref)
     _dk = (khi - klo)/(nk - 1);
     _dk2 = _dk*_dk;
     _dk3 = _dk2*_dk;
-    _dk4 = _dk3*_dk;
+    _dk4 = _dk2*_dk2;
     _rsave = -1;
     double pi(4*std::atan(1));
     _twopisq = 2*pi*pi;
