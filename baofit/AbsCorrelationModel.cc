@@ -66,3 +66,8 @@ double local::AbsCorrelationModel::_getNormFactor(cosmo::Multipole multipole, do
         return biasSq*(1 + beta*(2./3. + (1./5.)*beta));
     }
 }
+
+void  local::AbsCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
+    FitModel::printToStream(out,formatSpec);
+    if(_indexBase >= 0) out << std::endl << "Reference redshift = " << _zref << std::endl;        
+}

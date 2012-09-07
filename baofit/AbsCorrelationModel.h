@@ -24,6 +24,8 @@ namespace baofit {
         // Returns the correlation function for the specified multipole at co-moving pair separation
         // r and average pair redshift z. Updates our current parameter values.
         double evaluate(double r, cosmo::Multipole multipole, double z, likely::Parameters const &params);
+        // Prints a multi-line description of this object to the specified output stream.
+        virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
     protected:
         // The public methods above call these protected methods after making parameter values
         // and changes available via our base class' getParameterValue() and isParameterValueChanged()
