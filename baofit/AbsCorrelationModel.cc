@@ -48,25 +48,21 @@ double local::AbsCorrelationModel::_redshiftEvolution(double p0, double gamma, d
 double local::AbsCorrelationModel::_getNormFactor(cosmo::Multipole multipole, double z) const {
     if(_indexBase < 0) throw RuntimeError("AbsCorrelationModel: no linear bias parameters defined.");
     // Lookup the linear bias parameters.
-    double beta = getParameterValue("beta");
-    double bb = getParameterValue("(1+beta)*bias");
+    double beta0 = getParameterValue(_indexBase + BETA);
+    double bb0 = getParameterValue(_indexBase + BB);
     // Calculate bias from beta and bb.
-    double bias = bb/(1+beta);
-    double biasSq = bias*bias;
+    double bias0 = bb0/(1+beta0);
+    double bias0Sq = bias0*bias0;
     // Calculate redshift evolution of bias and beta.
-    biasSq = _redshiftEvolution(biasSq,getParameterValue("gamma-bias"),z);
-    beta = _redshiftEvolution(beta,getParameterValue("gamma-beta"),z);
-    // Calculate the linear bias normalization factors.
-    _normFactor0 = biasSq*(1 + beta*(2./3. + (1./5.)*beta));
-    _normFactor2 = biasSq*beta*(4./3. + (4./7.)*beta);
-    _normFactor4 = biasSq*beta*beta*(8./35.);
+    double biasSq = _redshiftEvolution(bias0Sq,getParameterValue(_indexBase + GAMMA_BIAS),z);
+    double beta = _redshiftEvolution(beta0,getParameterValue(_indexBase + GAMMA_BETA),z);
     // Return the requested normalization factor.
     switch(multipole) {
     case cosmo::Hexadecapole:
-        return _normFactor4;
+        return biasSq*beta*beta*(8./35.);
     case cosmo::Quadrupole:
-        return _normFactor2;
+        return biasSq*beta*(4./3. + (4./7.)*beta);
     default:
-        return _normFactor0;
+        return biasSq*(1 + beta*(2./3. + (1./5.)*beta));
     }
 }

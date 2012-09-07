@@ -40,8 +40,8 @@ namespace baofit {
         double _getNormFactor(cosmo::Multipole multipole, double z) const;
     private:
         int _indexBase;
+        enum IndexOffset { BETA = 0, BB = 1, GAMMA_BIAS = 2, GAMMA_BETA = 3 };
         double _zref;
-        mutable double _normFactor0, _normFactor2, _normFactor4;
 	}; // AbsCorrelationModel
 } // baofit
 
