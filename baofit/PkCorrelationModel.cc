@@ -77,6 +77,20 @@ _independentMultipoles(independentMultipoles), _zref(zref)
     catch(likely::RuntimeError const &e) {
         throw RuntimeError("PkCorrelationModel: error while reading model interpolation data.");
     }
+    {
+        /**
+        // Debug output to compare with Mathematica results
+        int j = 2;
+        double kj = _klo + _dk*j, r = 100;
+        _fillCache(r);
+        std::cout << "EE0" << _splineOrder << '[' << kj << ',' << _dk << ",100] = "
+            << _getE(j,r,cosmo::Monopole) << std::endl;
+        std::cout << "EE2" << _splineOrder << '[' << kj << ',' << _dk << ",100] = "
+            << _getE(j,r,cosmo::Quadrupole) << std::endl;
+        std::cout << "EE4" << _splineOrder << '[' << kj << ',' << _dk << ",100] = "
+            << _getE(j,r,cosmo::Hexadecapole) << std::endl;
+        **/
+    }
 }
 
 local::PkCorrelationModel::~PkCorrelationModel() { }
