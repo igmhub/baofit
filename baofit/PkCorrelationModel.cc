@@ -157,7 +157,7 @@ double local::PkCorrelationModel::_getE(int j, double r, cosmo::Multipole multip
     double r2(r*r),r3(r2*r),r5(r3*r2),kj2(kj*kj),kj3(kj2*kj),kj4(kj2*kj2),kj5(kj3*kj2),kj6(kj3*kj3);
     if(_splineOrder == 3) {
         if(multipole == cosmo::Monopole) {
-            return (_sin[j] + (6 - 8*std::cos(_dk*r))*_sin[j+2] + _sin[j+4])/(_dk3*r5);
+            return (_sin[j] - 4*_sin[j+1] + 6*_sin[j+2] - 4*_sin[j+3] + _sin[j+4])/(_dk3*r5);
         }
         else if(multipole == cosmo::Quadrupole) {
             return -(3*kj*r*_cos[j] - 12*_dk*r*_cos[j+1] - 12*kj*r*_cos[j+1] + 36*_dk*r*_cos[j+2] + 18*kj*r*_cos[j+2] - 
