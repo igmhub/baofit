@@ -36,7 +36,6 @@ namespace baofit {
         // r and average pair redshift z.
         virtual double _evaluate(double r, cosmo::Multipole multipole, double z, bool anyChanged) const;
 	private:
-        void _calculateNorm(double z) const;
         double _xi(double r, cosmo::Multipole multipole) const;
         double _getE(int j, double r, cosmo::Multipole multipole) const;
         double _getB(int j, double k) const;
@@ -44,7 +43,7 @@ namespace baofit {
 	    mutable std::vector<double> _sinInt, _sin, _cos;
         mutable double _rsave;
         int _nk, _splineOrder, _indexBase;
-        double _klo, _dk, _dk2, _dk3, _dk4, _zref, _twopisq;
+        double _klo, _dk, _dk2, _dk3, _dk4, _twopisq;
         bool _independentMultipoles;
         cosmo::PowerSpectrumPtr _nwPower;
 	    cosmo::CorrelationFunctionPtr _nw0,_nw2,_nw4;

@@ -19,7 +19,7 @@ namespace local = baofit;
 local::PkCorrelationModel::PkCorrelationModel(std::string const &modelrootName, std::string const &nowigglesName,
 double klo, double khi, int nk, int splineOrder, bool independentMultipoles, double zref)
 : AbsCorrelationModel("P(ell,k) Correlation Model"), _klo(klo), _nk(nk), _splineOrder(splineOrder),
-_independentMultipoles(independentMultipoles), _zref(zref)
+_independentMultipoles(independentMultipoles)
 {
     // Check inputs.
     if(klo >= khi) throw RuntimeError("PkCorrelationModel: expected khi > klo.");
@@ -40,12 +40,7 @@ _independentMultipoles(independentMultipoles), _zref(zref)
     _sin.resize(nk);
     _cos.resize(nk);
     // Linear bias parameters
-    defineParameter("beta",1.4,0.1);
-    defineParameter("(1+beta)*bias",-0.336,0.03);
-    // Redshift evolution parameters
-    defineParameter("gamma-bias",3.8,0.3);
-    _indexBase = 1 + defineParameter("gamma-beta",0,0.1);
-
+    _indexBase = 1 + _defineLinearBiasParameters(zref);
     // B-spline coefficients for each multipole.
     boost::format name("Pk b-%d-%d");
     for(int ell = 0; ell <= 4; ell += 2) {
@@ -89,23 +84,6 @@ _independentMultipoles(independentMultipoles), _zref(zref)
 }
 
 local::PkCorrelationModel::~PkCorrelationModel() { }
-
-void local::PkCorrelationModel::_calculateNorm(double z) const {
-    // Lookup the linear bias parameters.
-    double beta = getParameterValue("beta");
-    double bb = getParameterValue("(1+beta)*bias");
-    // Calculate bias from beta and bb.
-    double bias = bb/(1+beta);
-    double biasSq = bias*bias;
-    // Calculate redshift evolution of bias and beta.
-    double ratio = (1+z)/(1+_zref);
-    biasSq *= std::pow(ratio,getParameterValue("gamma-bias"));
-    beta *= std::pow(ratio,getParameterValue("gamma-beta"));
-    // Calculate the linear bias normalization factors.
-    _norm0 = biasSq*(1 + beta*(2./3. + (1./5.)*beta));
-    _norm2 = biasSq*beta*(4./3. + (4./7.)*beta);
-    _norm4 = biasSq*beta*beta*(8./35.);
-}
 
 void local::PkCorrelationModel::_fillCache(double r) const {
     if(r == _rsave) return;
@@ -247,37 +225,27 @@ double local::PkCorrelationModel::_xi(double r, cosmo::Multipole multipole) cons
 }
 
 double local::PkCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
-    // Calculate normalization factors.
-    _calculateNorm(z);
     // Cache expensive sine integrals.
     _fillCache(r);
     // Calculate the Legendre weights.
     double muSq(mu*mu);
     double L0(1), L2 = (3*muSq - 1)/2., L4 = (35*muSq*muSq - 30*muSq + 3)/8.;
     // Put the pieces together.
-    return _norm0*L0*_xi(r,cosmo::Monopole) + _norm2*L2*_xi(r,cosmo::Quadrupole) + _norm4*L4*_xi(r,cosmo::Hexadecapole);
+    return
+        _getNormFactor(cosmo::Monopole,z)*L0*_xi(r,cosmo::Monopole) +
+        _getNormFactor(cosmo::Quadrupole,z)*L2*_xi(r,cosmo::Quadrupole) +
+        _getNormFactor(cosmo::Hexadecapole,z)*L4*_xi(r,cosmo::Hexadecapole);
 }
 
 double local::PkCorrelationModel::_evaluate(double r, cosmo::Multipole multipole, double z,
 bool anyChanged) const {
-    // Calculate normalization factors.
-    _calculateNorm(z);
     // Cache expensive sine integrals.
     _fillCache(r);
-    if(multipole == cosmo::Hexadecapole) {
-        return _norm4*_xi(r,cosmo::Hexadecapole);
-    }
-    else if(multipole == cosmo::Quadrupole) {
-        return _norm2*_xi(r,cosmo::Quadrupole);
-    }
-    else { // Monopole
-        return _norm0*_xi(r,cosmo::Monopole);
-    }
+    return _getNormFactor(multipole,z)*_xi(r,multipole);
 }
 
 void  local::PkCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
     AbsCorrelationModel::printToStream(out,formatSpec);
-    out << std::endl << "Reference redshift = " << _zref << std::endl;
 }
 
 void local::PkCorrelationModel::dump(std::string const &dumpName, double kmin, double kmax, int nk,
@@ -287,8 +255,6 @@ likely::Parameters const &params, double zref) {
     std::ofstream out(dumpName.c_str());
     // Load the requested parameters.
     updateParameterValues(params);
-    // Calculate normalization factors.
-    _calculateNorm(zref);
     // Loop over k values.
     double dk = (kmax-kmin)/(nk-1);
     int nj = _nk-_splineOrder-1;
@@ -296,9 +262,9 @@ likely::Parameters const &params, double zref) {
         double k = kmin + dk*ik;
         // Calculate the smooth model's k*P(ell,k) values.
         double kPk = k*(*_nwPower)(k);
-        double kPk0 = _norm0*kPk;
-        double kPk2 = _norm2*kPk;
-        double kPk4 = _norm4*kPk;
+        double kPk0 = _getNormFactor(cosmo::Monopole,zref)*kPk;
+        double kPk2 = _getNormFactor(cosmo::Quadrupole,zref)*kPk;
+        double kPk4 = _getNormFactor(cosmo::Hexadecapole,zref)*kPk;
         // Calculate the additive k*dP(ell,k) values.
         double kdPk0(0), kdPk2(0), kdPk4(0);
         for(int j = 0; j < nj; ++j) {
@@ -309,9 +275,9 @@ likely::Parameters const &params, double zref) {
                 b2 = getParameterValue(_indexBase + nj + j);
                 b4 = getParameterValue(_indexBase + 2*nj + j);
             }
-            kdPk0 += _norm0*b0*kdPk;
-            kdPk2 += _norm2*b2*kdPk;
-            kdPk4 += _norm4*b4*kdPk;
+            kdPk0 += _getNormFactor(cosmo::Monopole,zref)*b0*kdPk;
+            kdPk2 += _getNormFactor(cosmo::Quadrupole,zref)*b2*kdPk;
+            kdPk4 += _getNormFactor(cosmo::Hexadecapole,zref)*b4*kdPk;
         }
         out << k << ' ' << kPk0 << ' ' << kPk2 << ' ' << kPk4 << ' '
             << kdPk0 << ' ' << kdPk2 << ' ' << kdPk4 << std::endl;
