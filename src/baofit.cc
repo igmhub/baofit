@@ -91,6 +91,7 @@ int main(int argc, char **argv) {
         ("save-icov", "Saves the inverse covariance of the combined data after final cuts.")
         ("save-icov-scale", po::value<double>(&saveICovScale)->default_value(1),
             "Scale factor applied to inverse covariance elements when using save-icov.")
+        ("fix-aln-cov", "Fixes covariance matrix of points in 'aln' parametrization")
         ;
     frenchOptions.add_options()
         ("french", "Correlation data files are in the French format (default is cosmolib).")
@@ -227,7 +228,7 @@ int main(int argc, char **argv) {
         fitEach(vm.count("fit-each")), xiHexa(vm.count("xi-hexa")), demoFormat(vm.count("demo-format")),
         xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")), mcSave(vm.count("mc-save")),
         expanded(vm.count("expanded")), sectors(vm.count("sectors")), saveICov(vm.count("save-icov")),
-        multiSpline(vm.count("multi-spline"));
+        multiSpline(vm.count("multi-spline")), fixAlnCov(vm.count("fix-aln-cov"));
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
@@ -317,7 +318,7 @@ int main(int argc, char **argv) {
             zdata = 2.25;
             prototype = baofit::boss::createCosmolibPrototype(
                 minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,rmin,rmax,muMin,muMax,
-                rVetoMin,rVetoMax,llmin,cosmology);
+                rVetoMin,rVetoMax,llmin,fixAlnCov,cosmology);
         }
         
         // Build a list of the data files we will read.

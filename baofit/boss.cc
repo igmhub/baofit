@@ -393,7 +393,7 @@ baofit::AbsCorrelationDataCPtr local::createCosmolibPrototype(
 double minsep, double dsep, int nsep, double minz, double dz, int nz,
 double minll, double maxll, double dll, double dll2,
 double rmin, double rmax, double muMin, double muMax, double rVetoMin, double rVetoMax, double llmin,
-cosmo::AbsHomogeneousUniversePtr cosmology) {
+bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology) {
 
     // Initialize the (logLambda,separation,redshift) binning from command-line params.
     likely::AbsBinningCPtr llBins,
@@ -412,7 +412,7 @@ cosmo::AbsHomogeneousUniversePtr cosmology) {
     // Create the new BinnedData that we will fill.
     baofit::AbsCorrelationDataPtr
         prototype(new baofit::QuasarCorrelationData(llBins,sepBins,zBins,rmin,rmax,muMin,muMax,llmin,
-            rVetoMin,rVetoMax,cosmology));
+						    fixCov, rVetoMin,rVetoMax,cosmology));
 
     return prototype;
 }
