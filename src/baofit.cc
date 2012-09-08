@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
         analysisOptions("Analysis options");
 
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin,
-        rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax,kloSpline,khiSpline;
+        rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax,kloSpline,khiSpline,mcScale,saveICovScale;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
       mcmcSave,mcmcInterval,mcSamples,xiNr,reuseCov,nSpline,splineOrder;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,mcConfig,
@@ -89,6 +89,8 @@ int main(int argc, char **argv) {
             "Maximum number of plates to load (zero uses all available plates).")
         ("check-posdef", "Checks that each covariance is positive-definite (slow).")
         ("save-icov", "Saves the inverse covariance of the combined data after final cuts.")
+        ("save-icov-scale", po::value<double>(&saveICovScale)->default_value(1),
+            "Scale factor applied to inverse covariance elements when using save-icov.")
         ;
     frenchOptions.add_options()
         ("french", "Correlation data files are in the French format (default is cosmolib).")
@@ -173,6 +175,8 @@ int main(int argc, char **argv) {
         ("mc-config", po::value<std::string>(&mcConfig)->default_value(""),
             "Fit parameter configuration to apply before generating samples.")
         ("mc-save", "Saves first generated MC sample.")
+        ("mc-scale", po::value<double>(&mcScale)->default_value(1),
+            "Scales the covariance used for MC noise sampling (but not fitting).")
         ("random-seed", po::value<int>(&randomSeed)->default_value(1966),
             "Random seed to use for generating bootstrap samples.")
         ("min-method", po::value<std::string>(&minMethod)->default_value("mn2::vmetric"),
@@ -414,12 +418,13 @@ int main(int argc, char **argv) {
             for(likely::BinnedData::IndexIterator iter1 = combined->begin(); iter1 != combined->end(); ++iter1) {
                 int index1(*iter1);
                 // Save all diagonal elements.
-                out << index1 << ' ' << index1 << ' ' << combined->getInverseCovariance(index1,index1) << std::endl;
+                out << index1 << ' ' << index1 << ' '
+                    << saveICovScale*combined->getInverseCovariance(index1,index1) << std::endl;
                 // Loop over pairs with index2 > index1
                 for(likely::BinnedData::IndexIterator iter2 = iter1; ++iter2 != combined->end();) {
                     int index2(*iter2);
                     // Only save non-zero off-diagonal elements.
-                    double Cinv(combined->getInverseCovariance(index1,index2));
+                    double Cinv(saveICovScale*combined->getInverseCovariance(index1,index2));
                     if(Cinv != 0) out << index1 << ' ' << index2 << ' ' << Cinv << std::endl;
                 }
             }
@@ -480,7 +485,7 @@ int main(int argc, char **argv) {
             std::string outName = outputPrefix + "mc.dat";
             std::string mcSaveName;
             if(mcSave) mcSaveName = outputPrefix + "mcsave.dat";
-            analyzer.doMCSampling(mcSamples,mcConfig,mcSaveName,fmin,fmin2,refitConfig,outName,ndump);
+            analyzer.doMCSampling(mcSamples,mcConfig,mcSaveName,mcScale,fmin,fmin2,refitConfig,outName,ndump);
         }
         // Perform a bootstrap analysis, if requested.
         if(bootstrapTrials > 0) {

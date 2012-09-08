@@ -46,12 +46,12 @@ void local::CorrelationAnalyzer::addData(AbsCorrelationDataCPtr data) {
     _resampler.addObservation(boost::dynamic_pointer_cast<const likely::BinnedData>(data));
 }
 
-local::AbsCorrelationDataPtr local::CorrelationAnalyzer::getCombined(bool verbose) const {
+local::AbsCorrelationDataPtr local::CorrelationAnalyzer::getCombined(bool verbose, bool finalized) const {
     AbsCorrelationDataPtr combined =
         boost::dynamic_pointer_cast<baofit::AbsCorrelationData>(_resampler.combined());
     int nbefore = combined->getNBinsWithData();
-    combined->finalize();
-    if(verbose) {
+    if(finalized) combined->finalize();
+    if(verbose && finalized) {
         int nafter = combined->getNBinsWithData();
         std::cout << "Combined data has " << nafter << " (" << nbefore
             << ") bins with data after (before) finalizing." << std::endl;
@@ -188,7 +188,7 @@ namespace baofit {
                 std::vector<double>::const_iterator nextTruth(_truth.begin()), nextNoise(_noise.begin());
                 for(likely::BinnedData::IndexIterator iter = _prototype->begin();
                 iter != _prototype->end(); ++iter) {
-                    sample->setData(*iter,(*nextTruth++)+(*nextNoise++));
+                    sample->setData(*iter,(*nextTruth++) + (*nextNoise++));
                 }
                 // We don't finalize here because the prototype should already be finalized.
                 // Save this file?
@@ -249,16 +249,27 @@ std::string const &refitConfig, std::string const &saveName, int nsave) const {
 }
 
 int local::CorrelationAnalyzer::doMCSampling(int ngen, std::string const &mcConfig, std::string const &mcSaveFile,
-likely::FunctionMinimumPtr fmin, likely::FunctionMinimumPtr fmin2,
+double varianceScale, likely::FunctionMinimumPtr fmin, likely::FunctionMinimumPtr fmin2,
 std::string const &refitConfig, std::string const &saveName, int nsave) const {
     if(ngen <= 0) {
         throw RuntimeError("CorrelationAnalyzer::doMCSampling: expected ngen > 0.");
     }
-    // Get a copy of our (finalized) combined dataset to use as a prototype.
-    AbsCorrelationDataPtr prototype = getCombined();
+    // Get a copy of our (unfinalized!) combined dataset to use as a prototype.
+    AbsCorrelationDataPtr prototype = getCombined(false,false);
     if(!prototype->hasCovariance()) {
         throw RuntimeError("CorrelationAnalyzer::doMCSampling: no covariance available.");
     }
+    // Scale the prototype covariance, if requested.
+    if(varianceScale <= 0) {
+        throw RuntimeError("CorrelationAnalyzer::doMCSampling: expected varianceScale > 0.");
+    }
+    if(varianceScale != 1) {
+        likely::CovarianceMatrixPtr covariance(new likely::CovarianceMatrix(*prototype->getCovarianceMatrix()));
+        covariance->applyScaleFactor(varianceScale);
+        prototype->setCovarianceMatrix(covariance);
+    }
+    // Finalize now, after any covariance scaling.
+    prototype->finalize();
     // Configure the fit parameters for generating the truth vector.
     likely::FitParameters parameters = fmin->getFitParameters();
     likely::modifyFitParameters(parameters,mcConfig);
