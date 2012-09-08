@@ -1,0 +1,8 @@
+Correlation function input files in the cosmolib demo format, created with the commands below (the first command ends with a warning because there are no floating params, which is ok here):
+
+./baofit -i ../config/Aln2.ini --mc-samples 1 --mc-save --output-prefix demo_ --model-config "fix[*]; release[beta]" --mc-config "fix[beta]=1.4" --rmin 20 --rmax 190 --mc-scale 0.1 --save-icov --save-icov-scale 10
+
+cp demo_mcsave.dat ../demo/Aln2.data
+cp demo_icov.dat ../demo/Aln2.icov
+
+./baofit -i ../config/demo.ini >! ../demo/Aln2.log

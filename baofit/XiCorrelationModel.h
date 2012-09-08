@@ -8,8 +8,10 @@
 #include "likely/types.h"
 
 #include <string>
+#include <vector>
 
 namespace baofit {
+	// Represents a two-point correlation model parameterized as an interpolation in each multipole.
 	class XiCorrelationModel : public AbsCorrelationModel {
 	public:
 	    // Creates a new interpolating correlation model.
@@ -27,7 +29,7 @@ namespace baofit {
         virtual double _evaluate(double r, cosmo::Multipole multipole, double z, bool anyChanged) const;
 	private:
         std::string _method;
-        double _zref, _normScale;
+        int _indexBase;
         std::vector<double> _rValues;
         mutable std::vector<double> _xiValues;
         mutable likely::InterpolatorPtr _xi0, _xi2, _xi4;

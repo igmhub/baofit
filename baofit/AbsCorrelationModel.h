@@ -24,12 +24,26 @@ namespace baofit {
         // Returns the correlation function for the specified multipole at co-moving pair separation
         // r and average pair redshift z. Updates our current parameter values.
         double evaluate(double r, cosmo::Multipole multipole, double z, likely::Parameters const &params);
+        // Prints a multi-line description of this object to the specified output stream.
+        virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
     protected:
         // The public methods above call these protected methods after making parameter values
         // and changes available via our base class' getParameterValue() and isParameterValueChanged()
         // methods. Any registered changes to parameter values are reset after calling any of these.
         virtual double _evaluate(double r, double mu, double z, bool changed) const = 0;
         virtual double _evaluate(double r, cosmo::Multipole multipole, double z, bool changed) const = 0;
+        // Defines the standard set of linear bias parameters used by _getNormFactor below. Returns
+        // the index of the last parameter defined.
+        int _defineLinearBiasParameters(double zref);
+        // Evaluates the redshift evolution p(z) of a parameter for which p(zref)=p0 according to
+        // p(z) = ((1+z)/(1+zref))^gamma.
+        double _redshiftEvolution(double p0, double gamma, double z) const;
+        // Updates the multipole normalization factors b^2(z)*C_ell(beta(z)) returned by getNormFactor(ell).
+        double _getNormFactor(cosmo::Multipole multipole, double z) const;
+    private:
+        int _indexBase;
+        enum IndexOffset { BETA = 0, BB = 1, GAMMA_BIAS = 2, GAMMA_BETA = 3 };
+        double _zref;
 	}; // AbsCorrelationModel
 } // baofit
 

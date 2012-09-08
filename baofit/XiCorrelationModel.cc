@@ -19,7 +19,7 @@ namespace ascii = boost::spirit::ascii;
 namespace phoenix = boost::phoenix;
 
 local::XiCorrelationModel::XiCorrelationModel(std::string const &points, double zref, std::string const &method)
-: AbsCorrelationModel("Xi Correlation Model"), _method(method), _zref(zref)
+: AbsCorrelationModel("Xi Correlation Model"), _method(method)
 {
     // import boost spirit parser symbols
     using qi::double_;
@@ -38,8 +38,11 @@ local::XiCorrelationModel::XiCorrelationModel(std::string const &points, double 
         throw RuntimeError("XiCorrelationModel: badly formatted points list.");
     }
 
+    // Linear bias parameters
+    _indexBase = 1 + _defineLinearBiasParameters(zref);
+
     // Create 3 parameters for each point (ell=0,2,4)
-    boost::format pname("xi%d-%d");
+    boost::format pname("Xi y-%d-%d");
     for(int ell = 0; ell <= 4; ell += 2) {
         double perr = 1;
         if(2 == ell) perr = 0.1;
@@ -49,13 +52,6 @@ local::XiCorrelationModel::XiCorrelationModel(std::string const &points, double 
             defineParameter(boost::str(pname % ell % index),0,perr);
         }
     }
-
-    // Define linear bias parameters.
-    defineParameter("alpha-bias",3.8,0.3);
-    defineParameter("beta",1.0,0.1);
-    defineParameter("(1+beta)*bias",-0.34,0.03);
-    // Pick a normalization scale that gives parameter values of order one.
-    _normScale = 1e-2;
 }
 
 local::XiCorrelationModel::~XiCorrelationModel() { }
@@ -64,87 +60,71 @@ void local::XiCorrelationModel::_initializeInterpolators() const {
     int index, npoints(_rValues.size());
     // Do we need to (re)initialize our xi0 interpolator?
     for(index = 0; index < npoints; ++index) {
-        if(isParameterValueChanged(index)) break;
+        if(isParameterValueChanged(_indexBase + index)) break;
     }
     if(index < npoints) {
         _xiValues.resize(0);
         for(index = 0; index < npoints; ++index) {
-            _xiValues.push_back(getParameterValue(index));
+            _xiValues.push_back(getParameterValue(_indexBase + index));
         }
         _xi0.reset(new likely::Interpolator(_rValues,_xiValues,_method));
     }
     // Do we need to (re)initialize our xi2 interpolator?
     for(index = npoints; index < 2*npoints; ++index) {
-        if(isParameterValueChanged(index)) break;
+        if(isParameterValueChanged(_indexBase + index)) break;
     }
     if(index < 2*npoints) {
         _xiValues.resize(0);
         for(index = npoints; index < 2*npoints; ++index) {
-            _xiValues.push_back(getParameterValue(index));
+            _xiValues.push_back(getParameterValue(_indexBase + index));
         }
         _xi2.reset(new likely::Interpolator(_rValues,_xiValues,_method));
     }
     // Do we need to (re)initialize our xi4 interpolator?
     for(index = 2*npoints; index < 3*npoints; ++index) {
-        if(isParameterValueChanged(index)) break;
+        if(isParameterValueChanged(_indexBase + index)) break;
     }
     if(index < 3*npoints) {
         _xiValues.resize(0);
         for(index = 2*npoints; index < 3*npoints; ++index) {
-            _xiValues.push_back(getParameterValue(index));
+            _xiValues.push_back(getParameterValue(_indexBase + index));
         }
         _xi4.reset(new likely::Interpolator(_rValues,_xiValues,_method));
     }
 }
 
 double local::XiCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
-    // Fetch linear bias parameters.
-    double alpha = getParameterValue("alpha-bias");
-    double beta = getParameterValue("beta");
-    double bb = getParameterValue("(1+beta)*bias");
-    // Calculate bias from beta and bb.
-    double bias = bb/(1+beta);
-    // Calculate redshift evolution factor.
-    double zfactor = std::pow((1+z)/(1+_zref),alpha);
-    // Calculate the Legendre polynomials we need.
-    double mu2(mu*mu);
-    double P2(1.5*mu2-0.5), P4(4.375*mu2*mu2-3.75*mu2+0.375);
-    // Calculate the beta functions for each multipole.
-    double C0(1 + beta*((2./3.) + beta/5.)), C2(4*beta*((1./3.) + beta/7.)), C4((8./35.)*beta*beta);
     // Rebuild our interpolators, if necessary.
     if(anyChanged) _initializeInterpolators();
-    // Combine the multipoles.
-    return _normScale*bias*bias*zfactor*(C0*(*_xi0)(r) + C2*P2*(*_xi2)(r) + C4*P4*(*_xi4)(r))/(r*r);
+    // Calculate the Legendre weights.
+    double muSq(mu*mu);
+    double L0(1), L2 = (3*muSq - 1)/2., L4 = (35*muSq*muSq - 30*muSq + 3)/8.;
+    // Put the pieces together.
+    return (
+        _getNormFactor(cosmo::Monopole,z)*L0*(*_xi0)(r) +
+        _getNormFactor(cosmo::Quadrupole,z)*L2*(*_xi2)(r) +
+        _getNormFactor(cosmo::Hexadecapole,z)*L4*(*_xi4)(r)
+        )/(r*r);
 }
 
 double local::XiCorrelationModel::_evaluate(double r, cosmo::Multipole multipole, double z,
 bool anyChanged) const {
-    // Fetch linear bias parameters.
-    double alpha = getParameterValue("alpha-bias");
-    double beta = getParameterValue("beta");
-    double bb = getParameterValue("(1+beta)*bias");
-    // Calculate bias from beta and bb.
-    double bias = bb/(1+beta);
-    // Calculate redshift evolution factor.
-    double zfactor = std::pow((1+z)/(1+_zref),alpha);
     // Rebuild our interpolators, if necessary.
     if(anyChanged) _initializeInterpolators();
-    // Return the appropriately normalization multipole.
-    double norm = _normScale*bias*bias*zfactor;
-    if(multipole == cosmo::Hexadecapole) {
-        return norm*(8./35.)*beta*beta*(*_xi4)(r)/(r*r);
+    // Return the appropriately normalized multipole.
+    switch(multipole) {
+    case cosmo::Monopole:
+        return _getNormFactor(cosmo::Monopole,z)*(*_xi0)(r)/(r*r);
+    case cosmo::Quadrupole:
+        return _getNormFactor(cosmo::Quadrupole,z)*(*_xi2)(r)/(r*r);
+    case cosmo::Hexadecapole:
+        return _getNormFactor(cosmo::Hexadecapole,z)*(*_xi4)(r)/(r*r);
     }
-    else if(multipole == cosmo::Quadrupole) {
-        return norm*4*beta*((1./3.) + beta/7.)*(*_xi2)(r)/(r*r);
-    }
-    else {
-        return norm*(1 + beta*((2./3.) + beta/5.))*(*_xi0)(r)/(r*r);
-    }
+    throw RuntimeError("XiCorrelationModel: invalid multipole.");
 }
 
 void  local::XiCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
     AbsCorrelationModel::printToStream(out,formatSpec);
-    out << std::endl << "Reference redshift = " << _zref << std::endl;
     out << "Interpolating with " << _rValues.size() << " points covering " << _rValues[0] << " to "
         << _rValues[_rValues.size()-1] << " Mpc/h" << std::endl;
 }

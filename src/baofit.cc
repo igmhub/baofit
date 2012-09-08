@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <stdexcept>
 
 namespace po = boost::program_options;
 
@@ -27,11 +28,11 @@ int main(int argc, char **argv) {
         analysisOptions("Analysis options");
 
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin,
-        rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax;
+        rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax,kloSpline,khiSpline,mcScale,saveICovScale;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
-      mcmcSave,mcmcInterval,mcSamples,xiNr,reuseCov;
+      mcmcSave,mcmcInterval,mcSamples,xiNr,reuseCov,nSpline,splineOrder;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,mcConfig,
-        platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix;
+        platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig;
     std::vector<std::string> modelConfig;
 
     // Default values in quotes below are to avoid roundoff errors leading to ugly --help
@@ -57,12 +58,23 @@ int main(int argc, char **argv) {
             "Common path to prepend to all model filenames.")
         ("zref", po::value<double>(&zref)->default_value(2.25),
             "Reference redshift used by model correlation functions.")
+        ("n-spline", po::value<int>(&nSpline)->default_value(0),
+            "Number of spline knots to use spanning (klo,khi).")
+        ("klo-spline", po::value<double>(&kloSpline)->default_value(0.02,"0.02"),
+            "Minimum k in h/Mpc for k P(k) B-spline.")
+        ("khi-spline", po::value<double>(&khiSpline)->default_value(0.2,"0.2"),
+            "Maximum k in h/Mpc for k P(k) B-spline.")
+        ("order-spline", po::value<int>(&splineOrder)->default_value(3),
+            "Order of B-spline in k P(k).")
+        ("multi-spline", "Fits independent parameters for each multipole.")
         ("xi-points", po::value<std::string>(&xiPoints)->default_value(""),
             "Comma-separated list of r values (Mpc/h) to use for interpolating r^2 xi(r)")
         ("xi-method", po::value<std::string>(&xiMethod)->default_value("cspline"),
             "Interpolation method to use in r^2 xi(r), use linear or cspline.")
         ("model-config", po::value<std::vector<std::string> >(&modelConfig)->composing(),
             "Model parameters configuration script (option can appear multiple times).")
+        ("alt-config", po::value<std::string>(&altConfig)->default_value(""),
+            "Parameter adjustments for dumping alternate best-fit model.")
         ("anisotropic", "Uses anisotropic a,b parameters instead of isotropic scale.")
         ;
     dataOptions.add_options()
@@ -77,6 +89,8 @@ int main(int argc, char **argv) {
             "Maximum number of plates to load (zero uses all available plates).")
         ("check-posdef", "Checks that each covariance is positive-definite (slow).")
         ("save-icov", "Saves the inverse covariance of the combined data after final cuts.")
+        ("save-icov-scale", po::value<double>(&saveICovScale)->default_value(1),
+            "Scale factor applied to inverse covariance elements when using save-icov.")
         ;
     frenchOptions.add_options()
         ("french", "Correlation data files are in the French format (default is cosmolib).")
@@ -109,6 +123,7 @@ int main(int argc, char **argv) {
             "Redshift binsize.")
         ("nz", po::value<int>(&nz)->default_value(2),
             "Maximum number of redshift bins.")
+        ("demo-format", "Cosmolib data in demo format.")
         ("xi-format", "Cosmolib data in Xi format.")
         ("xi-rmin", po::value<double>(&xiRmin)->default_value(0),
             "Minimum separation in Mpc/h (Xi format only).")
@@ -159,6 +174,9 @@ int main(int argc, char **argv) {
             "Number of MC samples to generate and fit.")
         ("mc-config", po::value<std::string>(&mcConfig)->default_value(""),
             "Fit parameter configuration to apply before generating samples.")
+        ("mc-save", "Saves first generated MC sample.")
+        ("mc-scale", po::value<double>(&mcScale)->default_value(1),
+            "Scales the covariance used for MC noise sampling (but not fitting).")
         ("random-seed", po::value<int>(&randomSeed)->default_value(1966),
             "Random seed to use for generating bootstrap samples.")
         ("min-method", po::value<std::string>(&minMethod)->default_value("mn2::vmetric"),
@@ -206,9 +224,10 @@ int main(int argc, char **argv) {
     bool verbose(0 == vm.count("quiet")), french(vm.count("french")), weighted(vm.count("weighted")),
         checkPosDef(vm.count("check-posdef")), fixCovariance(0 == vm.count("naive-covariance")),
         dr9lrg(vm.count("dr9lrg")), unweighted(vm.count("unweighted")), anisotropic(vm.count("anisotropic")),
-        fitEach(vm.count("fit-each")), xiHexa(vm.count("xi-hexa")),
-        xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")),
-        expanded(vm.count("expanded")), sectors(vm.count("sectors")), saveICov(vm.count("save-icov"));
+        fitEach(vm.count("fit-each")), xiHexa(vm.count("xi-hexa")), demoFormat(vm.count("demo-format")),
+        xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")), mcSave(vm.count("mc-save")),
+        expanded(vm.count("expanded")), sectors(vm.count("sectors")), saveICov(vm.count("save-icov")),
+        multiSpline(vm.count("multi-spline"));
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
@@ -235,14 +254,18 @@ int main(int argc, char **argv) {
     likely::Random::instance()->setSeed(randomSeed);
     baofit::CorrelationAnalyzer analyzer(minMethod,rmin,rmax,verbose);
 
-    // Initialize the models we will use.
+    // Initialize the fit model we will use.
     cosmo::AbsHomogeneousUniversePtr cosmology;
     baofit::AbsCorrelationModelPtr model;
     try {
         // Build the homogeneous cosmology we will use.
         cosmology.reset(new cosmo::LambdaCdmRadiationUniverse(OmegaMatter,0,hubbleConstant));
         
-        if(xiPoints.length() > 0) {
+        if(nSpline > 0) {
+            model.reset(new baofit::PkCorrelationModel(modelrootName,nowigglesName,
+                kloSpline,khiSpline,nSpline,splineOrder,multiSpline,zref));
+        }
+        else if(xiPoints.length() > 0) {
             model.reset(new baofit::XiCorrelationModel(xiPoints,zref,xiMethod));
         }
         else {
@@ -257,17 +280,9 @@ int main(int argc, char **argv) {
             model->configureFitParameters(config);
         }
 
-        if(verbose) std::cout << "Models initialized." << std::endl;
+        if(verbose) std::cout << "Model initialized." << std::endl;
     }
-    catch(cosmo::RuntimeError const &e) {
-        std::cerr << "ERROR during model initialization:\n  " << e.what() << std::endl;
-        return -2;
-    }
-    catch(likely::RuntimeError const &e) {
-        std::cerr << "ERROR during model initialization:\n  " << e.what() << std::endl;
-        return -2;
-    }
-    catch(baofit::RuntimeError const &e) {
+    catch(std::runtime_error const &e) {
         std::cerr << "ERROR during model initialization:\n  " << e.what() << std::endl;
         return -2;
     }
@@ -298,7 +313,7 @@ int main(int argc, char **argv) {
             prototype = baofit::boss::createCosmolibXiPrototype(minz,dz,nz,xiRmin,xiRmax,xiNr,xiHexa,
                 rmin,rmax,rVetoMin,rVetoMax,ellmin,ellmax);
         }
-        else {
+        else { // default is cosmolib (demo) format
             zdata = 2.25;
             prototype = baofit::boss::createCosmolibPrototype(
                 minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,rmin,rmax,muMin,muMax,
@@ -356,8 +371,13 @@ int main(int argc, char **argv) {
             }
             else {
                 // Add a cosmolib dataset, assumed to provided icov instead of cov.
-                analyzer.addData(baofit::boss::loadCosmolib(*filename,prototype,
-                    verbose,true,weighted,reuseCov,checkPosDef));
+                if(demoFormat) {
+                    analyzer.addData(baofit::boss::loadCosmolibDemo(*filename,prototype,verbose));                    
+                }
+                else {
+                    analyzer.addData(baofit::boss::loadCosmolib(*filename,prototype,
+                        verbose,true,weighted,reuseCov,checkPosDef));
+                }
             }
         }
     }
@@ -395,12 +415,17 @@ int main(int argc, char **argv) {
             baofit::AbsCorrelationDataPtr combined = analyzer.getCombined();
             std::string outName = outputPrefix + "icov.dat";
             std::ofstream out(outName.c_str());
-            for(likely::BinnedData::IndexIterator iter1 = combined->begin();
-            iter1 != combined->end(); ++iter1) {
-                for(likely::BinnedData::IndexIterator iter2 = combined->begin();
-                iter2 != combined->end(); ++iter2) {
-                    out << *iter1 << ' ' << *iter2 << ' '
-                        << combined->getInverseCovariance(*iter1,*iter2) << std::endl;
+            for(likely::BinnedData::IndexIterator iter1 = combined->begin(); iter1 != combined->end(); ++iter1) {
+                int index1(*iter1);
+                // Save all diagonal elements.
+                out << index1 << ' ' << index1 << ' '
+                    << saveICovScale*combined->getInverseCovariance(index1,index1) << std::endl;
+                // Loop over pairs with index2 > index1
+                for(likely::BinnedData::IndexIterator iter2 = iter1; ++iter2 != combined->end();) {
+                    int index2(*iter2);
+                    // Only save non-zero off-diagonal elements.
+                    double Cinv(saveICovScale*combined->getInverseCovariance(index1,index2));
+                    if(Cinv != 0) out << index1 << ' ' << index2 << ' ' << Cinv << std::endl;
                 }
             }
             out.close();
@@ -412,12 +437,19 @@ int main(int argc, char **argv) {
             analyzer.dumpModel(out,fmin->getFitParameters(),ndump);
             out.close();
         }
-        if(xiPoints.length()==0 && ndump > 0) {
-            // Dump the best-fit model with its peak contribution forced to zero.
-            std::string outName = outputPrefix + "fit-smooth.dat";
+        if(ndump > 0 && altConfig.length() > 0) {
+            // Dump an alternate best-fit model with some parameters modified (e.g., no BAO features)
+            std::string outName = outputPrefix + "alt.dat";
             std::ofstream out(outName.c_str());
-            analyzer.dumpModel(out,fmin->getFitParameters(),ndump,"value[BAO amplitude]=0");
+            analyzer.dumpModel(out,fmin->getFitParameters(),ndump,altConfig);
             out.close();
+        }
+        if(ndump > 0 && nSpline > 0) {
+            // Dump the P(k) model corresponding to our best fit xi(r).
+            std::string outName = outputPrefix + "pk.dat";
+            boost::shared_ptr<baofit::PkCorrelationModel> pkModel =
+                boost::dynamic_pointer_cast<baofit::PkCorrelationModel>(model);
+            pkModel->dump(outName,0.001,0.35,ndump,fmin->getParameters(),zref);
         }
         {
             // Dump the best-fit residuals for each data bin.
@@ -451,7 +483,9 @@ int main(int argc, char **argv) {
         // Generate and fit MC samples, if requested.
         if(mcSamples > 0) {
             std::string outName = outputPrefix + "mc.dat";
-            analyzer.doMCSampling(mcSamples,mcConfig,fmin,fmin2,refitConfig,outName,ndump);
+            std::string mcSaveName;
+            if(mcSave) mcSaveName = outputPrefix + "mcsave.dat";
+            analyzer.doMCSampling(mcSamples,mcConfig,mcSaveName,mcScale,fmin,fmin2,refitConfig,outName,ndump);
         }
         // Perform a bootstrap analysis, if requested.
         if(bootstrapTrials > 0) {
@@ -470,11 +504,7 @@ int main(int argc, char **argv) {
             analyzer.fitEach(fmin,fmin2,refitConfig,outName,ndump);
         }
     }
-    catch(baofit::RuntimeError const &e) {
-        std::cerr << "ERROR during fit:\n  " << e.what() << std::endl;
-        return -2;
-    }
-    catch(likely::RuntimeError const &e) {
+    catch(std::runtime_error const &e) {
         std::cerr << "ERROR during fit:\n  " << e.what() << std::endl;
         return -2;
     }
