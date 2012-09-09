@@ -62,66 +62,55 @@ local::QuasarCorrelationData *local::QuasarCorrelationData::clone(bool binningOn
         new QuasarCorrelationData(*this);
 }
 
-void local::QuasarCorrelationData::fixCovariance() {
-  
-  if (!isCovarianceModifiable()) {
-    std::cout << "WARN: asking to fix covariance, but here I am and can't modify it." <<std::endl;
-    return;
-  }
+void local::QuasarCorrelationData::fixCovariance(double ll0, double c0, double c1, double c2) {
 
-  getData(*begin());
-
-  // caching of ll, sep, zz
-  // probably not the most elegant, but works.
-  std::vector<double> llc, sepc, zzc;
-  
-  for(IndexIterator iter1 = begin(); iter1 != end(); ++iter1) {
-    // Lookup the value of ll,sep,z at the center of this bin.
-    int i1(*iter1);
-    double ll1(getLogLambda(i1)), sep1(getSeparation(i1)), z1(getRedshift(i1)); 
-    llc.push_back(ll1);
-    sepc.push_back(sep1);
-    zzc.push_back(z1);
-    
-   for(IndexIterator iter2 = begin(); iter2 != end(); ++iter2) {
-        int i2(*iter2);
-	if (i2>i1) continue;
-	// we want to to iter1 end() but not beyond!!
-	//double ll2(getLogLambda(i2)), sep2(getSeparation(i2)), z2(getRedshift(i2));
-	double ll2(llc[i2]), sep2(sepc[i2]), z2(zzc[i2]);
-	if ((z1==z2) && (sep1==sep2)) {
-	  
-	  double C(getCovariance(i1,i2));
-	  // this recipe is from chi2.
-	  // magic constants are set by the requirement that for
-	  // a certain cov, you should add something that is "large"
-	  // but at the same time does not make numerical errors unbearable
-	  C += double(0.001);
-	  C += (ll1-0.02)*(ll2-0.02)*0.01;
-	  C += pow((ll1-0.02)*(ll2-0.02),2.0) *100.0;
-	  setCovariance(i1,i2,C);
-	}
+    if (!isCovarianceModifiable()) {
+        throw RuntimeError("QuasarCorrelationData::fixCovariance: not modifiable.");
     }
-  }
+    // Make sure that our our data vector is un-weighted.
+    getData(*begin());
 
-//   std::cout << getInverseCovariance(0,0) << std::endl;
-//    if (0) {
-//    for (int i=0; i<1512;i++) for (int j=0; j<=i;j++) 
-//   			      if (getCovariance(i,j)!=0.0)
-//    				  std::cout << i <<" " <<j <<" "<<getInverseCovariance(i,j)<<" AA"<<std::endl;
-//    //   throw;
-//    }
+    // Save values in the outer loop, for re-use in the inner loop.
+    std::vector<double> dll;
+    dll.reserve(getNBinsWithData());
+    std::vector<int> bin(3);
+
+    // Loop over all bins.
+    for(IndexIterator iter1 = begin(); iter1 != end(); ++iter1) {
+        int i1(*iter1);
+        // Calculate and save the value of ll - ll0 at the center of this bin.
+        getBinCenters(i1,_binCenter);
+        dll.push_back(_binCenter[0] - ll0);
+        // Remember the indices of this 3D bin along our sep,z axes
+        getBinIndices(i1,bin);
+        int sepIndex(bin[1]), zIndex(bin[2]);
+        // Loop over bins with index i2 <= i1
+        for(IndexIterator iter2 = begin(); iter2 != end(); ++iter2) {
+            int i2(*iter2);
+            // we want to to iter1 end() but not beyond!!
+            if (i2>i1) continue;
+            // Check that this bin has the same sep,z indices
+            getBinIndices(i2,bin);
+            if(bin[1] != sepIndex || bin[2] != zIndex) continue;
+            // Calculate (ll1 - ll0)*(ll2 - ll0) using cached values.
+            double d = dll[i1]*dll[i2];
+            // Update the covariance for (i1,i2)
+            // magic constants are set by the requirement that for
+            // a certain cov, you should add something that is "large"
+            // but at the same time does not make numerical errors unbearable
+            double C(getCovariance(i1,i2));
+            C += c0 + c1*d + c2*d*d;
+            setCovariance(i1,i2,C);
+        }
+    }
 }
-
 
 void local::QuasarCorrelationData::finalize() {
 
-  //// First fix Covariance
+    // First fix Covariance
+    if (_fixCov) fixCovariance();
 
-  if (_fixCov) fixCovariance();
-  
-
-  /// Next do pruning
+    // Next do pruning
     std::set<int> keep;
     // Loop over bins with data.
     for(IndexIterator iter = begin(); iter != end(); ++iter) {
@@ -202,4 +191,3 @@ double local::QuasarCorrelationData::getRedshift(int index) const {
     _setIndex(index);
     return _zLast;
 }
-

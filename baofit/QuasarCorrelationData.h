@@ -32,17 +32,17 @@ namespace baofit {
         virtual double getCosAngle(int index) const;
         // Returns the loglambda, separation, redshift associated with the specified global index.
         virtual double getLogLambda(int index) const;
-	virtual double getSeparation(int index) const;
-	virtual double getRedshift(int index) const;
-
-	// This fixes covariance by adding the correct terms for a typical BAO analysis
-	// that throw away unwanted modes spuriosly appearing (for not yet completelly understood
-	// reasons)
-	virtual void fixCovariance();
-	
-	// Finalize a quasar dataset by pruning to the limits specified in our constructor, optionally
-	// fixing covariance and tabulating the co-moving coordinates at the center of each remaining
-	// bin with data.
+	    virtual double getSeparation(int index) const;
+	    virtual double getRedshift(int index) const;
+    	// This fixes covariance by adding the correct terms for a typical BAO analysis
+    	// that throw away unwanted modes spuriosly appearing (for not yet completelly understood
+    	// reasons). The covariance between bins at the same redshift and separation, and
+    	// log-lambda values ll1,ll2 is increased by c0 + c1*d + c2*d*d where
+    	// d = (ll1 - ll0)*(ll2 - ll0).
+    	void fixCovariance(double ll0=0.02, double c0=0.001, double c1=0.01, double c2=100);
+        // Finalize a quasar dataset by pruning to the limits specified in our constructor, optionally
+        // fixing covariance and tabulating the co-moving coordinates at the center of each remaining
+        // bin with data.
         // No further changes to our "shape" are possible after finalizing. See the documentation
         // for BinnedData::finalize() for details.
         virtual void finalize();
