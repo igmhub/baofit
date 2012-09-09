@@ -155,11 +155,8 @@ void local::QuasarCorrelationData::_setIndex(int index) const {
     if(index == _lastIndex) return;
     getBinCenters(index,_binCenter);
     getBinWidths(index,_binWidth);
-    _llLast = _binCenter[0];
-    _sepLast = _binCenter[1];
     _zLast = _binCenter[2];
-    
-    transform(_llLast, _sepLast, _binWidth[1],_zLast,_rLast,_muLast);
+    transform(_binCenter[0],_binCenter[1],_binWidth[1],_zLast,_rLast,_muLast);
     _lastIndex = index;
 }
 
@@ -173,20 +170,6 @@ double local::QuasarCorrelationData::getCosAngle(int index) const {
     if(isFinalized()) return _muLookup[getOffsetForIndex(index)];
     _setIndex(index);
     return _muLast;
-}
-
-double local::QuasarCorrelationData::getLogLambda(int index) const {
-  // not yet caching loglambda
-  //    if(isFinalized()) return _llLookup[getOffsetForIndex(index)];
-    _setIndex(index);
-    return _llLast;
-}
-
- double local::QuasarCorrelationData::getSeparation(int index) const {
-  // not yet caching separation
-   // if(isFinalized()) return _setLookup[getOffsetForIndex(index)];
-    _setIndex(index);
-    return _sepLast;
 }
 
 double local::QuasarCorrelationData::getRedshift(int index) const {

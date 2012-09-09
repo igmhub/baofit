@@ -30,9 +30,7 @@ namespace baofit {
         // Returns the cosine of the angle between the separation vector and
         // the line of sight (aka mu) associated with the specified global index.
         virtual double getCosAngle(int index) const;
-        // Returns the loglambda, separation, redshift associated with the specified global index.
-        virtual double getLogLambda(int index) const;
-	    virtual double getSeparation(int index) const;
+        // Returns the redshift associated with the specified global index.
 	    virtual double getRedshift(int index) const;
     	// This fixes covariance by adding the correct terms for a typical BAO analysis
     	// that throw away unwanted modes spuriosly appearing (for not yet completelly understood
@@ -59,7 +57,7 @@ namespace baofit {
         void _setIndex(int index) const;
         mutable int _lastIndex;
         mutable std::vector<double> _binCenter,_binWidth;
-        mutable double _rLast, _muLast, _llLast, _sepLast, _zLast;
+        mutable double _rLast, _muLast, _zLast;
         double _arcminToRad;
 	}; // QuasarCorrelationData
 } // baofit
