@@ -5,6 +5,8 @@
 
 #include "cosmo/AbsHomogeneousUniverse.h"
 
+#include "likely/AbsBinning.h"
+
 #include <cmath>
 
 namespace local = baofit;
@@ -74,21 +76,22 @@ void local::QuasarCorrelationData::fixCovariance(double ll0, double c0, double c
     std::vector<double> dll;
     dll.reserve(getNBinsWithData());
     std::vector<int> bin(3);
+    
+    // Lookup the binning along the log-lambda axis.
+    likely::AbsBinningCPtr llBins(getAxisBinning()[0]);
 
     // Loop over all bins.
     for(IndexIterator iter1 = begin(); iter1 != end(); ++iter1) {
         int i1(*iter1);
-        // Calculate and save the value of ll - ll0 at the center of this bin.
-        getBinCenters(i1,_binCenter);
-        dll.push_back(_binCenter[0] - ll0);
-        // Remember the indices of this 3D bin along our sep,z axes
+        // Remember the indices of this 3D bin along our sep,z axes.
         getBinIndices(i1,bin);
         int sepIndex(bin[1]), zIndex(bin[2]);
+        // Calculate and save the value of ll - ll0 at the center of this bin.
+        double ll(llBins->getBinCenter(bin[0]));
+        dll.push_back(ll - ll0);
         // Loop over bins with index i2 <= i1
-        for(IndexIterator iter2 = begin(); iter2 != end(); ++iter2) {
+        for(IndexIterator iter2 = begin(); iter2 <= iter1; ++iter2) {
             int i2(*iter2);
-            // we want to to iter1 end() but not beyond!!
-            if (i2>i1) continue;
             // Check that this bin has the same sep,z indices
             getBinIndices(i2,bin);
             if(bin[1] != sepIndex || bin[2] != zIndex) continue;
