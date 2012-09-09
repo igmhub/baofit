@@ -63,10 +63,11 @@ namespace baofit {
             std::string const &refitConfig = "", std::string const &saveName = "", int nsave = 0) const;
         // Performs a Markov-chain sampling of the likelihood function for the combined data with
         // the current model, using the specified function minimum to initialize the sampling.
-        // Saves nchain samples, using only one per interval trials. See doBootstrapAnalysis for a
+        // Saves nchain samples, using only one per interval trials. Modifies the fit parameters
+        // associated with the input fmin using the specified config. See doBootstrapAnalysis for a
         // description of the other parameters.
-        void generateMarkovChain(int nchain, int interval, likely::FunctionMinimumCPtr fmin,
-            std::string const &saveName = "", int nsave = 0) const;
+        void generateMarkovChain(int nchain, int interval, std::string const &config,
+            likely::FunctionMinimumCPtr fmin, std::string const &saveName = "", int nsave = 0) const;
         // Fits each observation separately and returns the number of fits that failed.
         // See doBootstrapAnalysis for a description of the other parameters.
         int fitEach(likely::FunctionMinimumPtr fmin,
