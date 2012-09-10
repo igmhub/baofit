@@ -28,7 +28,8 @@ int main(int argc, char **argv) {
         analysisOptions("Analysis options");
 
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin,
-        rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax,kloSpline,khiSpline,mcScale,saveICovScale;
+        rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax,kloSpline,khiSpline,mcScale,saveICovScale,
+        zMin, zMax;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
       mcmcSave,mcmcInterval,mcSamples,xiNr,reuseCov,nSpline,splineOrder;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,mcConfig,
@@ -147,6 +148,10 @@ int main(int argc, char **argv) {
             "Final cut on minimum value of mu = rL/r to use in the fit (coordinate data only).")
         ("mu-max", po::value<double>(&muMax)->default_value(1),
             "Final cut on maximum value of mu = rL/r to use in the fit (coordinate data only).")
+        ("z-min", po::value<double>(&zMin)->default_value(0.),
+            "Final cut on minimum value of redshift (coordinate data only).")
+        ("z-max", po::value<double>(&zMax)->default_value(10.),
+            "Final cut on maximum value of redshift (coordinate data only).")
         ("llmin", po::value<double>(&llmin)->default_value(0),
             "Minimum value of log(lam2/lam1) to use in fit (multipole data only).")
         ("lmin", po::value<int>(&lmin)->default_value(0),
@@ -318,7 +323,7 @@ int main(int argc, char **argv) {
             zdata = 2.25;
             prototype = baofit::boss::createCosmolibPrototype(
                 minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,rmin,rmax,muMin,muMax,
-                rVetoMin,rVetoMax,llmin,fixAlnCov,cosmology);
+                zMin,zMax,rVetoMin,rVetoMax,llmin,fixAlnCov,cosmology);
         }
         
         // Build a list of the data files we will read.

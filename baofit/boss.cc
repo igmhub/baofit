@@ -316,7 +316,7 @@ std::vector<double> local::twoStepSampling(double breakpoint,double llmax,double
 }
 
 baofit::AbsCorrelationDataCPtr local::createSectorsPrototype(double zref, double rmin, double rmax,
-double muMin, double muMax, double rVetoMin, double rVetoMax) {
+		     double muMin, double muMax, double rVetoMin, double rVetoMax) {
     // Initialize the fixed (r,mu,z) binning for this format.
     likely::AbsBinningCPtr
         rBins(new likely::UniformBinning(0,200,50)),
@@ -392,8 +392,8 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose) {
 baofit::AbsCorrelationDataCPtr local::createCosmolibPrototype(
 double minsep, double dsep, int nsep, double minz, double dz, int nz,
 double minll, double maxll, double dll, double dll2,
-double rmin, double rmax, double muMin, double muMax, double rVetoMin, double rVetoMax, double llmin,
-bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology) {
+double rmin, double rmax, double muMin, double muMax, double zMin, double zMax,
+double rVetoMin, double rVetoMax, double llmin, bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology) {
 
     // Initialize the (logLambda,separation,redshift) binning from command-line params.
     likely::AbsBinningCPtr llBins,
@@ -411,9 +411,8 @@ bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology) {
 
     // Create the new BinnedData that we will fill.
     baofit::AbsCorrelationDataPtr
-        prototype(new baofit::QuasarCorrelationData(llBins,sepBins,zBins,rmin,rmax,muMin,muMax,llmin,
-						    fixCov, rVetoMin,rVetoMax,cosmology));
-
+        prototype(new baofit::QuasarCorrelationData(llBins,sepBins,zBins,rmin,rmax,muMin,muMax,
+            zMin,zMax,llmin,rVetoMin,rVetoMax,fixCov,cosmology));
     return prototype;
 }
 
