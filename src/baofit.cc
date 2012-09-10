@@ -300,7 +300,7 @@ int main(int argc, char **argv) {
     try {
         
         // Create a prototype of the binned data we will be loading.
-        baofit::AbsCorrelationDataCPtr prototype;
+        baofit::AbsCorrelationDataPtr prototype;
         if(french) {
             zdata = 2.30;
             prototype = baofit::boss::createFrenchPrototype(zdata,rmin,rmax,rVetoMin,rVetoMax,ellmin,ellmax);
@@ -325,6 +325,8 @@ int main(int argc, char **argv) {
                 minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,rmin,rmax,muMin,muMax,
                 zMin,zMax,rVetoMin,rVetoMax,llmin,fixAlnCov,cosmology);
         }
+        // Set the final cuts that have not already been specified in the prototype ctors above.
+        prototype->setFinalCuts(rmin,rmax,rVetoMin,rVetoMax,muMin,muMax,ellmin,ellmax,zMin,zMax);
         
         // Build a list of the data files we will read.
         std::vector<std::string> filelist;

@@ -35,7 +35,7 @@ namespace ascii = boost::spirit::ascii;
 namespace phoenix = boost::phoenix;
 
 // Creates a prototype MultipoleCorrelationData with the specified binning.
-baofit::AbsCorrelationDataCPtr local::createDR9LRGPrototype(double zref, double rmin, double rmax,
+baofit::AbsCorrelationDataPtr local::createDR9LRGPrototype(double zref, double rmin, double rmax,
 double rVetoMin, double rVetoMax, std::string const &covName, bool verbose) {
     // Create the new BinnedData that we will fill.
     int nbins(50);
@@ -150,7 +150,7 @@ local::loadDR9LRG(std::string const &dataName, baofit::AbsCorrelationDataCPtr pr
 }
 
 // Creates a prototype MultipoleCorrelationData with the specified binning.
-baofit::AbsCorrelationDataCPtr local::createFrenchPrototype(double zref, double rmin, double rmax,
+baofit::AbsCorrelationDataPtr local::createFrenchPrototype(double zref, double rmin, double rmax,
 double rVetoMin, double rVetoMax, cosmo::Multipole ellmin, cosmo::Multipole ellmax) {
     if(ellmin < cosmo::Monopole || ellmax > cosmo::Quadrupole || ellmin > ellmax) {
         throw RuntimeError("createFrenchPrototype: invalid ell range.");
@@ -315,7 +315,7 @@ std::vector<double> local::twoStepSampling(double breakpoint,double llmax,double
     return samplePoints;
 }
 
-baofit::AbsCorrelationDataCPtr local::createSectorsPrototype(double zref, double rmin, double rmax,
+baofit::AbsCorrelationDataPtr local::createSectorsPrototype(double zref, double rmin, double rmax,
 		     double muMin, double muMax, double rVetoMin, double rVetoMax) {
     // Initialize the fixed (r,mu,z) binning for this format.
     likely::AbsBinningCPtr
@@ -389,7 +389,7 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose) {
 }
 
 // Creates a prototype QuasarCorrelationData with the specified binning and cosmology.
-baofit::AbsCorrelationDataCPtr local::createCosmolibPrototype(
+baofit::AbsCorrelationDataPtr local::createCosmolibPrototype(
 double minsep, double dsep, int nsep, double minz, double dz, int nz,
 double minll, double maxll, double dll, double dll2,
 double rmin, double rmax, double muMin, double muMax, double zMin, double zMax,
@@ -640,7 +640,7 @@ bool checkPosDef) {
     return binnedData;
 }
 
-baofit::AbsCorrelationDataCPtr local::createCosmolibXiPrototype(double minz, double dz, int nz,
+baofit::AbsCorrelationDataPtr local::createCosmolibXiPrototype(double minz, double dz, int nz,
 double minr, double maxr, double nr, bool hasHexadecapole, double rmin, double rmax,
 double rVetoMin, double rVetoMax, cosmo::Multipole ellmin, cosmo::Multipole ellmax) {
     if(ellmin > ellmax) {
