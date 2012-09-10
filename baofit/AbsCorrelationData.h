@@ -42,6 +42,13 @@ namespace baofit {
         void setFinalCuts(double rMin, double rMax, double rVetoMin, double rVetoMax,
             double muMin, double muMax, cosmo::Multipole lMin, cosmo::Multipole lMax,
             double zMin, double zMax);
+    protected:
+        // Copies our final cuts to the specified object.
+        void _cloneFinalCuts(AbsCorrelationData &other) const;
+        // Fills the empty set provided with a list of global indices for bins that should be
+        // kept in the final data set. Throws a RuntimeError if the input set is not empty
+        // or if setFinalCuts has never been called.
+        void _applyFinalCuts(std::set<int> &keep) const;
     private:
         TransverseBinningType _type;
         double _rMin,_rMax,_rVetoMin,_rVetoMax,_muMin,_muMax,_zMin,_zMax;

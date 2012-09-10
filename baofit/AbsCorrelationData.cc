@@ -41,3 +41,37 @@ double zMin, double zMax) {
     _zMin = zMin; _zMax = zMax;
     _haveFinalCuts = true;
 }
+
+void local::AbsCorrelationData::_cloneFinalCuts(AbsCorrelationData &other) const {
+    other._rMin = _rMin; other._rMax = _rMax;
+    other._rVetoMin = _rVetoMin; other._rVetoMax = _rVetoMax;
+    other._muMin = _muMin; other._muMax = _muMax;
+    other._lMin = _lMin; other._lMax = _lMax;
+    other._zMin = _zMin; other._zMax = _zMax;
+    other._haveFinalCuts = _haveFinalCuts;
+}
+
+void local::AbsCorrelationData::_applyFinalCuts(std::set<int> &keep) const {
+    if(!_haveFinalCuts) throw RuntimeError("AbsCorrelationData: no final cuts specified yet.");
+    if(!keep.empty()) throw RuntimeError("AbsCorrelationData: expected empty set.");
+    // Loop over bins with data.
+    for(IndexIterator iter = begin(); iter != end(); ++iter) {
+        // Lookup the value of ll,sep,z at the center of this bin.
+        int index(*iter);
+        double r(getRadius(index)), z(getRedshift(index));
+        // Keep this bin in our pruned dataset?
+        if(r < _rMin || r > _rMax) continue;
+        if(r > _rVetoMin && r < _rVetoMax) continue;
+        if(z < _zMin || z > _zMax) continue;
+        if(_type == Coordinate) {
+            double mu(getCosAngle(index));
+            if(mu < _muMin || mu > _muMax) continue;
+        }
+        else { // _type == Multipole
+            int ell(getMultipole(index));
+            if(ell < _lMin || ell > _lMax) continue;
+        }
+        // This bin passes all cuts so we keep it.
+        keep.insert(index);
+    }
+}
