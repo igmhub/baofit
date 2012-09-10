@@ -96,7 +96,8 @@ void local::QuasarCorrelationData::fixCovariance(double ll0, double c0, double c
         // Calculate and save the value of ll - ll0 at the center of this bin.
         double ll(llBins->getBinCenter(bin[0]));
         dll.push_back(ll - ll0);
-        // Loop over bins with index i2 <= i1
+        // Loop over unique pairs (iter1,iter2) with iter2 <= iter1 (which does not
+        // necessarily imply that i2 <= i1).
         for(IndexIterator iter2 = begin(); iter2 <= iter1; ++iter2) {
             int i2(*iter2);
             // Check that this bin has the same sep,z indices
