@@ -422,8 +422,8 @@ std::string const &refitConfig, std::string const &saveName, int nsave) const {
     return nInvalid;
 }
 
-void local::CorrelationAnalyzer::generateMarkovChain(int nchain, int interval, std::string const &config,
-likely::FunctionMinimumCPtr fmin, std::string const &saveName, int nsave) const {
+void local::CorrelationAnalyzer::generateMarkovChain(int nchain, int interval, likely::FunctionMinimumCPtr fmin,
+std::string const &saveName, int nsave) const {
     if(nchain <= 0) {
         throw RuntimeError("CorrelationAnalyzer::generateMarkovChain: expected nchain > 0.");
     }
