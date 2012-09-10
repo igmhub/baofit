@@ -11,36 +11,43 @@ namespace local = baofit;
 
 local::QuasarCorrelationData::QuasarCorrelationData(
 likely::AbsBinningCPtr axis1, likely::AbsBinningCPtr axis2, likely::AbsBinningCPtr axis3,
-double rmin, double rmax, double muMin, double muMax, double llmin, double rVetoMin, double rVetoMax,
+double rmin, double rmax, double muMin, double muMax, double zMin, double zMax,  double llmin, double rVetoMin, double rVetoMax,
 cosmo::AbsHomogeneousUniversePtr cosmology)
 : AbsCorrelationData(axis1,axis2,axis3,Coordinate)
 {
-    _initialize(rmin,rmax,muMin,muMax,llmin,rVetoMin,rVetoMax,cosmology);
+  _initialize(rmin,rmax,muMin,muMax, zMin, zMax, llmin,rVetoMin,rVetoMax,cosmology);
 }
 
 local::QuasarCorrelationData::QuasarCorrelationData(
-std::vector<likely::AbsBinningCPtr> axes, double rmin, double rmax, double muMin, double muMax, double llmin,
+std::vector<likely::AbsBinningCPtr> axes, double rmin, double rmax, double muMin, double muMax,
+double zMin, double zMax, double llmin,
 double rVetoMin, double rVetoMax, cosmo::AbsHomogeneousUniversePtr cosmology)
 : AbsCorrelationData(axes,Coordinate)
 {
     if(axes.size() != 3) {
         throw RuntimeError("QuasarCorrelationData: expected 3 axes.");
     }
-    _initialize(rmin,rmax,muMin,muMax,llmin,rVetoMin,rVetoMax,cosmology);
+    _initialize(rmin,rmax,muMin,muMax,zMin,zMax,llmin,rVetoMin,rVetoMax,cosmology);
 }
 
-void local::QuasarCorrelationData::_initialize(double rmin, double rmax, double muMin, double muMax, double llmin,
-double rVetoMin, double rVetoMax, cosmo::AbsHomogeneousUniversePtr cosmology) {
+void local::QuasarCorrelationData::_initialize(double rmin, double rmax, double muMin, double muMax,
+     double zMin, double zMax, double llmin, double rVetoMin, double rVetoMax,
+					       cosmo::AbsHomogeneousUniversePtr cosmology) {
     if(rmin >= rmax) {
         throw RuntimeError("QuasarCorrelationData: expected rmin < rmax.");
     }
     if(muMin >= muMax) {
         throw RuntimeError("MultipoleCorrelationData: expected mu-min < mu-max.");
     }
+    if(zMin >= zMax) {
+        throw RuntimeError("MultipoleCorrelationData: expected z-min < z-max.");
+    }
     _rmin = rmin;
     _rmax = rmax;
     _muMin = muMin;
     _muMax = muMax;
+    _zMin = zMin;
+    _zMax = zMax;
     _llmin = llmin;
     if(rVetoMin > rVetoMax) {
         throw RuntimeError("QuasarCorrelationData: expected rVetoMin <= rVetoMax.");
@@ -56,7 +63,7 @@ local::QuasarCorrelationData::~QuasarCorrelationData() { }
 
 local::QuasarCorrelationData *local::QuasarCorrelationData::clone(bool binningOnly) const {
     return binningOnly ?
-        new QuasarCorrelationData(getAxisBinning(),_rmin,_rmax,_muMin,_muMax,_llmin,
+      new QuasarCorrelationData(getAxisBinning(),_rmin,_rmax,_muMin,_muMax,_zMin, _zMax, _llmin,
             _rVetoMin,_rVetoMax,_cosmology) :
         new QuasarCorrelationData(*this);
 }
@@ -70,7 +77,8 @@ void local::QuasarCorrelationData::finalize() {
         double r(getRadius(index)), mu(getCosAngle(index)), z(getRedshift(index));
         double ll(_binCenter[0]);
         // Keep this bin in our pruned dataset?
-        if(r >= _rmin && r < _rmax && mu >= _muMin && mu <= _muMax && ll >= _llmin) {
+        if(r >= _rmin && r < _rmax && mu >= _muMin && mu <= _muMax
+	   && z>=_zMin &&  z<=_zMax && ll >= _llmin) {
             if(r <= _rVetoMin || r >= _rVetoMax) {
                 keep.insert(index);
                 // Remember these values.
