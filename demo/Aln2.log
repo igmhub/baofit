@@ -3,7 +3,7 @@ Fit Model "BAO Correlation Model" has initial parameters:
                 beta =     1.400000
        (1+beta)*bias =    -0.336000
        BAO amplitude =     1.000000 +/-     0.150000 $    1.00 \pm 0.15 $
-       BAO alpha-iso =     1.000000 +/-     0.020000 $  1.000 \pm 0.020 $ box prior @ (0.85,1.15)
+       BAO alpha-iso =     1.000000 +/-     0.020000 $  1.000 \pm 0.020 $ box prior @ (0.85,1.15;0.01)
   BAO alpha-parallel =     1.000000
       BAO alpha-perp =     1.000000
           gamma-bias =     3.800000
@@ -35,7 +35,7 @@ FMIN Value =   406.617503 at:
                 beta =     1.400000
        (1+beta)*bias =    -0.336000
        BAO amplitude =     1.020159 +/-     0.021613 $  1.020 \pm 0.022 $
-       BAO alpha-iso =     1.001393 +/-     0.001690 $ 1.0014 \pm 0.0017 $ box prior @ (0.85,1.15)
+       BAO alpha-iso =     1.001393 +/-     0.001690 $ 1.0014 \pm 0.0017 $ box prior @ (0.85,1.15;0.01)
   BAO alpha-parallel =     1.000000
       BAO alpha-perp =     1.000000
           gamma-bias =     3.800000
