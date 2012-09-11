@@ -18,8 +18,7 @@ namespace baofit {
             AbsCorrelationDataCPtr prototype, bool verbose,
             bool unweighted = false, bool expanded = false, bool checkPosDef = false);
             
-        AbsCorrelationDataPtr createSectorsPrototype(double zref, double rmin, double rmax,
-	   double muMin, double muMax, double rVetoMin, double rVetoMax);
+        AbsCorrelationDataPtr createSectorsPrototype(double zref);
             
         AbsCorrelationDataPtr loadSectors(std::string const &dataName,
             baofit::AbsCorrelationDataCPtr prototype, bool verbose);
@@ -35,9 +34,7 @@ namespace baofit {
 
         AbsCorrelationDataPtr createCosmolibPrototype(double minsep, double dsep, int nsep,
             double minz, double dz, int nz, double minll, double maxll, double dll, double dll2,
-            double rmin, double rmax, double muMin, double muMax, double zMin, double zMax,
-	        double rVetoMin, double rVetoMax, double llmin, bool fixCov,
-	        cosmo::AbsHomogeneousUniversePtr cosmology);
+            double llmin, bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology);
 
         AbsCorrelationDataPtr loadCosmolibDemo(std::string const &dataName,
             AbsCorrelationDataCPtr prototype, bool verbose);

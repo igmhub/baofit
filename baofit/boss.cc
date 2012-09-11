@@ -309,8 +309,7 @@ std::vector<double> local::twoStepSampling(double breakpoint,double llmax,double
     return samplePoints;
 }
 
-baofit::AbsCorrelationDataPtr local::createSectorsPrototype(double zref, double rmin, double rmax,
-		     double muMin, double muMax, double rVetoMin, double rVetoMax) {
+baofit::AbsCorrelationDataPtr local::createSectorsPrototype(double zref) {
     // Initialize the fixed (r,mu,z) binning for this format.
     likely::AbsBinningCPtr
         rBins(new likely::UniformBinning(0,200,50)),
@@ -318,8 +317,7 @@ baofit::AbsCorrelationDataPtr local::createSectorsPrototype(double zref, double 
         zBins(new likely::UniformSampling(zref,zref,1));
 
     baofit::AbsCorrelationDataPtr
-        prototype(new baofit::ComovingCorrelationData(rBins,muBins,zBins,rmin,rmax,
-            muMin,muMax,rVetoMin,rVetoMax));
+        prototype(new baofit::ComovingCorrelationData(rBins,muBins,zBins));
 
     return prototype;    
 }
@@ -386,8 +384,7 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose) {
 baofit::AbsCorrelationDataPtr local::createCosmolibPrototype(
 double minsep, double dsep, int nsep, double minz, double dz, int nz,
 double minll, double maxll, double dll, double dll2,
-double rmin, double rmax, double muMin, double muMax, double zMin, double zMax,
-double rVetoMin, double rVetoMax, double llmin, bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology) {
+double llmin, bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology) {
 
     // Initialize the (logLambda,separation,redshift) binning from command-line params.
     likely::AbsBinningCPtr llBins,
@@ -405,8 +402,7 @@ double rVetoMin, double rVetoMax, double llmin, bool fixCov, cosmo::AbsHomogeneo
 
     // Create the new BinnedData that we will fill.
     baofit::AbsCorrelationDataPtr
-        prototype(new baofit::QuasarCorrelationData(llBins,sepBins,zBins,rmin,rmax,muMin,muMax,
-            zMin,zMax,llmin,rVetoMin,rVetoMax,fixCov,cosmology));
+        prototype(new baofit::QuasarCorrelationData(llBins,sepBins,zBins,llmin,fixCov,cosmology));
     return prototype;
 }
 

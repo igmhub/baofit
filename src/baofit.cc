@@ -307,7 +307,7 @@ int main(int argc, char **argv) {
         }
         else if(sectors) {
             zdata = 2.30;
-            prototype = baofit::boss::createSectorsPrototype(zdata,rmin,rmax,muMin,muMax,rVetoMin,rVetoMax);
+            prototype = baofit::boss::createSectorsPrototype(zdata);
         }
         else if(dr9lrg) {
             zdata = 0.57;
@@ -320,8 +320,7 @@ int main(int argc, char **argv) {
         else { // default is cosmolib (demo) format
             zdata = 2.25;
             prototype = baofit::boss::createCosmolibPrototype(
-                minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,rmin,rmax,muMin,muMax,
-                zMin,zMax,rVetoMin,rVetoMax,llmin,fixAlnCov,cosmology);
+                minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,llmin,fixAlnCov,cosmology);
         }
         // Set the final cuts that have not already been specified in the prototype ctors above.
         prototype->setFinalCuts(rmin,rmax,rVetoMin,rVetoMax,muMin,muMax,ellmin,ellmax,zMin,zMax);

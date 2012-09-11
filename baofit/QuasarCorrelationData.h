@@ -17,12 +17,10 @@ namespace baofit {
 	    // into co-moving coordinates. The data will be pruned to rmin <= r < rmax (in Mpc/h) and
 	    // log(lambda2/lambda1) > llmin when the finalize() method is called.
 		QuasarCorrelationData(likely::AbsBinningCPtr axis1, likely::AbsBinningCPtr axis2,
-		    likely::AbsBinningCPtr axis3, double rmin, double rmax, double muMin, double muMax,
-		    double zMin, double zMax, double llmin, double rVetoMin, double rVetoMax, bool fixCov,
+		    likely::AbsBinningCPtr axis3, double llmin, bool fixCov,
 			cosmo::AbsHomogeneousUniversePtr cosmology);
-        QuasarCorrelationData(std::vector<likely::AbsBinningCPtr> axes, double rmin, double rmax,
-            double muMin, double muMax, double zMin, double zMax,  double llmin,
-            double rVetoMin, double rVetoMax, bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology);
+        QuasarCorrelationData(std::vector<likely::AbsBinningCPtr> axes, double llmin,
+            bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology);
 		virtual ~QuasarCorrelationData();
 		// Polymorphic shallow copy so this type of data can be used with likely::BinnedDataResampler.
         virtual QuasarCorrelationData *clone(bool binningOnly = false) const;
@@ -48,10 +46,8 @@ namespace baofit {
         // Transforms the specified values of ll,sep,dsep,z to co-moving r,mu.
         void transform(double ll, double sep, double dsep, double z, double &r, double &mu) const;
 	private:
-        void _initialize(double rmin, double rmax, double muMin, double muMax, double zMin, double zMax,
-            double llmin, double rVetoMin, double rVetoMax, bool fixCov,
-            cosmo::AbsHomogeneousUniversePtr cosmology);
-        double _rmin, _rmax, _muMin, _muMax, _zMin, _zMax, _llmin, _rVetoMin, _rVetoMax;
+        void _initialize(double llmin, bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology);
+        double _llmin;
     	bool _fixCov;
         cosmo::AbsHomogeneousUniversePtr _cosmology;
         std::vector<double> _rLookup, _muLookup, _zLookup;
