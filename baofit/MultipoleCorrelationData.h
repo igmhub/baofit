@@ -15,10 +15,8 @@ namespace baofit {
 	    //Creates a new multipole correlation dataset with the specified binning and final
 	    // cuts rmin <= r < rmax, ellmin <= ell <= ellmax.
 		MultipoleCorrelationData(likely::AbsBinningCPtr axis1, likely::AbsBinningCPtr axis2,
-		    likely::AbsBinningCPtr axis3, double rmin, double rmax,
-		    double rVetoMin, double rVetoMax, cosmo::Multipole ellmin, cosmo::Multipole ellmax);
-        MultipoleCorrelationData(std::vector<likely::AbsBinningCPtr> axes, double rmin, double rmax,
-            double rVetoMin, double rVetoMax, cosmo::Multipole ellmin, cosmo::Multipole ellmax);
+		    likely::AbsBinningCPtr axis3);
+        MultipoleCorrelationData(std::vector<likely::AbsBinningCPtr> axes);
 		virtual ~MultipoleCorrelationData();
 		// Polymorphic shallow copy so this type of data can be used with likely::BinnedDataResampler.
         virtual MultipoleCorrelationData *clone(bool binningOnly = false) const;
@@ -36,12 +34,9 @@ namespace baofit {
         // provided for error bars, if weights.size() > 0, or else uses the covariance matrix
         // diagonal elements. Output format is separation followed by "value error" pairs for each
         // redshift slice (outer loop) and multipole (inner loop), for a total 1+2*nz*nell columns.
-        void dump(std::ostream &out, std::vector<double> const &weights) const;
+        void dump(std::ostream &out, double rmin, double rmax,
+            std::vector<double> const &weights) const;
 	private:
-        void _initialize(double rmin, double rmax, double rVetoMin, double rVetoMax,
-            cosmo::Multipole ellmin, cosmo::Multipole ellmax);
-        double _rmin, _rmax, _rVetoMin, _rVetoMax;
-        cosmo::Multipole _ellmin, _ellmax;
         void _setIndex(int index) const;
         mutable int _lastIndex;
         mutable std::vector<double> _binCenter;

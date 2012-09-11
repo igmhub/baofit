@@ -28,7 +28,8 @@ int main(int argc, char **argv) {
         analysisOptions("Analysis options");
 
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin,
-        rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax,kloSpline,khiSpline,mcScale,saveICovScale;
+        rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax,kloSpline,khiSpline,mcScale,saveICovScale,
+        zMin, zMax;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
       mcmcSave,mcmcInterval,mcSamples,xiNr,reuseCov,nSpline,splineOrder;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,mcConfig,
@@ -91,6 +92,7 @@ int main(int argc, char **argv) {
         ("save-icov", "Saves the inverse covariance of the combined data after final cuts.")
         ("save-icov-scale", po::value<double>(&saveICovScale)->default_value(1),
             "Scale factor applied to inverse covariance elements when using save-icov.")
+        ("fix-aln-cov", "Fixes covariance matrix of points in 'aln' parametrization")
         ;
     frenchOptions.add_options()
         ("french", "Correlation data files are in the French format (default is cosmolib).")
@@ -146,6 +148,10 @@ int main(int argc, char **argv) {
             "Final cut on minimum value of mu = rL/r to use in the fit (coordinate data only).")
         ("mu-max", po::value<double>(&muMax)->default_value(1),
             "Final cut on maximum value of mu = rL/r to use in the fit (coordinate data only).")
+        ("z-min", po::value<double>(&zMin)->default_value(0.),
+            "Final cut on minimum value of redshift (coordinate data only).")
+        ("z-max", po::value<double>(&zMax)->default_value(10.),
+            "Final cut on maximum value of redshift (coordinate data only).")
         ("llmin", po::value<double>(&llmin)->default_value(0),
             "Minimum value of log(lam2/lam1) to use in fit (multipole data only).")
         ("lmin", po::value<int>(&lmin)->default_value(0),
@@ -227,7 +233,7 @@ int main(int argc, char **argv) {
         fitEach(vm.count("fit-each")), xiHexa(vm.count("xi-hexa")), demoFormat(vm.count("demo-format")),
         xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")), mcSave(vm.count("mc-save")),
         expanded(vm.count("expanded")), sectors(vm.count("sectors")), saveICov(vm.count("save-icov")),
-        multiSpline(vm.count("multi-spline"));
+        multiSpline(vm.count("multi-spline")), fixAlnCov(vm.count("fix-aln-cov"));
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
@@ -294,31 +300,30 @@ int main(int argc, char **argv) {
     try {
         
         // Create a prototype of the binned data we will be loading.
-        baofit::AbsCorrelationDataCPtr prototype;
+        baofit::AbsCorrelationDataPtr prototype;
         if(french) {
             zdata = 2.30;
-            prototype = baofit::boss::createFrenchPrototype(zdata,rmin,rmax,rVetoMin,rVetoMax,ellmin,ellmax);
+            prototype = baofit::boss::createFrenchPrototype(zdata);
         }
         else if(sectors) {
             zdata = 2.30;
-            prototype = baofit::boss::createSectorsPrototype(zdata,rmin,rmax,muMin,muMax,rVetoMin,rVetoMax);
+            prototype = baofit::boss::createSectorsPrototype(zdata);
         }
         else if(dr9lrg) {
             zdata = 0.57;
-            prototype = baofit::boss::createDR9LRGPrototype(zdata,rmin,rmax,rVetoMin,rVetoMax,
-                "LRG/Sample4_North.cov",verbose);
+            prototype = baofit::boss::createDR9LRGPrototype(zdata,"LRG/Sample4_North.cov",verbose);
         }
         else if(xiFormat) {
             zdata = 2.25;
-            prototype = baofit::boss::createCosmolibXiPrototype(minz,dz,nz,xiRmin,xiRmax,xiNr,xiHexa,
-                rmin,rmax,rVetoMin,rVetoMax,ellmin,ellmax);
+            prototype = baofit::boss::createCosmolibXiPrototype(minz,dz,nz,xiRmin,xiRmax,xiNr,xiHexa);
         }
         else { // default is cosmolib (demo) format
             zdata = 2.25;
             prototype = baofit::boss::createCosmolibPrototype(
-                minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,rmin,rmax,muMin,muMax,
-                rVetoMin,rVetoMax,llmin,cosmology);
+                minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,llmin,fixAlnCov,cosmology);
         }
+        // Set the final cuts that have not already been specified in the prototype ctors above.
+        prototype->setFinalCuts(rmin,rmax,rVetoMin,rVetoMax,muMin,muMax,ellmin,ellmax,zMin,zMax);
         
         // Build a list of the data files we will read.
         std::vector<std::string> filelist;
@@ -407,7 +412,7 @@ int main(int argc, char **argv) {
                 // Calculate the decorrelated weights for the combined fit.
                 analyzer.getDecorrelatedWeights(analyzer.getCombined(),fmin->getParameters(),dweights);
             }
-            combined->dump(out,dweights);
+            combined->dump(out,rmin,rmax,dweights);
             out.close();
         }
         // Save the combined inverse covariance, if requested.

@@ -17,11 +17,10 @@ namespace baofit {
 	    // into co-moving coordinates. The data will be pruned to rmin <= r < rmax (in Mpc/h) and
 	    // log(lambda2/lambda1) > llmin when the finalize() method is called.
 		QuasarCorrelationData(likely::AbsBinningCPtr axis1, likely::AbsBinningCPtr axis2,
-		    likely::AbsBinningCPtr axis3, double rmin, double rmax, double muMin, double muMax, double llmin,
-		    double rVetoMin, double rVetoMax, cosmo::AbsHomogeneousUniversePtr cosmology);
-        QuasarCorrelationData(std::vector<likely::AbsBinningCPtr> axes, double rmin, double rmax,
-            double muMin, double muMax, double llmin, double rVetoMin, double rVetoMax,
-            cosmo::AbsHomogeneousUniversePtr cosmology);
+		    likely::AbsBinningCPtr axis3, double llmin, bool fixCov,
+			cosmo::AbsHomogeneousUniversePtr cosmology);
+        QuasarCorrelationData(std::vector<likely::AbsBinningCPtr> axes, double llmin,
+            bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology);
 		virtual ~QuasarCorrelationData();
 		// Polymorphic shallow copy so this type of data can be used with likely::BinnedDataResampler.
         virtual QuasarCorrelationData *clone(bool binningOnly = false) const;
@@ -31,18 +30,25 @@ namespace baofit {
         // the line of sight (aka mu) associated with the specified global index.
         virtual double getCosAngle(int index) const;
         // Returns the redshift associated with the specified global index.
-        virtual double getRedshift(int index) const;
-        // Finalize a quasar dataset by pruning to the limits specified in our constructor,
-        // and tabulating the co-moving coordinates at the center of each remaining bin with data.
+	    virtual double getRedshift(int index) const;
+    	// This fixes covariance by adding the correct terms for a typical BAO analysis
+    	// that throw away unwanted modes spuriosly appearing (for not yet completelly understood
+    	// reasons). The covariance between bins at the same redshift and separation, and
+    	// log-lambda values ll1,ll2 is increased by c0 + c1*d + c2*d*d where
+    	// d = (ll1 - ll0)*(ll2 - ll0).
+    	void fixCovariance(double ll0=0.02, double c0=0.001, double c1=0.01, double c2=100);
+        // Finalize a quasar dataset by pruning to the limits specified in our constructor, optionally
+        // fixing covariance and tabulating the co-moving coordinates at the center of each remaining
+        // bin with data.
         // No further changes to our "shape" are possible after finalizing. See the documentation
         // for BinnedData::finalize() for details.
         virtual void finalize();
         // Transforms the specified values of ll,sep,dsep,z to co-moving r,mu.
         void transform(double ll, double sep, double dsep, double z, double &r, double &mu) const;
 	private:
-        void _initialize(double rmin, double rmax, double muMin, double muMax,
-            double llmin, double rVetoMin, double rVetoMax, cosmo::AbsHomogeneousUniversePtr cosmology);
-        double _rmin, _rmax, _muMin, _muMax, _llmin, _rVetoMin, _rVetoMax;
+        void _initialize(double llmin, bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology);
+        double _llmin;
+    	bool _fixCov;
         cosmo::AbsHomogeneousUniversePtr _cosmology;
         std::vector<double> _rLookup, _muLookup, _zLookup;
         // Calculates and saves (r,mu,z) for the specified global index.

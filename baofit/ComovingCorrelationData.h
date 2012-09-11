@@ -12,10 +12,8 @@ namespace baofit {
 	// Represents 3D correlation data in comoving coordinates (r,mu,z).
 	public:
 		ComovingCorrelationData(likely::AbsBinningCPtr rBins, likely::AbsBinningCPtr muBins,
-		    likely::AbsBinningCPtr zBins, double rmin, double rmax, double muMin, double muMax,
-		    double rVetoMin, double rVetoMax);
-		ComovingCorrelationData(std::vector<likely::AbsBinningCPtr> axes, double rmin, double rmax,
-		    double muMin, double muMax, double rVetoMin, double rVetoMax);
+		    likely::AbsBinningCPtr zBins);
+		ComovingCorrelationData(std::vector<likely::AbsBinningCPtr> axes);
 		virtual ~ComovingCorrelationData();
 		// Polymorphic shallow copy so this type of data can be used with likely::BinnedDataResampler.
         virtual ComovingCorrelationData *clone(bool binningOnly = false) const;
@@ -31,8 +29,6 @@ namespace baofit {
         // for BinnedData::finalize() for details.
         virtual void finalize();
 	private:
-        double _rmin, _rmax, _muMin, _muMax, _rVetoMin, _rVetoMax;
-        void _initialize(double rmin, double rmax, double muMin, double muMax, double rVetoMin, double rVetoMax);
         void _setIndex(int index) const;
         mutable int _lastIndex;
         mutable std::vector<double> _binCenter;

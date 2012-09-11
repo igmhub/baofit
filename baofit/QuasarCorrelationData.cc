@@ -5,48 +5,35 @@
 
 #include "cosmo/AbsHomogeneousUniverse.h"
 
+#include "likely/AbsBinning.h"
+
 #include <cmath>
 
 namespace local = baofit;
 
 local::QuasarCorrelationData::QuasarCorrelationData(
 likely::AbsBinningCPtr axis1, likely::AbsBinningCPtr axis2, likely::AbsBinningCPtr axis3,
-double rmin, double rmax, double muMin, double muMax, double llmin, double rVetoMin, double rVetoMax,
-cosmo::AbsHomogeneousUniversePtr cosmology)
+double llmin, bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology)
 : AbsCorrelationData(axis1,axis2,axis3,Coordinate)
 {
-    _initialize(rmin,rmax,muMin,muMax,llmin,rVetoMin,rVetoMax,cosmology);
+  _initialize(llmin,fixCov,cosmology);
 }
 
 local::QuasarCorrelationData::QuasarCorrelationData(
-std::vector<likely::AbsBinningCPtr> axes, double rmin, double rmax, double muMin, double muMax, double llmin,
-double rVetoMin, double rVetoMax, cosmo::AbsHomogeneousUniversePtr cosmology)
+std::vector<likely::AbsBinningCPtr> axes, double llmin, bool fixCov,
+cosmo::AbsHomogeneousUniversePtr cosmology)
 : AbsCorrelationData(axes,Coordinate)
 {
     if(axes.size() != 3) {
         throw RuntimeError("QuasarCorrelationData: expected 3 axes.");
     }
-    _initialize(rmin,rmax,muMin,muMax,llmin,rVetoMin,rVetoMax,cosmology);
+    _initialize(llmin,fixCov,cosmology);
 }
 
-void local::QuasarCorrelationData::_initialize(double rmin, double rmax, double muMin, double muMax, double llmin,
-double rVetoMin, double rVetoMax, cosmo::AbsHomogeneousUniversePtr cosmology) {
-    if(rmin >= rmax) {
-        throw RuntimeError("QuasarCorrelationData: expected rmin < rmax.");
-    }
-    if(muMin >= muMax) {
-        throw RuntimeError("MultipoleCorrelationData: expected mu-min < mu-max.");
-    }
-    _rmin = rmin;
-    _rmax = rmax;
-    _muMin = muMin;
-    _muMax = muMax;
+void local::QuasarCorrelationData::_initialize(double llmin, bool fixCov,
+cosmo::AbsHomogeneousUniversePtr cosmology) {
     _llmin = llmin;
-    if(rVetoMin > rVetoMax) {
-        throw RuntimeError("QuasarCorrelationData: expected rVetoMin <= rVetoMax.");
-    }
-    _rVetoMin = rVetoMin;
-    _rVetoMax = rVetoMax;
+    _fixCov = fixCov; 
     _cosmology = cosmology;
     _lastIndex = -1;
     _arcminToRad = 4*std::atan(1)/(60.*180.);    
@@ -55,31 +42,85 @@ double rVetoMin, double rVetoMax, cosmo::AbsHomogeneousUniversePtr cosmology) {
 local::QuasarCorrelationData::~QuasarCorrelationData() { }
 
 local::QuasarCorrelationData *local::QuasarCorrelationData::clone(bool binningOnly) const {
-    return binningOnly ?
-        new QuasarCorrelationData(getAxisBinning(),_rmin,_rmax,_muMin,_muMax,_llmin,
-            _rVetoMin,_rVetoMax,_cosmology) :
+    QuasarCorrelationData *data = binningOnly ?
+        new QuasarCorrelationData(getAxisBinning(),_llmin,_fixCov,_cosmology) :
         new QuasarCorrelationData(*this);
+    _cloneFinalCuts(*data);
+    return data;
+}
+
+void local::QuasarCorrelationData::fixCovariance(double ll0, double c0, double c1, double c2) {
+
+    if (!isCovarianceModifiable()) {
+        throw RuntimeError("QuasarCorrelationData::fixCovariance: not modifiable.");
+    }
+    // Make sure that our our data vector is un-weighted.
+    getData(*begin());
+
+    // Save values in the outer loop, for re-use in the inner loop.
+    std::vector<double> dll;
+    dll.reserve(getNBinsWithData());
+    std::vector<int> bin(3);
+    
+    // Lookup the binning along the log-lambda axis.
+    likely::AbsBinningCPtr llBins(getAxisBinning()[0]);
+
+    // Loop over all bins.
+    for(IndexIterator iter1 = begin(); iter1 != end(); ++iter1) {
+        int i1(*iter1);
+        // Remember the indices of this 3D bin along our sep,z axes.
+        getBinIndices(i1,bin);
+        int sepIndex(bin[1]), zIndex(bin[2]);
+        // Calculate and save the value of ll - ll0 at the center of this bin.
+        double ll(llBins->getBinCenter(bin[0]));
+        dll.push_back(ll - ll0);
+        // Loop over unique pairs (iter1,iter2) with iter2 <= iter1 (which does not
+        // necessarily imply that i2 <= i1).
+        for(IndexIterator iter2 = begin(); iter2 <= iter1; ++iter2) {
+            int i2(*iter2);
+            // Check that this bin has the same sep,z indices
+            getBinIndices(i2,bin);
+            if(bin[1] != sepIndex || bin[2] != zIndex) continue;
+            // Calculate (ll1 - ll0)*(ll2 - ll0) using cached values.
+            double d = dll[i1]*dll[i2];
+            // Update the covariance for (i1,i2)
+            // magic constants are set by the requirement that for
+            // a certain cov, you should add something that is "large"
+            // but at the same time does not make numerical errors unbearable
+            double C(getCovariance(i1,i2));
+            C += c0 + c1*d + c2*d*d;
+            setCovariance(i1,i2,C);
+        }
+    }
 }
 
 void local::QuasarCorrelationData::finalize() {
+
+    // First fix Covariance
+    if (_fixCov) fixCovariance();
+
+    // Next apply final cuts.
     std::set<int> keep;
+    _applyFinalCuts(keep);
+    
     // Loop over bins with data.
     for(IndexIterator iter = begin(); iter != end(); ++iter) {
-        // Lookup the value of ll,sep,z at the center of this bin.
+        // Skip bins that have already been cut in _applyFinalCuts
         int index(*iter);
-        double r(getRadius(index)), mu(getCosAngle(index)), z(getRedshift(index));
+        if(0 == keep.count(index)) continue;        
+        // Lookup the value of ll at the center of this bin.
         double ll(_binCenter[0]);
         // Keep this bin in our pruned dataset?
-        if(r >= _rmin && r < _rmax && mu >= _muMin && mu <= _muMax && ll >= _llmin) {
-            if(r <= _rVetoMin || r >= _rVetoMax) {
-                keep.insert(index);
-                // Remember these values.
-                _rLookup.push_back(r);
-                _muLookup.push_back(mu);
-                _zLookup.push_back(z);
-            }
+        if(ll < _llmin) {
+            keep.erase(index);
+            continue;
         }
+        // Cache the values of (r,mu,z) corresponding to the center of this bin.
+        _rLookup.push_back(getRadius(index));
+        _muLookup.push_back(getCosAngle(index));
+        _zLookup.push_back(getRedshift(index));
     }
+    // Prune our dataset down to bins in the keep set.
     prune(keep);
     AbsCorrelationData::finalize();
 }

@@ -35,8 +35,8 @@ namespace ascii = boost::spirit::ascii;
 namespace phoenix = boost::phoenix;
 
 // Creates a prototype MultipoleCorrelationData with the specified binning.
-baofit::AbsCorrelationDataCPtr local::createDR9LRGPrototype(double zref, double rmin, double rmax,
-double rVetoMin, double rVetoMax, std::string const &covName, bool verbose) {
+baofit::AbsCorrelationDataPtr local::createDR9LRGPrototype(double zref,
+std::string const &covName, bool verbose) {
     // Create the new BinnedData that we will fill.
     int nbins(50);
     likely::AbsBinningCPtr
@@ -44,8 +44,7 @@ double rVetoMin, double rVetoMax, std::string const &covName, bool verbose) {
         ellBins(new likely::UniformSampling(0,0,1)), // only monopole for now
         zBins(new likely::UniformSampling(zref,zref,1));
     baofit::AbsCorrelationDataPtr
-        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins,rmin,rmax,
-            rVetoMin,rVetoMax,cosmo::Monopole,cosmo::Monopole));
+        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins));
         
     // Pre-fill each bin with zero values.
     for(int index = 0; index < nbins; ++index) prototype->setData(index,0);
@@ -150,19 +149,14 @@ local::loadDR9LRG(std::string const &dataName, baofit::AbsCorrelationDataCPtr pr
 }
 
 // Creates a prototype MultipoleCorrelationData with the specified binning.
-baofit::AbsCorrelationDataCPtr local::createFrenchPrototype(double zref, double rmin, double rmax,
-double rVetoMin, double rVetoMax, cosmo::Multipole ellmin, cosmo::Multipole ellmax) {
-    if(ellmin < cosmo::Monopole || ellmax > cosmo::Quadrupole || ellmin > ellmax) {
-        throw RuntimeError("createFrenchPrototype: invalid ell range.");
-    }
+baofit::AbsCorrelationDataPtr local::createFrenchPrototype(double zref) {
     // Create the new BinnedData that we will fill.
     likely::AbsBinningCPtr
         rBins(new likely::UniformBinning(0,200,50)),
         zBins(new likely::UniformSampling(zref,zref,1)),
         ellBins(new likely::UniformSampling(cosmo::Monopole,cosmo::Quadrupole,2));
     baofit::AbsCorrelationDataPtr
-        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins,rmin,rmax,
-            rVetoMin,rVetoMax,ellmin,ellmax));
+        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins));
     return prototype;
 }
 
@@ -315,8 +309,7 @@ std::vector<double> local::twoStepSampling(double breakpoint,double llmax,double
     return samplePoints;
 }
 
-baofit::AbsCorrelationDataCPtr local::createSectorsPrototype(double zref, double rmin, double rmax,
-double muMin, double muMax, double rVetoMin, double rVetoMax) {
+baofit::AbsCorrelationDataPtr local::createSectorsPrototype(double zref) {
     // Initialize the fixed (r,mu,z) binning for this format.
     likely::AbsBinningCPtr
         rBins(new likely::UniformBinning(0,200,50)),
@@ -324,8 +317,7 @@ double muMin, double muMax, double rVetoMin, double rVetoMax) {
         zBins(new likely::UniformSampling(zref,zref,1));
 
     baofit::AbsCorrelationDataPtr
-        prototype(new baofit::ComovingCorrelationData(rBins,muBins,zBins,rmin,rmax,
-            muMin,muMax,rVetoMin,rVetoMax));
+        prototype(new baofit::ComovingCorrelationData(rBins,muBins,zBins));
 
     return prototype;    
 }
@@ -389,11 +381,10 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose) {
 }
 
 // Creates a prototype QuasarCorrelationData with the specified binning and cosmology.
-baofit::AbsCorrelationDataCPtr local::createCosmolibPrototype(
+baofit::AbsCorrelationDataPtr local::createCosmolibPrototype(
 double minsep, double dsep, int nsep, double minz, double dz, int nz,
 double minll, double maxll, double dll, double dll2,
-double rmin, double rmax, double muMin, double muMax, double rVetoMin, double rVetoMax, double llmin,
-cosmo::AbsHomogeneousUniversePtr cosmology) {
+double llmin, bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology) {
 
     // Initialize the (logLambda,separation,redshift) binning from command-line params.
     likely::AbsBinningCPtr llBins,
@@ -411,9 +402,7 @@ cosmo::AbsHomogeneousUniversePtr cosmology) {
 
     // Create the new BinnedData that we will fill.
     baofit::AbsCorrelationDataPtr
-        prototype(new baofit::QuasarCorrelationData(llBins,sepBins,zBins,rmin,rmax,muMin,muMax,llmin,
-            rVetoMin,rVetoMax,cosmology));
-
+        prototype(new baofit::QuasarCorrelationData(llBins,sepBins,zBins,llmin,fixCov,cosmology));
     return prototype;
 }
 
@@ -641,12 +630,8 @@ bool checkPosDef) {
     return binnedData;
 }
 
-baofit::AbsCorrelationDataCPtr local::createCosmolibXiPrototype(double minz, double dz, int nz,
-double minr, double maxr, double nr, bool hasHexadecapole, double rmin, double rmax,
-double rVetoMin, double rVetoMax, cosmo::Multipole ellmin, cosmo::Multipole ellmax) {
-    if(ellmin > ellmax) {
-        throw RuntimeError("createCosmolibXiPrototype: expected ellmin <= ellmax.");
-    }
+baofit::AbsCorrelationDataPtr local::createCosmolibXiPrototype(double minz, double dz, int nz,
+double minr, double maxr, double nr, bool hasHexadecapole) {
     // Create the new BinnedData that we will fill.
     std::vector<double> ellValues;
     ellValues.push_back(-1);
@@ -658,8 +643,7 @@ double rVetoMin, double rVetoMax, cosmo::Multipole ellmin, cosmo::Multipole ellm
         ellBins(new likely::NonUniformSampling(ellValues)),
         zBins(new likely::UniformSampling(minz+0.5*dz,minz+(nz-0.5)*dz,nz));
     baofit::AbsCorrelationDataPtr
-        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins,rmin,rmax,
-            rVetoMin,rVetoMax,ellmin,ellmax));
+        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins));
     return prototype;
 }
 

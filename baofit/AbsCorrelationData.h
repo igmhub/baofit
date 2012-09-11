@@ -33,8 +33,27 @@ namespace baofit {
         virtual cosmo::Multipole getMultipole(int index) const;
         // Returns the redshift associated with the specified global index.
         virtual double getRedshift(int index) const = 0;
+        // Records the final cuts that should be applied when this dataset is finalized.
+        // It is up to subclasses to actually implement these cuts using the protected
+        // _applyFinalCuts method in their finalize() implementation. Throws a RuntimeError
+        // if any cuts don't make sense. Note that (lMin,lMax) will be ignored if
+        // getTransverseBinningType() returns Coordinate and, otherwise, (muMin,muMax)
+        // will be ignored.
+        void setFinalCuts(double rMin, double rMax, double rVetoMin, double rVetoMax,
+            double muMin, double muMax, cosmo::Multipole lMin, cosmo::Multipole lMax,
+            double zMin, double zMax);
+    protected:
+        // Copies our final cuts to the specified object.
+        void _cloneFinalCuts(AbsCorrelationData &other) const;
+        // Fills the empty set provided with a list of global indices for bins that should be
+        // kept in the final data set. Throws a RuntimeError if the input set is not empty
+        // or if setFinalCuts has never been called.
+        void _applyFinalCuts(std::set<int> &keep) const;
     private:
         TransverseBinningType _type;
+        double _rMin,_rMax,_rVetoMin,_rVetoMax,_muMin,_muMax,_zMin,_zMax;
+        cosmo::Multipole _lMin,_lMax;
+        bool _haveFinalCuts;
 	}; // AbsCorrelationData
 	
 	inline AbsCorrelationData::TransverseBinningType
