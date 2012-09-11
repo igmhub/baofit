@@ -11,49 +11,24 @@
 namespace local = baofit;
 
 local::MultipoleCorrelationData::MultipoleCorrelationData(likely::AbsBinningCPtr axis1,
-likely::AbsBinningCPtr axis2, likely::AbsBinningCPtr axis3, double rmin, double rmax,
-double rVetoMin, double rVetoMax, cosmo::Multipole ellmin, cosmo::Multipole ellmax)
-: AbsCorrelationData(axis1,axis2,axis3,Multipole)
+likely::AbsBinningCPtr axis2, likely::AbsBinningCPtr axis3)
+: AbsCorrelationData(axis1,axis2,axis3,Multipole), _lastIndex(-1)
 {
-    _initialize(rmin,rmax,rVetoMin,rVetoMax,ellmin,ellmax);
 }
 
-local::MultipoleCorrelationData::MultipoleCorrelationData(std::vector<likely::AbsBinningCPtr> axes,
-double rmin, double rmax, double rVetoMin, double rVetoMax, cosmo::Multipole ellmin, cosmo::Multipole ellmax)
-: AbsCorrelationData(axes,Multipole)
+local::MultipoleCorrelationData::MultipoleCorrelationData(std::vector<likely::AbsBinningCPtr> axes)
+: AbsCorrelationData(axes,Multipole), _lastIndex(-1)
 {
     if(axes.size() != 3) {
         throw RuntimeError("MultipoleCorrelationData: expected 3 axes.");
     }
-    _initialize(rmin,rmax,rVetoMin,rVetoMax,ellmin,ellmax);
-}
-
-void local::MultipoleCorrelationData::_initialize(double rmin, double rmax,
-double rVetoMin, double rVetoMax, cosmo::Multipole ellmin, cosmo::Multipole ellmax) {
-    if(rmin >= rmax) {
-        throw RuntimeError("MultipoleCorrelationData: expected rmin < rmax.");
-    }
-    if(rVetoMin > rVetoMax) {
-        throw RuntimeError("MultipoleCorrelationData: expected rVetoMin <= rVetoMax.");
-    }
-    if(ellmin > ellmax) {
-        throw RuntimeError("MultipoleCorrelationData: expected ellmin <= ellmax.");
-    }
-    _rmin = rmin;
-    _rmax = rmax;
-    _rVetoMin = rVetoMin;
-    _rVetoMax = rVetoMax;
-    _ellmin = ellmin;
-    _ellmax = ellmax;
-    _lastIndex = -1;
 }
 
 local::MultipoleCorrelationData::~MultipoleCorrelationData() { }
 
 local::MultipoleCorrelationData *local::MultipoleCorrelationData::clone(bool binningOnly) const {
     MultipoleCorrelationData *data = binningOnly ?
-        new MultipoleCorrelationData(getAxisBinning(),_rmin,_rmax,_rVetoMin,_rVetoMax,_ellmin,_ellmax) :
-        new MultipoleCorrelationData(*this);
+        new MultipoleCorrelationData(getAxisBinning()) : new MultipoleCorrelationData(*this);
     _cloneFinalCuts(*data);
     return data;
 }
@@ -78,7 +53,7 @@ void local::MultipoleCorrelationData::_setIndex(int index) const {
     getBinCenters(index,_binCenter);
     _rLast = _binCenter[0];
     // We don't check for a valid enum type here on purpose, so that additional modes can be
-    // included in the dataset for correct weighted, and then pruned out in the finalize step.
+    // included in the dataset for correct weighting, and then pruned out in the finalize step.
     _ellLast = static_cast<cosmo::Multipole>(std::floor(_binCenter[1]+0.5));
     _zLast = _binCenter[2];
     _lastIndex = index;
@@ -91,7 +66,8 @@ void local::MultipoleCorrelationData::finalize() {
     AbsCorrelationData::finalize();
 }
 
-void local::MultipoleCorrelationData::dump(std::ostream &out, std::vector<double> const &weights) const {
+void local::MultipoleCorrelationData::dump(std::ostream &out, double rmin, double rmax,
+std::vector<double> const &weights) const {
     if(weights.size() > 0 && weights.size() != getNBinsWithData()) {
         throw RuntimeError("MultipoleCorrelationData::dump: unexpected size of weights.");
     }
@@ -100,8 +76,8 @@ void local::MultipoleCorrelationData::dump(std::ostream &out, std::vector<double
     std::vector<int> bin(3);
     for(int rIndex = 0; rIndex < nRadialBins; ++rIndex) {
         double rval(binning[0]->getBinCenter(rIndex));
-        if(rval < _rmin) continue;
-        if(rval >= _rmax) break;
+        if(rval < rmin) continue;
+        if(rval > rmax) break;
         out << rval;
         bin[0] = rIndex;
         for(int zIndex = 0; zIndex < nZBins; ++zIndex) {

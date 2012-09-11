@@ -303,7 +303,7 @@ int main(int argc, char **argv) {
         baofit::AbsCorrelationDataPtr prototype;
         if(french) {
             zdata = 2.30;
-            prototype = baofit::boss::createFrenchPrototype(zdata,rmin,rmax,rVetoMin,rVetoMax,ellmin,ellmax);
+            prototype = baofit::boss::createFrenchPrototype(zdata);
         }
         else if(sectors) {
             zdata = 2.30;
@@ -311,13 +311,11 @@ int main(int argc, char **argv) {
         }
         else if(dr9lrg) {
             zdata = 0.57;
-            prototype = baofit::boss::createDR9LRGPrototype(zdata,rmin,rmax,rVetoMin,rVetoMax,
-                "LRG/Sample4_North.cov",verbose);
+            prototype = baofit::boss::createDR9LRGPrototype(zdata,"LRG/Sample4_North.cov",verbose);
         }
         else if(xiFormat) {
             zdata = 2.25;
-            prototype = baofit::boss::createCosmolibXiPrototype(minz,dz,nz,xiRmin,xiRmax,xiNr,xiHexa,
-                rmin,rmax,rVetoMin,rVetoMax,ellmin,ellmax);
+            prototype = baofit::boss::createCosmolibXiPrototype(minz,dz,nz,xiRmin,xiRmax,xiNr,xiHexa);
         }
         else { // default is cosmolib (demo) format
             zdata = 2.25;
@@ -415,7 +413,7 @@ int main(int argc, char **argv) {
                 // Calculate the decorrelated weights for the combined fit.
                 analyzer.getDecorrelatedWeights(analyzer.getCombined(),fmin->getParameters(),dweights);
             }
-            combined->dump(out,dweights);
+            combined->dump(out,rmin,rmax,dweights);
             out.close();
         }
         // Save the combined inverse covariance, if requested.
