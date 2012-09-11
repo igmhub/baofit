@@ -51,9 +51,11 @@ double rVetoMin, double rVetoMax, cosmo::Multipole ellmin, cosmo::Multipole ellm
 local::MultipoleCorrelationData::~MultipoleCorrelationData() { }
 
 local::MultipoleCorrelationData *local::MultipoleCorrelationData::clone(bool binningOnly) const {
-    return binningOnly ?
+    MultipoleCorrelationData *data = binningOnly ?
         new MultipoleCorrelationData(getAxisBinning(),_rmin,_rmax,_rVetoMin,_rVetoMax,_ellmin,_ellmax) :
         new MultipoleCorrelationData(*this);
+    _cloneFinalCuts(*data);
+    return data;
 }
 
 double local::MultipoleCorrelationData::getRadius(int index) const {
@@ -84,17 +86,7 @@ void local::MultipoleCorrelationData::_setIndex(int index) const {
 
 void local::MultipoleCorrelationData::finalize() {
     std::set<int> keep;
-    std::vector<double> binCenter;
-    // Loop over bins with data.
-    for(IndexIterator iter = begin(); iter != end(); ++iter) {
-        // Lookup the value of ll,sep,z at the center of this bin.
-        int index(*iter), ell(getMultipole(index));
-        double r(getRadius(index));
-        // Keep this bin in our pruned dataset?
-        if(r >= _rmin && r < _rmax && ell >= _ellmin && ell <= _ellmax) {
-            if(r <= _rVetoMin || r >= _rVetoMax) keep.insert(index);
-        }
-    }
+    _applyFinalCuts(keep);
     prune(keep);
     AbsCorrelationData::finalize();
 }

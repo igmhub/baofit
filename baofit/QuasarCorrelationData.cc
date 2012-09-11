@@ -65,10 +65,12 @@ cosmo::AbsHomogeneousUniversePtr cosmology) {
 local::QuasarCorrelationData::~QuasarCorrelationData() { }
 
 local::QuasarCorrelationData *local::QuasarCorrelationData::clone(bool binningOnly) const {
-    return binningOnly ?
+    QuasarCorrelationData *data = binningOnly ?
         new QuasarCorrelationData(getAxisBinning(),_rmin,_rmax,_muMin,_muMax,_zMin,_zMax,_llmin,
 				  _rVetoMin,_rVetoMax,_fixCov,_cosmology) :
         new QuasarCorrelationData(*this);
+    _cloneFinalCuts(*data);
+    return data;
 }
 
 void local::QuasarCorrelationData::fixCovariance(double ll0, double c0, double c1, double c2) {
@@ -121,26 +123,28 @@ void local::QuasarCorrelationData::finalize() {
     // First fix Covariance
     if (_fixCov) fixCovariance();
 
-    // Next do pruning
+    // Next apply final cuts.
     std::set<int> keep;
+    _applyFinalCuts(keep);
+    
     // Loop over bins with data.
     for(IndexIterator iter = begin(); iter != end(); ++iter) {
-        // Lookup the value of ll,sep,z at the center of this bin.
+        // Skip bins that have already been cut in _applyFinalCuts
         int index(*iter);
-        double r(getRadius(index)), mu(getCosAngle(index)), z(getRedshift(index));
+        if(0 == keep.count(index)) continue;        
+        // Lookup the value of ll at the center of this bin.
         double ll(_binCenter[0]);
         // Keep this bin in our pruned dataset?
-        if(r >= _rmin && r < _rmax && mu >= _muMin && mu <= _muMax
-	   && z>=_zMin &&  z<=_zMax && ll >= _llmin) {
-            if(r <= _rVetoMin || r >= _rVetoMax) {
-                keep.insert(index);
-                // Remember these values.
-                _rLookup.push_back(r);
-                _muLookup.push_back(mu);
-                _zLookup.push_back(z);
-            }
+        if(ll < _llmin) {
+            keep.erase(index);
+            continue;
         }
+        // Cache the values of (r,mu,z) corresponding to the center of this bin.
+        _rLookup.push_back(getRadius(index));
+        _muLookup.push_back(getCosAngle(index));
+        _zLookup.push_back(getRedshift(index));
     }
+    // Prune our dataset down to bins in the keep set.
     prune(keep);
     AbsCorrelationData::finalize();
 }
