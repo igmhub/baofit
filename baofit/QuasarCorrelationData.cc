@@ -109,6 +109,7 @@ void local::QuasarCorrelationData::finalize() {
         int index(*iter);
         if(0 == keep.count(index)) continue;        
         // Lookup the value of ll at the center of this bin.
+        getBinCenters(index,_binCenter);
         double ll(_binCenter[0]);
         // Keep this bin in our pruned dataset?
         if(ll < _llmin) {
