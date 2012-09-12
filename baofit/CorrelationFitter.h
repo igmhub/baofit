@@ -28,9 +28,13 @@ namespace baofit {
         // and errors (including fixed/floating) for this fit only.
         likely::FunctionMinimumPtr fit(std::string const &methodName, std::string const &config = "") const;
         // Generates nchain*interval Markov chain MC samples and fills the vector provided with the parameters
-        // every interval samples. Uses the input fmin to initialize the MCMC proposal function and determine
-        // which parameters are floating. On return, fmin is updated based on accumulated statistics.
-        void mcmc(likely::FunctionMinimumPtr fmin, int nchain, int interval, std::vector<double> &samples) const;
+        // every interval samples. Uses the input fmin, if one is provided, to initialize the MCMC proposal
+        // function and determine which parameters are floating. If !fmin, then uses FitModel::guessMinimum
+        // instead, which uses our model's initial fit parameter configuration. The MCMC chain is generated
+        // without any periodic updates to the proposal function's covariance estimate. Returns the function
+        // minimum actually used for MCMC (after any updates).
+        likely::FunctionMinimumCPtr mcmc(likely::FunctionMinimumCPtr fmin, int nchain, int interval,
+            std::vector<double> &samples) const;
 	private:
         AbsCorrelationData::TransverseBinningType _type;
         AbsCorrelationDataCPtr _data;
