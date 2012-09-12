@@ -430,14 +430,12 @@ std::string const &saveName, int nsave) const {
     if(interval < 0) {
         throw RuntimeError("CorrelationAnalyzer::generateMarkovChain: expected interval >= 0.");        
     }
-    // Make a copy of the input function minimum, to use (and update) during sampling.
-    likely::FunctionMinimumPtr fminCopy(new likely::FunctionMinimum(*fmin));
     // Create a fitter to calculate the likelihood.
     AbsCorrelationDataCPtr combined = getCombined(true);
     CorrelationFitter fitter(combined,_model);
     // Generate the MCMC chains, saving the results in a vector.
     std::vector<double> samples;
-    fitter.mcmc(fminCopy, nchain, interval, samples);
+    fmin = fitter.mcmc(fmin, nchain, interval, samples);
     // Output the results and accumulate statistics.
     SamplingOutput output(fmin,likely::FunctionMinimumCPtr(),saveName,nsave,*this);
     likely::FitParameters parameters(fmin->getFitParameters());
