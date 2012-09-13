@@ -30,8 +30,11 @@ int main(int argc, char **argv) {
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin,
         rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax,kloSpline,khiSpline,mcScale,saveICovScale,
         zMin, zMax;
+    
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
       mcmcSave,mcmcInterval,mcSamples,xiNr,reuseCov,nSpline,splineOrder;
+    int bb3_rpmin, bb3_rpmax, bb3_mupmax, bb3_zpmax;
+    bool bb3_muodd;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,mcConfig,
         platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig;
     std::vector<std::string> modelConfig;
@@ -76,7 +79,17 @@ int main(int argc, char **argv) {
             "Model parameters configuration script (option can appear multiple times).")
         ("alt-config", po::value<std::string>(&altConfig)->default_value(""),
             "Parameter adjustments for dumping alternate best-fit model.")
-        ("anisotropic", "Uses anisotropic a,b parameters instead of isotropic scale.")
+      ("bb3-rpmin", po::value<int>(&bb3_rpmin)->default_value(0),
+       "Broadband 3, min power in r")
+      ("bb3-rpmax", po::value<int>(&bb3_rpmax)->default_value(-1),
+       "Broadband 3, max power in r")
+      ("bb3-mupmax", po::value<int>(&bb3_mupmax)->default_value(4),
+       "Broadband 3, max power in mu")
+      ("bb3-zpmax", po::value<int>(&bb3_zpmax)->default_value(0),
+       "Broadband 3, max power in z")
+      ("bb3-muodd", po::value<bool>(&bb3_muodd)->default_value(true),
+       "Broadband 3, use even mus too?")
+      ("anisotropic", "Uses anisotropic a,b parameters instead of isotropic scale.")
         ;
     dataOptions.add_options()
         ("data", po::value<std::string>(&dataName)->default_value(""),
@@ -279,7 +292,8 @@ int main(int argc, char **argv) {
         else {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
             model.reset(new baofit::BaoCorrelationModel(
-                modelrootName,fiducialName,nowigglesName,broadbandName,zref,anisotropic));
+                modelrootName,fiducialName,nowigglesName,broadbandName,zref,
+		bb3_rpmin, bb3_rpmax, bb3_mupmax, bb3_zpmax, bb3_muodd, anisotropic));
         }
              
         // Configure our fit model parameters by applying all model-config options in turn,

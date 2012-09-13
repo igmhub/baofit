@@ -10,6 +10,7 @@
 #include "likely/RuntimeError.h"
 
 #include "boost/format.hpp"
+#include "boost/foreach.hpp"
 
 #include <cmath>
 
@@ -17,8 +18,11 @@ namespace local = baofit;
 
 local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName,
     std::string const &fiducialName, std::string const &nowigglesName,
-    std::string const &broadbandName, double zref, bool anisotropic)
-: AbsCorrelationModel("BAO Correlation Model"), _zref(zref), _anisotropic(anisotropic)
+    std::string const &broadbandName, double zref, int bb3rpmin, int bb3rpmax,
+    int bb3mupmax, int bb3zpmax, bool bb3muodd, bool anisotropic)
+  : AbsCorrelationModel("BAO Correlation Model"), _zref(zref), _anisotropic(anisotropic),
+    _bband3(zref, bb3rpmin, bb3rpmax, bb3mupmax, bb3zpmax, bb3muodd)
+
 {
     if(zref < 0) {
         throw RuntimeError("BaoCorrelationModel: expected zref >= 0.");
@@ -50,6 +54,13 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
     defineParameter("BBand2 mono 1/(r*r)",0,0.6);
     defineParameter("BBand2 quad 1/(r*r)",0,1.2);
     defineParameter("BBand2 hexa 1/(r*r)",0,2.4);
+    // Brodband Model 3 parameters
+    // cannot do this in _bband3.defineparamter(this), because
+    // defineParamter is protected.
+    BOOST_FOREACH(std::string s, _bband3.parameterNames()) {
+	defineParameter (s,0.0, 1.0);
+      }
+
     // Load the interpolation data we will use for each multipole of each model.
     std::string root(modelrootName);
     if(0 < root.size() && root[root.size()-1] != '/') root += '/';
@@ -114,6 +125,46 @@ namespace baofit {
     };
 }
 
+baofit::BBand3::BBand3(int zref, int rpmin, int rpmax, int mupmax, int zpmax, bool muodd) :
+  _zref(zref), _rpmin(rpmin), _rpmax(rpmax), _mupmax(mupmax), _zpmax(zpmax)
+{
+  if (muodd) _mupstep=1; else _mupstep=2;
+  boost::format bb3name("BBand3 r%i mu%i z%i");
+
+  for (int rp=_rpmin; rp<=_rpmax; rp++) 
+    for (int mp=0; mp<=mupmax; mp+=_mupstep)
+      for (int zp=0; zp<=_zpmax; zp++)
+	_pnames.push_back(boost::str(bb3name%rp%mp%zp));
+}
+
+std::vector<std::string> baofit::BBand3::parameterNames() {
+  return _pnames;
+}
+      
+double baofit::BBand3::operator()(const likely::FitModel* m, double r,double mu, double z) const {
+  double bband3(0.0);
+  double zr (z-_zref);
+  
+  int pi(0);
+  for (int rp=_rpmin; rp<=_rpmax; rp++) {
+    double rfact(rp==0 ? 1 : pow(r,-rp)); 
+      for (int mp=0; mp<=_mupmax; mp+=_mupstep) {
+	double mufact(mp==0 ? 1 : pow(mu,mp));
+	for (int zp=0; zp<=_zpmax; zp++) {
+	  double zfact(zp==0? 1 : pow (zr,zp));
+	  double v(m->getParameterValue(_pnames[pi]));
+	  pi++;
+	  bband3+=rfact*mufact*zfact*v;
+	}
+      }
+  }
+  return bband3;
+}
+
+
+
+
+
 #include "likely/function_impl.h"
 
 template cosmo::CorrelationFunctionPtr likely::createFunctionPtr<local::BaoCorrelationModel::BBand2>
@@ -165,7 +216,7 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     _bb2->setDistortion(beta);
     bband2Model.setDistortion(beta);
     // Calculate the peak contribution with scaled radius.
-    double peak(0);
+    double cosmoxi(0);
     if(ampl != 0) {
         double rPeak, muPeak;
         if(_anisotropic) {
@@ -187,17 +238,32 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
             muPeak = mu;
         }
         double fid((*_fid)(rPeak,muPeak)), nw((*_nw)(rPeak,muPeak));
-        peak = ampl*(fid-nw);
-    }
+	cosmoxi = nw+ampl*(fid-nw);
+    } else cosmoxi=(*_nw)(r,mu);
+
     // Calculate the additional broadband contributions with no radius scaling.
     double bband1(0);
     if(xio != 0) bband1 += xio*(*_bbc)(r,mu);
-    if(1+a0 != 0) bband1 += (1+a0)*(*_nw)(r,mu);
+    if(a0 != 0) bband1 += a0*cosmoxi;
     if(a1 != 0) bband1 += a1*(*_bb1)(r,mu);
     if(a2 != 0) bband1 += a2*(*_bb2)(r,mu);
     double bband2 = bband2Model(r,mu);
     // Combine the peak and broadband components, with bias and redshift evolution.
-    return bias*bias*zfactor*(peak + bband1 + bband2);
+    double bband3(_bband3(this, r,mu,z));
+
+    // cosmo::RsdCorrelationFunction bbandXModel(
+    //     likely::createFunctionPtr(BBand2Ptr(new BBand2(
+    //         getParameterValue("BBand3 r0 mu0 z0"),
+    //         getParameterValue("BBand3 r1 mu0 z0"),
+    //         getParameterValue("BBand3 r2 mu0 z0")))),
+    //     likely::createFunctionPtr(BBand2Ptr(new BBand2(
+    // 						       0,0,0))),
+    //     likely::createFunctionPtr(BBand2Ptr(new BBand2(
+    // 						       0,0,0))));
+
+    // std::cout <<"debg:" << bbandXModel(r,mu) << " " <<bband3<<std::endl;
+    
+    return bias*bias*zfactor*(cosmoxi + bband1 + bband2 + bband3);
 }
 
 double local::BaoCorrelationModel::_evaluate(double r, cosmo::Multipole multipole, double z,
@@ -290,6 +356,7 @@ bool anyChanged) const {
     if(a1 != 0) bband1 += a1*(*_bb1)(r,multipole);
     if(a2 != 0) bband1 += a2*(*_bb2)(r,multipole);
     // Combine the peak and broadband components, with bias and redshift evolution.
+
     return bias*bias*zfactor*rsdScale*(peak + bband1 + bband2);
 }
 
