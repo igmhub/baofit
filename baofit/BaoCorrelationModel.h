@@ -15,11 +15,13 @@ namespace baofit {
   public:
     BBand3(int zref, int rpmin, int rpmax, int mupmax, int zpmax, bool muodd);
     std::vector<std::string> parameterNames();
-    double operator()(const likely::FitModel* m, double r, double mu, double z) const;
+    double operator()(const likely::FitModel* m, double r, double mu, double z, bool anyChanged) const;
   private:
     double _zref;
     int _rpmin, _rpmax, _mupmax, _mupstep, _zpmax;
     std::vector<std::string> _pnames;
+    // this is cache for values.
+    mutable std::vector<double> _vals;
   };
 }
 
