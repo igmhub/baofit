@@ -89,6 +89,7 @@ int main(int argc, char **argv) {
         ("max-plates", po::value<int>(&maxPlates)->default_value(0),
             "Maximum number of plates to load (zero uses all available plates).")
         ("check-posdef", "Checks that each covariance is positive-definite (slow).")
+        ("save-data", "Saves the combined (unweighted) data after final cuts.")
         ("save-icov", "Saves the inverse covariance of the combined data after final cuts.")
         ("save-icov-scale", po::value<double>(&saveICovScale)->default_value(1),
             "Scale factor applied to inverse covariance elements when using save-icov.")
@@ -235,7 +236,7 @@ int main(int argc, char **argv) {
         xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")), mcSave(vm.count("mc-save")),
         expanded(vm.count("expanded")), sectors(vm.count("sectors")), saveICov(vm.count("save-icov")),
         multiSpline(vm.count("multi-spline")), fixAlnCov(vm.count("fix-aln-cov")),
-        mcmcReset(vm.count("mcmc-reset"));
+        mcmcReset(vm.count("mcmc-reset")),saveData(vm.count("save-data"));
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
@@ -393,6 +394,36 @@ int main(int argc, char **argv) {
         return -2;
     }
     analyzer.setZData(zdata);
+    // Save the combined (unweighted) data, if requested.
+    if(saveData) {
+        baofit::AbsCorrelationDataPtr combined = analyzer.getCombined();
+        std::string outName = outputPrefix + "data.dat";
+        std::ofstream out(outName.c_str());
+        for(likely::BinnedData::IndexIterator iter = combined->begin(); iter != combined->end(); ++iter) {
+            out << *iter << ' ' << combined->getData(*iter) << std::endl;
+        }
+        out.close();
+    }
+    // Save the combined inverse covariance, if requested.
+    if(saveICov) {
+        baofit::AbsCorrelationDataPtr combined = analyzer.getCombined();
+        std::string outName = outputPrefix + "icov.dat";
+        std::ofstream out(outName.c_str());
+        for(likely::BinnedData::IndexIterator iter1 = combined->begin(); iter1 != combined->end(); ++iter1) {
+            int index1(*iter1);
+            // Save all diagonal elements.
+            out << index1 << ' ' << index1 << ' '
+                << saveICovScale*combined->getInverseCovariance(index1,index1) << std::endl;
+            // Loop over pairs with index2 > index1
+            for(likely::BinnedData::IndexIterator iter2 = iter1; ++iter2 != combined->end();) {
+                int index2(*iter2);
+                // Only save non-zero off-diagonal elements.
+                double Cinv(saveICovScale*combined->getInverseCovariance(index1,index2));
+                if(Cinv != 0) out << index1 << ' ' << index2 << ' ' << Cinv << std::endl;
+            }
+        }
+        out.close();
+    }
 
     // Do the requested analyses...
     try {
@@ -415,26 +446,6 @@ int main(int argc, char **argv) {
                 analyzer.getDecorrelatedWeights(analyzer.getCombined(),fmin->getParameters(),dweights);
             }
             combined->dump(out,rmin,rmax,dweights);
-            out.close();
-        }
-        // Save the combined inverse covariance, if requested.
-        if(saveICov) {
-            baofit::AbsCorrelationDataPtr combined = analyzer.getCombined();
-            std::string outName = outputPrefix + "icov.dat";
-            std::ofstream out(outName.c_str());
-            for(likely::BinnedData::IndexIterator iter1 = combined->begin(); iter1 != combined->end(); ++iter1) {
-                int index1(*iter1);
-                // Save all diagonal elements.
-                out << index1 << ' ' << index1 << ' '
-                    << saveICovScale*combined->getInverseCovariance(index1,index1) << std::endl;
-                // Loop over pairs with index2 > index1
-                for(likely::BinnedData::IndexIterator iter2 = iter1; ++iter2 != combined->end();) {
-                    int index2(*iter2);
-                    // Only save non-zero off-diagonal elements.
-                    double Cinv(saveICovScale*combined->getInverseCovariance(index1,index2));
-                    if(Cinv != 0) out << index1 << ' ' << index2 << ' ' << Cinv << std::endl;
-                }
-            }
             out.close();
         }
         if(ndump > 0) {
