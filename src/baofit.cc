@@ -396,7 +396,7 @@ int main(int argc, char **argv) {
     analyzer.setZData(zdata);
     // Save the combined (unweighted) data, if requested.
     if(saveData) {
-        baofit::AbsCorrelationDataPtr combined = analyzer.getCombined();
+        baofit::AbsCorrelationDataCPtr combined = analyzer.getCombined();
         std::string outName = outputPrefix + "data.dat";
         std::ofstream out(outName.c_str());
         for(likely::BinnedData::IndexIterator iter = combined->begin(); iter != combined->end(); ++iter) {
@@ -406,7 +406,7 @@ int main(int argc, char **argv) {
     }
     // Save the combined inverse covariance, if requested.
     if(saveICov) {
-        baofit::AbsCorrelationDataPtr combined = analyzer.getCombined();
+        baofit::AbsCorrelationDataCPtr combined = analyzer.getCombined();
         std::string outName = outputPrefix + "icov.dat";
         std::ofstream out(outName.c_str());
         for(likely::BinnedData::IndexIterator iter1 = combined->begin(); iter1 != combined->end(); ++iter1) {
