@@ -55,7 +55,7 @@ void local::QuasarCorrelationData::fixCovariance(double ll0, double c0, double c
         throw RuntimeError("QuasarCorrelationData::fixCovariance: not modifiable.");
     }
     // Make sure that our our data vector is un-weighted.
-    getData(*begin());
+    setWeighted(false);
 
     // Save values in the outer loop, for re-use in the inner loop.
     std::vector<double> dll;
