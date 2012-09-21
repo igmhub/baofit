@@ -394,9 +394,9 @@ int main(int argc, char **argv) {
         return -2;
     }
     analyzer.setZData(zdata);
+    baofit::AbsCorrelationDataCPtr combined = analyzer.getCombined();
     // Save the combined (unweighted) data, if requested.
     if(saveData) {
-        baofit::AbsCorrelationDataCPtr combined = analyzer.getCombined();
         std::string outName = outputPrefix + "data.dat";
         std::ofstream out(outName.c_str());
         for(likely::BinnedData::IndexIterator iter = combined->begin(); iter != combined->end(); ++iter) {
@@ -406,7 +406,6 @@ int main(int argc, char **argv) {
     }
     // Save the combined inverse covariance, if requested.
     if(saveICov) {
-        baofit::AbsCorrelationDataCPtr combined = analyzer.getCombined();
         std::string outName = outputPrefix + "icov.dat";
         std::ofstream out(outName.c_str());
         for(likely::BinnedData::IndexIterator iter1 = combined->begin(); iter1 != combined->end(); ++iter1) {
@@ -438,14 +437,14 @@ int main(int argc, char **argv) {
         if(french || dr9lrg || xiFormat) {
             std::string outName = outputPrefix + "combined.dat";
             std::ofstream out(outName.c_str());
-            boost::shared_ptr<baofit::MultipoleCorrelationData> combined =
-                boost::dynamic_pointer_cast<baofit::MultipoleCorrelationData>(analyzer.getCombined());
+            boost::shared_ptr<const baofit::MultipoleCorrelationData> combinedMultipoles =
+                boost::dynamic_pointer_cast<const baofit::MultipoleCorrelationData>(combined);
             std::vector<double> dweights;
             if(decorrelated) {
                 // Calculate the decorrelated weights for the combined fit.
-                analyzer.getDecorrelatedWeights(analyzer.getCombined(),fmin->getParameters(),dweights);
+                analyzer.getDecorrelatedWeights(combined,fmin->getParameters(),dweights);
             }
-            combined->dump(out,rmin,rmax,dweights);
+            combinedMultipoles->dump(out,rmin,rmax,dweights);
             out.close();
         }
         if(ndump > 0) {
