@@ -94,7 +94,6 @@ int main(int argc, char **argv) {
         ("save-icov-scale", po::value<double>(&saveICovScale)->default_value(1),
             "Scale factor applied to inverse covariance elements when using save-icov.")
         ("fix-aln-cov", "Fixes covariance matrix of points in 'aln' parametrization")
-        ("ignore-non-posdef", "Tries to continue if combined covariance is non positive definite.")
         ;
     frenchOptions.add_options()
         ("french", "Correlation data files are in the French format (default is cosmolib).")
@@ -239,8 +238,7 @@ int main(int argc, char **argv) {
         xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")), mcSave(vm.count("mc-save")),
         expanded(vm.count("expanded")), sectors(vm.count("sectors")), saveICov(vm.count("save-icov")),
         multiSpline(vm.count("multi-spline")), fixAlnCov(vm.count("fix-aln-cov")),
-        mcmcReset(vm.count("mcmc-reset")),saveData(vm.count("save-data")),
-        ignoreNonPosdef(vm.count("ignore-non-posdef"));
+        mcmcReset(vm.count("mcmc-reset")),saveData(vm.count("save-data"));
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
@@ -402,12 +400,13 @@ int main(int argc, char **argv) {
     baofit::AbsCorrelationDataCPtr combined = analyzer.getCombined(verbose);
     // Check that the combined covariance is positive definite.
     try {
-        combined->getCovariance(0,0);
-        combined->getInverseCovariance(0,0);
+        int first = *combined->begin();
+        combined->getCovariance(first,first);
+        combined->getInverseCovariance(first,first);
     }
     catch(likely::RuntimeError const &e) {
         std::cerr << "Combined covariance matrix is not positive definite." << std::endl;
-        if(!ignoreNonPosdef) return -3;
+        return -3;
     }
     // Save the combined (unweighted) data, if requested.
     if(saveData) {
