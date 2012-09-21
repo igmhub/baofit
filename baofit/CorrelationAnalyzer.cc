@@ -102,7 +102,7 @@ std::string const &scaleName) const {
 }
 
 likely::FunctionMinimumPtr local::CorrelationAnalyzer::fitCombined(std::string const &config) const {
-    AbsCorrelationDataCPtr combined = getCombined(true);
+    AbsCorrelationDataCPtr combined = getCombined();
     CorrelationFitter fitter(combined,_model);
     likely::FunctionMinimumPtr fmin = fitter.fit(_method,config);
     if(_verbose) {

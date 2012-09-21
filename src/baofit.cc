@@ -399,7 +399,7 @@ int main(int argc, char **argv) {
     }
     analyzer.setZData(zdata);
     // Fetch the combined data after final cuts.
-    baofit::AbsCorrelationDataCPtr combined = analyzer.getCombined();
+    baofit::AbsCorrelationDataCPtr combined = analyzer.getCombined(verbose);
     // Check that the combined covariance is positive definite.
     try {
         combined->getCovariance(0,0);
