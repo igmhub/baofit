@@ -108,6 +108,9 @@ namespace baofit {
         // floating parameters of the specified function minimum. Uses the specified zref to
         // calculate the redshift evolution of the scale and its error.
         bool printScaleZEff(likely::FunctionMinimumCPtr fmin, double zref, std::string const &scaleName) const;
+        // Returns a bootstrap estimate of the combined data's covariance matrix using the specified number
+        // of bootstrap trials.
+        likely::CovarianceMatrixPtr estimateCombinedCovariance(int nSamples) const;
 	private:
         std::string _method;
         double _rmin, _rmax, _zdata;
@@ -129,6 +132,9 @@ namespace baofit {
     inline void CorrelationAnalyzer::setVerbose(bool value) { _verbose = value; }
     inline int CorrelationAnalyzer::getNData() const { return _resampler.getNObservations(); }
     inline void CorrelationAnalyzer::setModel(AbsCorrelationModelPtr model) { _model = model; }
+    inline likely::CovarianceMatrixPtr CorrelationAnalyzer::estimateCombinedCovariance(int nSamples) const {
+        return _resampler.estimateCombinedCovariance(nSamples);
+    }
 
 } // baofit
 
