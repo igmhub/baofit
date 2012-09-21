@@ -133,7 +133,7 @@ namespace baofit {
     inline int CorrelationAnalyzer::getNData() const { return _resampler.getNObservations(); }
     inline void CorrelationAnalyzer::setModel(AbsCorrelationModelPtr model) { _model = model; }
     inline likely::CovarianceMatrixPtr CorrelationAnalyzer::estimateCombinedCovariance(int nSamples) const {
-        return _resampler.estimateCombinedCovariance(nSamples);
+        return _resampler.estimateCombinedCovariance(nSamples,10);
     }
 
 } // baofit
