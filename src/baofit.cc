@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
         rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax,kloSpline,khiSpline,mcScale,saveICovScale,
         zMin, zMax;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
-      mcmcSave,mcmcInterval,mcSamples,xiNr,reuseCov,nSpline,splineOrder;
+      mcmcSave,mcmcInterval,mcSamples,xiNr,reuseCov,nSpline,splineOrder,bootstrapCovSize;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,mcConfig,
         platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig;
     std::vector<std::string> modelConfig;
@@ -171,6 +171,8 @@ int main(int argc, char **argv) {
             "Number of bootstrap trials to run if a platelist was provided.")
         ("bootstrap-size", po::value<int>(&bootstrapSize)->default_value(0),
             "Size of each bootstrap trial or zero to use the number of plates.")
+        ("bootstrap-cov-size", po::value<int>(&bootstrapCovSize)->default_value(0),
+            "Number of bootstrap trials for estimating and saving combined covariance.")
         ("jackknife-drop", po::value<int>(&jackknifeDrop)->default_value(0),
             "Number of observations to drop from each jackknife sample (zero for no jackknife analysis)")
         ("mcmc-save", po::value<int>(&mcmcSave)->default_value(0),
@@ -475,6 +477,27 @@ int main(int argc, char **argv) {
             analyzer.dumpResiduals(out,fmin);
             out.close();
         }
+        // Calculate and save a bootstrap estimate of the combined covariance matrix, if requested.
+        if(bootstrapCovSize > 0) {
+            if(verbose) std::cout << "Estimating combined covariance with bootstrap..." << std::endl;
+            likely::CovarianceMatrixCPtr bsCov = analyzer.estimateCombinedCovariance(bootstrapCovSize);
+            std::string outName = outputPrefix + "bsicov.dat";
+            std::ofstream out(outName.c_str());
+            for(likely::BinnedData::IndexIterator iter1 = combined->begin(); iter1 != combined->end(); ++iter1) {
+                int index1(*iter1);
+                // Save all diagonal elements.
+                out << index1 << ' ' << index1 << ' '
+                    << bsCov->getInverseCovariance(index1,index1) << std::endl;
+                // Loop over pairs with index2 > index1
+                for(likely::BinnedData::IndexIterator iter2 = iter1; ++iter2 != combined->end();) {
+                    int index2(*iter2);
+                    // Only save non-zero off-diagonal elements.
+                    double Cinv(bsCov->getInverseCovariance(index1,index2));
+                    if(Cinv != 0) out << index1 << ' ' << index2 << ' ' << Cinv << std::endl;
+                }
+            }
+            out.close();            
+        }
         // Generate a Markov-chain for marginalization, if requested.
         if(mcmcSave > 0) {
             std::string outName = outputPrefix + "mcmc.dat";
@@ -524,7 +547,7 @@ int main(int argc, char **argv) {
         }
     }
     catch(std::runtime_error const &e) {
-        std::cerr << "ERROR during fit:\n  " << e.what() << std::endl;
+        std::cerr << "ERROR during analysis:\n  " << e.what() << std::endl;
         return -2;
     }
     // All done: normal exit.
