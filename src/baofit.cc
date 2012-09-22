@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
         rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax,kloSpline,khiSpline,mcScale,saveICovScale,
         zMin, zMax;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
-      mcmcSave,mcmcInterval,mcSamples,xiNr,reuseCov,nSpline,splineOrder,bootstrapCovSize;
+      mcmcSave,mcmcInterval,mcSamples,xiNr,reuseCov,nSpline,splineOrder,bootstrapCovTrials;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,mcConfig,
         platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig;
     std::vector<std::string> modelConfig;
@@ -172,7 +172,7 @@ int main(int argc, char **argv) {
             "Number of bootstrap trials to run if a platelist was provided.")
         ("bootstrap-size", po::value<int>(&bootstrapSize)->default_value(0),
             "Size of each bootstrap trial or zero to use the number of plates.")
-        ("bootstrap-cov-size", po::value<int>(&bootstrapCovSize)->default_value(0),
+        ("bootstrap-cov-trials", po::value<int>(&bootstrapCovTrials)->default_value(0),
             "Number of bootstrap trials for estimating and saving combined covariance.")
         ("bootstrap-scalar", "Uses scalar weights for combining bootstrap samples.")
         ("jackknife-drop", po::value<int>(&jackknifeDrop)->default_value(0),
@@ -475,13 +475,13 @@ int main(int argc, char **argv) {
         }
         // Calculate and save a bootstrap estimate of the (unfinalized) combined covariance
         // matrix, if requested.
-        if(bootstrapCovSize > 0) {
+        if(bootstrapCovTrials > 0) {
             if(verbose) std::cout << "Estimating combined covariance with bootstrap..." << std::endl;
             // Although we will only save icov, we still need a copy of the unfinalized combined data
             // in order to get the indexing right.
             bool verbose(false),finalized(false);
             baofit::AbsCorrelationDataPtr copy = analyzer.getCombined(verbose,finalized);
-            copy->setCovarianceMatrix(analyzer.estimateCombinedCovariance(bootstrapCovSize,bootstrapScalar));
+            copy->setCovarianceMatrix(analyzer.estimateCombinedCovariance(bootstrapCovTrials,bootstrapScalar));
             copy->saveInverseCovariance(outputPrefix + "bs.icov");
         }
         // Generate a Markov-chain for marginalization, if requested.
