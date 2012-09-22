@@ -1,8 +1,12 @@
-Correlation function input files in the cosmolib demo format, created with the commands below (the first command ends with a warning because there are no floating params, which is ok here):
+Correlation function input files in the cosmolib demo format, created with the commands below:
 
-./baofit -i ../config/Aln2.ini --mc-samples 1 --mc-save --output-prefix demo_ --model-config "fix[*]; release[beta]" --mc-config "fix[beta]=1.4" --rmin 20 --rmax 190 --mc-scale 0.1 --save-icov --save-icov-scale 10
+./baofit -i ../config/Aln2.ini --mc-samples 1 --mc-save --output-prefix demo_ --no-initial-fit --rmin 20 --rmax 190 --mc-scale 0.1 --save-icov --save-icov-scale 10
 
-cp demo_mcsave.dat ../demo/Aln2.data
-cp demo_icov.dat ../demo/Aln2.icov
+cp demo_mcsave.data ../demo/Aln2.data
+cp demo_save.icov ../demo/Aln2.icov
 
 ./baofit -i ../config/demo.ini >! ../demo/Aln2.log
+
+The warning about "failed to estimate full covariance matrix" is because we only generate 1 MC sample and
+is safe to ignore. Make sure that Aln2.ini is reading delta_pk_Aln2_d3d/mocks_by_realization.list in order
+to reproduce the package files.
