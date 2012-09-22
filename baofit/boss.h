@@ -36,7 +36,7 @@ namespace baofit {
             double minz, double dz, int nz, double minll, double maxll, double dll, double dll2,
             double llmin, bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology);
 
-        AbsCorrelationDataPtr loadCosmolibDemo(std::string const &dataName,
+        AbsCorrelationDataPtr loadCosmolibSaved(std::string const &dataName,
             AbsCorrelationDataCPtr prototype, bool verbose);
 
         AbsCorrelationDataPtr loadCosmolib(std::string const &dataName,

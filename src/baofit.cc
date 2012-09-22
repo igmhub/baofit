@@ -126,7 +126,7 @@ int main(int argc, char **argv) {
             "Redshift binsize.")
         ("nz", po::value<int>(&nz)->default_value(2),
             "Maximum number of redshift bins.")
-        ("demo-format", "Cosmolib data in demo format.")
+        ("saved-format", "Cosmolib data in format written by our save options.")
         ("xi-format", "Cosmolib data in Xi format.")
         ("xi-rmin", po::value<double>(&xiRmin)->default_value(0),
             "Minimum separation in Mpc/h (Xi format only).")
@@ -235,7 +235,7 @@ int main(int argc, char **argv) {
     bool verbose(0 == vm.count("quiet")), french(vm.count("french")), weighted(vm.count("weighted")),
         checkPosDef(vm.count("check-posdef")), fixCovariance(0 == vm.count("naive-covariance")),
         dr9lrg(vm.count("dr9lrg")), unweighted(vm.count("unweighted")), anisotropic(vm.count("anisotropic")),
-        fitEach(vm.count("fit-each")), xiHexa(vm.count("xi-hexa")), demoFormat(vm.count("demo-format")),
+        fitEach(vm.count("fit-each")), xiHexa(vm.count("xi-hexa")), savedFormat(vm.count("saved-format")),
         xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")), mcSave(vm.count("mc-save")),
         expanded(vm.count("expanded")), sectors(vm.count("sectors")), saveICov(vm.count("save-icov")),
         multiSpline(vm.count("multi-spline")), fixAlnCov(vm.count("fix-aln-cov")),
@@ -324,7 +324,7 @@ int main(int argc, char **argv) {
             zdata = 2.25;
             prototype = baofit::boss::createCosmolibXiPrototype(minz,dz,nz,xiRmin,xiRmax,xiNr,xiHexa);
         }
-        else { // default is cosmolib (demo) format
+        else { // default is cosmolib (saved) format
             zdata = 2.25;
             prototype = baofit::boss::createCosmolibPrototype(
                 minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,llmin,fixAlnCov,cosmology);
@@ -383,8 +383,8 @@ int main(int argc, char **argv) {
             }
             else {
                 // Add a cosmolib dataset, assumed to provided icov instead of cov.
-                if(demoFormat) {
-                    analyzer.addData(baofit::boss::loadCosmolibDemo(*filename,prototype,verbose));                    
+                if(savedFormat) {
+                    analyzer.addData(baofit::boss::loadCosmolibSaved(*filename,prototype,verbose));                    
                 }
                 else {
                     analyzer.addData(baofit::boss::loadCosmolib(*filename,prototype,
