@@ -429,7 +429,7 @@ std::string const &saveName, int nsave) const {
     CorrelationFitter fitter(combined,_model);
     // Generate the MCMC chains, saving the results in a vector.
     std::vector<double> samples;
-    fmin = fitter.mcmc(fmin, nchain, interval, samples);
+    fitter.mcmc(fmin, nchain, interval, samples);
     // Output the results and accumulate statistics.
     SamplingOutput output(fmin,likely::FunctionMinimumCPtr(),saveName,nsave,*this);
     likely::FitParameters parameters(fmin->getFitParameters());
