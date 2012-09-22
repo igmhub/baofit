@@ -192,13 +192,7 @@ namespace baofit {
                 }
                 // We don't finalize here because the prototype should already be finalized.
                 // Save this file?
-                if(_first && _filename.length() > 0) {
-                    std::ofstream out(_filename.c_str());
-                    for(likely::BinnedData::IndexIterator iter = sample->begin(); iter != sample->end(); ++iter) {
-                        out << *iter << ' ' << sample->getData(*iter) << std::endl;
-                    }
-                    out.close();
-                }
+                if(_first && _filename.length() > 0) sample->saveData(_filename);
                 _first = false;
             }
             return sample;

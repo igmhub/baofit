@@ -410,31 +410,14 @@ int main(int argc, char **argv) {
     }
     // Save the combined (unweighted) data, if requested.
     if(saveData) {
-        std::string outName = outputPrefix + "data.dat";
-        std::ofstream out(outName.c_str());
-        for(likely::BinnedData::IndexIterator iter = combined->begin(); iter != combined->end(); ++iter) {
-            out << *iter << ' ' << combined->getData(*iter) << std::endl;
-        }
-        out.close();
+        std::string outName = outputPrefix + "save.data";
+        bool weighted(false);
+        combined->saveData(outName,weighted);
     }
     // Save the combined inverse covariance, if requested.
     if(saveICov) {
-        std::string outName = outputPrefix + "icov.dat";
-        std::ofstream out(outName.c_str());
-        for(likely::BinnedData::IndexIterator iter1 = combined->begin(); iter1 != combined->end(); ++iter1) {
-            int index1(*iter1);
-            // Save all diagonal elements.
-            out << index1 << ' ' << index1 << ' '
-                << saveICovScale*combined->getInverseCovariance(index1,index1) << std::endl;
-            // Loop over pairs with index2 > index1
-            for(likely::BinnedData::IndexIterator iter2 = iter1; ++iter2 != combined->end();) {
-                int index2(*iter2);
-                // Only save non-zero off-diagonal elements.
-                double Cinv(saveICovScale*combined->getInverseCovariance(index1,index2));
-                if(Cinv != 0) out << index1 << ' ' << index2 << ' ' << Cinv << std::endl;
-            }
-        }
-        out.close();
+        std::string outName = outputPrefix + "save.icov";
+        combined->saveInverseCovariance(outName,saveICovScale);
     }
 
     // Do the requested analyses...
@@ -537,7 +520,7 @@ int main(int argc, char **argv) {
         if(mcSamples > 0) {
             std::string outName = outputPrefix + "mc.dat";
             std::string mcSaveName;
-            if(mcSave) mcSaveName = outputPrefix + "mcsave.dat";
+            if(mcSave) mcSaveName = outputPrefix + "mcsave.data";
             analyzer.doMCSampling(mcSamples,mcConfig,mcSaveName,mcScale,fmin,fmin2,refitConfig,outName,ndump);
         }
         // Perform a bootstrap analysis, if requested.
