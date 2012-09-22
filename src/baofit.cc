@@ -164,6 +164,7 @@ int main(int argc, char **argv) {
         ("ndump", po::value<int>(&ndump)->default_value(100),
             "Number of points spanning [rmin,rmax] to use for dumping models (zero for no dumps).")
         ("decorrelated", "Combined data is saved with decorrelated errors.")
+        ("no-initial-fit", "Skips initial fit to combined sample.")
         ("refit-config", po::value<std::string>(&refitConfig)->default_value(""),
             "Script to modify parameters for refits.")
         ("fit-each", "Fits each observation separately.")
@@ -240,7 +241,7 @@ int main(int argc, char **argv) {
         expanded(vm.count("expanded")), sectors(vm.count("sectors")), saveICov(vm.count("save-icov")),
         multiSpline(vm.count("multi-spline")), fixAlnCov(vm.count("fix-aln-cov")),
         mcmcReset(vm.count("mcmc-reset")),saveData(vm.count("save-data")),
-        bootstrapScalar(vm.count("bootstrap-scalar"));
+        bootstrapScalar(vm.count("bootstrap-scalar")), noInitialFit(vm.count("no-initial-fit"));
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
@@ -417,8 +418,15 @@ int main(int argc, char **argv) {
 
     // Do the requested analyses...
     try {
-        // Always fit the combined sample.
-        likely::FunctionMinimumPtr fmin = analyzer.fitSample(combined);
+        // Fit the combined sample or use the initial model-config.
+        likely::FunctionMinimumPtr fmin;
+        if(noInitialFit) {
+            baofit::CorrelationFitter fitter(combined,model);
+            fmin = fitter.guess();
+        }
+        else {
+            fmin = analyzer.fitSample(combined);
+        }
         // Print out some extra info if this fit has floating "BAO alpha-*" and "gamma-alpha" parameters.
         std::cout << std::endl;
         analyzer.printScaleZEff(fmin,zref,"BAO alpha-iso");
