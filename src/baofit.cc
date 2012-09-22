@@ -173,6 +173,7 @@ int main(int argc, char **argv) {
             "Size of each bootstrap trial or zero to use the number of plates.")
         ("bootstrap-cov-size", po::value<int>(&bootstrapCovSize)->default_value(0),
             "Number of bootstrap trials for estimating and saving combined covariance.")
+        ("bootstrap-scalar", "Uses scalar weights for combining bootstrap samples.")
         ("jackknife-drop", po::value<int>(&jackknifeDrop)->default_value(0),
             "Number of observations to drop from each jackknife sample (zero for no jackknife analysis)")
         ("mcmc-save", po::value<int>(&mcmcSave)->default_value(0),
@@ -238,7 +239,8 @@ int main(int argc, char **argv) {
         xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")), mcSave(vm.count("mc-save")),
         expanded(vm.count("expanded")), sectors(vm.count("sectors")), saveICov(vm.count("save-icov")),
         multiSpline(vm.count("multi-spline")), fixAlnCov(vm.count("fix-aln-cov")),
-        mcmcReset(vm.count("mcmc-reset")),saveData(vm.count("save-data"));
+        mcmcReset(vm.count("mcmc-reset")),saveData(vm.count("save-data")),
+        bootstrapScalar(vm.count("bootstrap-scalar"));
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
@@ -409,16 +411,9 @@ int main(int argc, char **argv) {
         return -3;
     }
     // Save the combined (unweighted) data, if requested.
-    if(saveData) {
-        std::string outName = outputPrefix + "save.data";
-        bool weighted(false);
-        combined->saveData(outName,weighted);
-    }
+    if(saveData) combined->saveData(outputPrefix + "save.data");
     // Save the combined inverse covariance, if requested.
-    if(saveICov) {
-        std::string outName = outputPrefix + "save.icov";
-        combined->saveInverseCovariance(outName,saveICovScale);
-    }
+    if(saveICov) combined->saveInverseCovariance(outputPrefix + "save.icov",saveICovScale);
 
     // Do the requested analyses...
     try {
@@ -471,26 +466,16 @@ int main(int argc, char **argv) {
             analyzer.dumpResiduals(out,fmin);
             out.close();
         }
-        // Calculate and save a bootstrap estimate of the combined covariance matrix, if requested.
+        // Calculate and save a bootstrap estimate of the (unfinalized) combined covariance
+        // matrix, if requested.
         if(bootstrapCovSize > 0) {
             if(verbose) std::cout << "Estimating combined covariance with bootstrap..." << std::endl;
-            likely::CovarianceMatrixCPtr bsCov = analyzer.estimateCombinedCovariance(bootstrapCovSize);
-            std::string outName = outputPrefix + "bsicov.dat";
-            std::ofstream out(outName.c_str());
-            for(likely::BinnedData::IndexIterator iter1 = combined->begin(); iter1 != combined->end(); ++iter1) {
-                int index1(*iter1);
-                // Save all diagonal elements.
-                out << index1 << ' ' << index1 << ' '
-                    << bsCov->getInverseCovariance(index1,index1) << std::endl;
-                // Loop over pairs with index2 > index1
-                for(likely::BinnedData::IndexIterator iter2 = iter1; ++iter2 != combined->end();) {
-                    int index2(*iter2);
-                    // Only save non-zero off-diagonal elements.
-                    double Cinv(bsCov->getInverseCovariance(index1,index2));
-                    if(Cinv != 0) out << index1 << ' ' << index2 << ' ' << Cinv << std::endl;
-                }
-            }
-            out.close();            
+            // Although we will only save icov, we still need a copy of the unfinalized combined data
+            // in order to get the indexing right.
+            bool verbose(false),finalized(false);
+            baofit::AbsCorrelationDataPtr copy = analyzer.getCombined(verbose,finalized);
+            copy->setCovarianceMatrix(analyzer.estimateCombinedCovariance(bootstrapCovSize,bootstrapScalar));
+            copy->saveInverseCovariance(outputPrefix + "bs.icov");
         }
         // Generate a Markov-chain for marginalization, if requested.
         if(mcmcSave > 0) {
