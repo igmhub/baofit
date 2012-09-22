@@ -418,7 +418,7 @@ int main(int argc, char **argv) {
     // Do the requested analyses...
     try {
         // Always fit the combined sample.
-        likely::FunctionMinimumPtr fmin = analyzer.fitCombined();
+        likely::FunctionMinimumPtr fmin = analyzer.fitSample(combined);
         // Print out some extra info if this fit has floating "BAO alpha-*" and "gamma-alpha" parameters.
         std::cout << std::endl;
         analyzer.printScaleZEff(fmin,zref,"BAO alpha-iso");
@@ -490,7 +490,7 @@ int main(int argc, char **argv) {
             if(verbose) {
                 std::cout << std::endl << "Re-fitting combined with: " << refitConfig << std::endl;
             }
-            fmin2 = analyzer.fitCombined(refitConfig);
+            fmin2 = analyzer.fitSample(combined,refitConfig);
             if(ndump > 0) {
                 // Dump the best-fit model.
                 std::string outName = outputPrefix + "refit.dat";

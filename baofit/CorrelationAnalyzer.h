@@ -38,7 +38,8 @@ namespace baofit {
         // the estimated function minimum. Use the optional config script to modify
         // the initial parameter configuration used for the fit (any changes do not
         // propagate back to the model or modify subsequent fits).
-        likely::FunctionMinimumPtr fitCombined(std::string const &config = "") const;        
+        likely::FunctionMinimumPtr fitSample(AbsCorrelationDataCPtr sample,
+            std::string const &config = "") const;        
         // Performs a bootstrap analysis and returns the number of fits to bootstrap
         // samples that failed. Specify a non-zero bootstrapSize to generate trials with
         // a number of observations different than getNData(). Specify a refitConfig script

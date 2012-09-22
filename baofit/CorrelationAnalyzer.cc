@@ -101,18 +101,18 @@ std::string const &scaleName) const {
     return true;
 }
 
-likely::FunctionMinimumPtr local::CorrelationAnalyzer::fitCombined(std::string const &config) const {
-    AbsCorrelationDataCPtr combined = getCombined();
-    CorrelationFitter fitter(combined,_model);
+likely::FunctionMinimumPtr local::CorrelationAnalyzer::fitSample(
+AbsCorrelationDataCPtr sample, std::string const &config) const {
+    CorrelationFitter fitter(sample,_model);
     likely::FunctionMinimumPtr fmin = fitter.fit(_method,config);
     if(_verbose) {
         double chisq = 2*fmin->getMinValue();
-        int nbins = combined->getNBinsWithData();
+        int nbins = sample->getNBinsWithData();
         int npar = fmin->getNParameters(true);
         double prob = 1 - boost::math::gamma_p((nbins-npar)/2,chisq/2);
-        std::cout << std::endl << "Results of combined fit: chiSquare / dof = " << chisq << " / ("
+        std::cout << std::endl << "Fit results: chiSquare / dof = " << chisq << " / ("
             << nbins << '-' << npar << "), prob = " << prob << ", log(det(Covariance)) = "
-            << combined->getCovarianceMatrix()->getLogDeterminant() << std::endl << std::endl;
+            << sample->getCovarianceMatrix()->getLogDeterminant() << std::endl << std::endl;
         fmin->printToStream(std::cout);
     }
     return fmin;
