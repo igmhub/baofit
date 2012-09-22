@@ -181,7 +181,6 @@ int main(int argc, char **argv) {
             "Number of Markov chain Monte Carlo samples to save (zero for no MCMC analysis)")
         ("mcmc-interval", po::value<int>(&mcmcInterval)->default_value(10),
             "Interval for saving MCMC trials (larger for less correlations and longer running time)")
-        ("mcmc-reset", "Reset covariance used for MCMC to initial model config.")
         ("mc-samples", po::value<int>(&mcSamples)->default_value(0),
             "Number of MC samples to generate and fit.")
         ("mc-config", po::value<std::string>(&mcConfig)->default_value(""),
@@ -240,8 +239,8 @@ int main(int argc, char **argv) {
         xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")), mcSave(vm.count("mc-save")),
         expanded(vm.count("expanded")), sectors(vm.count("sectors")), saveICov(vm.count("save-icov")),
         multiSpline(vm.count("multi-spline")), fixAlnCov(vm.count("fix-aln-cov")),
-        mcmcReset(vm.count("mcmc-reset")),saveData(vm.count("save-data")),
-        bootstrapScalar(vm.count("bootstrap-scalar")), noInitialFit(vm.count("no-initial-fit"));
+        saveData(vm.count("save-data")),bootstrapScalar(vm.count("bootstrap-scalar")),
+        noInitialFit(vm.count("no-initial-fit"));
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
@@ -488,9 +487,7 @@ int main(int argc, char **argv) {
         // Generate a Markov-chain for marginalization, if requested.
         if(mcmcSave > 0) {
             std::string outName = outputPrefix + "mcmc.dat";
-            analyzer.generateMarkovChain(mcmcSave,mcmcInterval,
-                mcmcReset ? likely::FunctionMinimumCPtr() : fmin,
-                outName,ndump);
+            analyzer.generateMarkovChain(mcmcSave,mcmcInterval,fmin,outName,ndump);
         }
         // Refit the combined sample, if requested.
         likely::FunctionMinimumPtr fmin2;
