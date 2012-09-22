@@ -1,6 +1,6 @@
 Correlation function input files in the cosmolib demo format, created with the commands below:
 
-./baofit -i ../config/Aln2.ini --mc-samples 1 --mc-save --output-prefix demo_ --no-initial-fit --rmin 20 --rmax 190 --mc-scale 0.1 --save-icov --save-icov-scale 10
+./baofit -i ../config/Aln2.ini --toymc-samples 1 --toymc-save --toymc-scale 0.1 --no-initial-fit --rmin 20 --rmax 190 --save-icov --save-icov-scale 10 --output-prefix demo_
 
 cp demo_mcsave.data ../demo/Aln2.data
 cp demo_save.icov ../demo/Aln2.icov

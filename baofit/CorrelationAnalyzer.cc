@@ -172,9 +172,10 @@ namespace baofit {
         int _next;
         likely::BinnedDataResampler const &_resampler;
     };
-    class CorrelationAnalyzer::MCSampler : public CorrelationAnalyzer::AbsSampler {
+    class CorrelationAnalyzer::ToyMCSampler : public CorrelationAnalyzer::AbsSampler {
     public:
-        MCSampler(int ngen, AbsCorrelationDataPtr prototype, std::vector<double> truth, std::string const &filename)
+        ToyMCSampler(int ngen, AbsCorrelationDataPtr prototype, std::vector<double> truth,
+        std::string const &filename)
         : _remaining(ngen), _prototype(prototype), _truth(truth), _first(true), _filename(filename) { }
         virtual AbsCorrelationDataCPtr nextSample() {
             AbsCorrelationDataPtr sample;
@@ -242,9 +243,10 @@ std::string const &refitConfig, std::string const &saveName, int nsave) const {
     return doSamplingAnalysis(sampler, "Individual", fmin, fmin2, refitConfig, saveName, nsave);    
 }
 
-int local::CorrelationAnalyzer::doMCSampling(int ngen, std::string const &mcConfig, std::string const &mcSaveFile,
-double varianceScale, likely::FunctionMinimumPtr fmin, likely::FunctionMinimumPtr fmin2,
-std::string const &refitConfig, std::string const &saveName, int nsave) const {
+int local::CorrelationAnalyzer::doToyMCSampling(int ngen, std::string const &mcConfig,
+std::string const &mcSaveFile, double varianceScale, likely::FunctionMinimumPtr fmin,
+likely::FunctionMinimumPtr fmin2, std::string const &refitConfig,
+std::string const &saveName, int nsave) const {
     if(ngen <= 0) {
         throw RuntimeError("CorrelationAnalyzer::doMCSampling: expected ngen > 0.");
     }
@@ -275,7 +277,7 @@ std::string const &refitConfig, std::string const &saveName, int nsave) const {
     std::vector<double> truth;
     fitter.getPrediction(pvalues,truth);
     // Build the sampler for this analysis.
-    CorrelationAnalyzer::MCSampler sampler(ngen,prototype,truth,mcSaveFile);
+    CorrelationAnalyzer::ToyMCSampler sampler(ngen,prototype,truth,mcSaveFile);
     return doSamplingAnalysis(sampler, "MonteCarlo", fmin, fmin2, refitConfig, saveName, nsave);
 }
 

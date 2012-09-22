@@ -28,11 +28,11 @@ int main(int argc, char **argv) {
         analysisOptions("Analysis options");
 
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin,
-        rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax,kloSpline,khiSpline,mcScale,saveICovScale,
+        rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax,kloSpline,khiSpline,toymcScale,saveICovScale,
         zMin, zMax;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
-      mcmcSave,mcmcInterval,mcSamples,xiNr,reuseCov,nSpline,splineOrder,bootstrapCovTrials;
-    std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,mcConfig,
+      mcmcSave,mcmcInterval,toymcSamples,xiNr,reuseCov,nSpline,splineOrder,bootstrapCovTrials;
+    std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,toymcConfig,
         platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig;
     std::vector<std::string> modelConfig;
 
@@ -181,13 +181,13 @@ int main(int argc, char **argv) {
             "Number of Markov chain Monte Carlo samples to save (zero for no MCMC analysis)")
         ("mcmc-interval", po::value<int>(&mcmcInterval)->default_value(10),
             "Interval for saving MCMC trials (larger for less correlations and longer running time)")
-        ("mc-samples", po::value<int>(&mcSamples)->default_value(0),
-            "Number of MC samples to generate and fit.")
-        ("mc-config", po::value<std::string>(&mcConfig)->default_value(""),
-            "Fit parameter configuration to apply before generating samples.")
-        ("mc-save", "Saves first generated MC sample.")
-        ("mc-scale", po::value<double>(&mcScale)->default_value(1),
-            "Scales the covariance used for MC noise sampling (but not fitting).")
+        ("toymc-samples", po::value<int>(&toymcSamples)->default_value(0),
+            "Number of toy MC samples to generate and fit.")
+        ("toymc-config", po::value<std::string>(&toymcConfig)->default_value(""),
+            "Fit parameter configuration to apply before generating toy MC samples.")
+        ("toymc-save", "Saves first generated toy MC sample.")
+        ("toymc-scale", po::value<double>(&toymcScale)->default_value(1),
+            "Scales the covariance used for toy MC noise sampling (but not fitting).")
         ("random-seed", po::value<int>(&randomSeed)->default_value(1966),
             "Random seed to use for generating bootstrap samples.")
         ("min-method", po::value<std::string>(&minMethod)->default_value("mn2::vmetric"),
@@ -236,11 +236,11 @@ int main(int argc, char **argv) {
         checkPosDef(vm.count("check-posdef")), fixCovariance(0 == vm.count("naive-covariance")),
         dr9lrg(vm.count("dr9lrg")), unweighted(vm.count("unweighted")), anisotropic(vm.count("anisotropic")),
         fitEach(vm.count("fit-each")), xiHexa(vm.count("xi-hexa")), savedFormat(vm.count("saved-format")),
-        xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")), mcSave(vm.count("mc-save")),
-        expanded(vm.count("expanded")), sectors(vm.count("sectors")), saveICov(vm.count("save-icov")),
-        multiSpline(vm.count("multi-spline")), fixAlnCov(vm.count("fix-aln-cov")),
-        saveData(vm.count("save-data")),bootstrapScalar(vm.count("bootstrap-scalar")),
-        noInitialFit(vm.count("no-initial-fit"));
+        xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")),
+        toymcSave(vm.count("toymc-save")), expanded(vm.count("expanded")), sectors(vm.count("sectors")),
+        saveICov(vm.count("save-icov")), multiSpline(vm.count("multi-spline")),
+        fixAlnCov(vm.count("fix-aln-cov")), saveData(vm.count("save-data")),
+        bootstrapScalar(vm.count("bootstrap-scalar")), noInitialFit(vm.count("no-initial-fit"));
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
@@ -507,11 +507,12 @@ int main(int argc, char **argv) {
                 << 2*(fmin2->getMinValue() - fmin->getMinValue()) << std::endl;
         }
         // Generate and fit MC samples, if requested.
-        if(mcSamples > 0) {
-            std::string outName = outputPrefix + "mc.dat";
-            std::string mcSaveName;
-            if(mcSave) mcSaveName = outputPrefix + "mcsave.data";
-            analyzer.doMCSampling(mcSamples,mcConfig,mcSaveName,mcScale,fmin,fmin2,refitConfig,outName,ndump);
+        if(toymcSamples > 0) {
+            std::string outName = outputPrefix + "toymc.dat";
+            std::string toymcSaveName;
+            if(toymcSave) toymcSaveName = outputPrefix + "toymcsave.data";
+            analyzer.doToyMCSampling(toymcSamples,toymcConfig,toymcSaveName,toymcScale,
+                fmin,fmin2,refitConfig,outName,ndump);
         }
         // Perform a bootstrap analysis, if requested.
         if(bootstrapTrials > 0) {
