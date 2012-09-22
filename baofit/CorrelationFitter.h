@@ -27,6 +27,9 @@ namespace baofit {
         // config parameter to provide a script that will modify the initial parameter values
         // and errors (including fixed/floating) for this fit only.
         likely::FunctionMinimumPtr fit(std::string const &methodName, std::string const &config = "") const;
+        // Guesses the function minimum using the model's initial fit parameter values and errors, and
+        // assuming a diagonal covariance.
+        likely::FunctionMinimumPtr guess() const;
         // Generates nchain*interval Markov chain MC samples and fills the vector provided with the parameters
         // every interval samples. Uses the input fmin, if one is provided, to initialize the MCMC proposal
         // function and determine which parameters are floating. If !fmin, then uses FitModel::guessMinimum

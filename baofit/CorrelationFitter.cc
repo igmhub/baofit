@@ -77,6 +77,11 @@ std::string const &config) const {
     return _model->findMinimum(fptr,methodName,config);
 }
 
+likely::FunctionMinimumPtr local::CorrelationFitter::guess() const {
+    likely::FunctionPtr fptr(new likely::Function(*this));
+    return _model->guessMinimum(fptr);
+}
+
 namespace baofit {
     // A simple MCMC callback that appends sample and fval to samples.
     void mcmcCallback(std::vector<double> &samples, std::vector<double> const &sample, double fval) {
