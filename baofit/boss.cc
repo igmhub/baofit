@@ -376,6 +376,8 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose) {
     }
 
     // Compress our binned data to take advantage of a very sparse (diagonal) covariance matrix.
+    // Calculate the determinant first so that it is cached in the compressed data.
+    //binnedData->getCovarianceMatrix()->getLogDeterminant();
     binnedData->compress();
     return binnedData;   
 }
@@ -489,6 +491,8 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose) {
     }
 
     // Compress our binned data to take advantage of a potentially sparse covariance matrix.
+    // Calculate the determinant first so that it is cached in the compressed data.
+    //binnedData->getCovarianceMatrix()->getLogDeterminant();
     binnedData->compress();
     return binnedData;
 }
@@ -538,14 +542,19 @@ bool checkPosDef) {
     }
     paramsIn.close();
     int ndata = binnedData->getNBinsWithData();
-    if(false) {
+    if(verbose) {
         std::cout << "Read " << ndata << " of "
             << binnedData->getNBinsTotal() << " data values from " << paramsName << std::endl;
     }
 
+    // Initialize a dictionary of cached datasets whose covariance matrices we have already loaded.
+    typedef std::map<std::string,likely::BinnedDataCPtr> CovarianceCache;
+    static CovarianceCache covarianceCache;
+    typedef CovarianceCache::value_type CovarianceCacheEntry;
+
     // Do we need to reuse the covariance estimated for the first realization of this plate?
     std::string covName;
-    if(reuseCov>=0) {
+    if(reuseCov >= 0) {
         // Parse the data name.
         boost::regex namePattern("([a-zA-Z0-9/_\\.]+/)?([0-9]+_)([0-9]+)\\.cat\\.([0-9]+)");
         boost::match_results<std::string::const_iterator> what;
@@ -558,75 +567,95 @@ bool checkPosDef) {
         covName = dataName;
     }
     covName += (icov ? ".icov" : ".cov");
-
-    // Loop over lines in the covariance file.
-    std::ifstream covIn(covName.c_str());
-    if(!covIn.good()) throw RuntimeError("loadCosmolib: Unable to open " + covName);
-    lines = 0;
-    double value;
-    int offset1,offset2;
-    while(std::getline(covIn,line)) {
-        lines++;
-        bin.resize(0);
-        bool ok = qi::phrase_parse(line.begin(),line.end(),
-            (
-                int_[ref(offset1) = _1] >> int_[ref(offset2) = _1] >> double_[ref(value) = _1]
-            ),
-            ascii::space);
-        if(!ok) {
-            throw RuntimeError("loadCosmolib: error reading line " +
-                boost::lexical_cast<std::string>(lines) + " of " + paramsName);
-        }
-        // Check for invalid offsets.
-        if(offset1 < 0 || offset2 < 0 || offset1 >= ndata || offset2 >= ndata) {
-            throw RuntimeError("loadCosmolib: invalid covariance indices on line " +
-                boost::lexical_cast<std::string>(lines) + " of " + paramsName);
-        }
-        // Add this covariance to our dataset.
-        if(icov) value = -value; // !?! see line #388 of Observed2Point.cpp
-        int index1 = *(binnedData->begin()+offset1), index2 = *(binnedData->begin()+offset2);
-        if(icov) {
-            binnedData->setInverseCovariance(index1,index2,value);
+    
+    // Have we already loaded this covariance matrix?
+    if(reuseCov) {
+        CovarianceCache::const_iterator found = covarianceCache.find(covName);
+        if(found == covarianceCache.end()) {
+            covarianceCache.insert(CovarianceCacheEntry(covName,binnedData));
         }
         else {
-            binnedData->setCovariance(index1,index2,value);
-        }
-    }
-    covIn.close();
-    if(false) {
-        int ncov = (ndata*(ndata+1))/2;
-        std::cout << "Read " << lines << " of " << ncov
-            << " covariance values from " << covName << std::endl;
-    }
-
-    // Check for zero values on the diagonal
-    for(likely::BinnedData::IndexIterator iter = binnedData->begin();
-    iter != binnedData->end(); ++iter) {
-        int index = *iter;
-        if(icov) {
-            if(0 == binnedData->getInverseCovariance(index,index)) {
-                binnedData->setInverseCovariance(index,index,1e-30);
+            binnedData->shareCovarianceMatrix(*(found->second));
+            if(verbose) {
+                std::cout << "Reusing cached covariance matrix." << std::endl;
             }
         }
-        else {
-            if(0 == binnedData->getCovariance(index,index)) {
-                binnedData->setCovariance(index,index,1e40);
-            }                
-        }
     }
 
-    if(checkPosDef) {
-        // Check that the covariance is positive definite by triggering an inversion.
-        try {
-            binnedData->getInverseCovariance(0,0);
-            binnedData->getCovariance(0,0);
+    if(!binnedData->hasCovariance()) {
+        // Loop over lines in the covariance file.
+        std::ifstream covIn(covName.c_str());
+        if(!covIn.good()) throw RuntimeError("loadCosmolib: Unable to open " + covName);
+        lines = 0;
+        double value;
+        int offset1,offset2;
+        while(std::getline(covIn,line)) {
+            lines++;
+            bin.resize(0);
+            bool ok = qi::phrase_parse(line.begin(),line.end(),
+                (
+                    int_[ref(offset1) = _1] >> int_[ref(offset2) = _1] >> double_[ref(value) = _1]
+                ),
+                ascii::space);
+            if(!ok) {
+                throw RuntimeError("loadCosmolib: error reading line " +
+                    boost::lexical_cast<std::string>(lines) + " of " + paramsName);
+            }
+            // Check for invalid offsets.
+            if(offset1 < 0 || offset2 < 0 || offset1 >= ndata || offset2 >= ndata) {
+                throw RuntimeError("loadCosmolib: invalid covariance indices on line " +
+                    boost::lexical_cast<std::string>(lines) + " of " + paramsName);
+            }
+            // Add this covariance to our dataset.
+            if(icov) value = -value; // !?! see line #388 of Observed2Point.cpp
+            int index1 = *(binnedData->begin()+offset1), index2 = *(binnedData->begin()+offset2);
+            if(icov) {
+                binnedData->setInverseCovariance(index1,index2,value);
+            }
+            else {
+                binnedData->setCovariance(index1,index2,value);
+            }
         }
-        catch(likely::RuntimeError const &e) {
-            std::cerr << "### Covariance not positive-definite: " << covName << std::endl;
+        covIn.close();
+        if(verbose) {
+            int ncov = (ndata*(ndata+1))/2;
+            std::cout << "Read " << lines << " of " << ncov
+                << " covariance values from " << covName << std::endl;
+        }
+
+        // Check for zero values on the diagonal
+        for(likely::BinnedData::IndexIterator iter = binnedData->begin();
+        iter != binnedData->end(); ++iter) {
+            int index = *iter;
+            if(icov) {
+                if(0 == binnedData->getInverseCovariance(index,index)) {
+                    binnedData->setInverseCovariance(index,index,1e-30);
+                }
+            }
+            else {
+                if(0 == binnedData->getCovariance(index,index)) {
+                    binnedData->setCovariance(index,index,1e40);
+                }                
+            }
+        }
+
+        if(checkPosDef) {
+            // Check that the covariance is positive definite by triggering an inversion.
+            try {
+                binnedData->getInverseCovariance(0,0);
+                binnedData->getCovariance(0,0);
+            }
+            catch(likely::RuntimeError const &e) {
+                std::cerr << "### Covariance not positive-definite: " << covName << std::endl;
+            }
         }
     }
+    
     // Compress our binned data to take advantage of a potentially sparse covariance matrix.
+    // Calculate the determinant first so that it is cached in the compressed data.
+    //binnedData->getCovarianceMatrix()->getLogDeterminant();
     binnedData->compress();
+    
     return binnedData;
 }
 
@@ -772,6 +801,8 @@ AbsCorrelationDataCPtr prototype, bool verbose, bool weighted, int reuseCov, boo
     }
 
     // Compress our binned data to take advantage of a potentially sparse covariance matrix.
+    // Calculate the determinant first so that it is cached in the compressed data.
+    //binnedData->getCovarianceMatrix()->getLogDeterminant();
     binnedData->compress();
     return binnedData;    
 }
