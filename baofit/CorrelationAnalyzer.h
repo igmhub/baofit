@@ -18,7 +18,8 @@ namespace baofit {
 	public:
 	    // Creates a new analyzer using the specified minimization method.
 	    // The range [rmin,rmax] will be used for dumping any model multipoles.
-		CorrelationAnalyzer(std::string const &method, double rmin, double rmax, bool verbose = true);
+		CorrelationAnalyzer(std::string const &method, double rmin, double rmax,
+		    bool verbose = true, bool scalarWeights = false);
 		virtual ~CorrelationAnalyzer();
 		// Set the verbose level during analysis.
         void setVerbose(bool value);
@@ -113,7 +114,7 @@ namespace baofit {
         // using the specified number of bootstrap trials. Throws a RuntimeError if the estimated covariance
         // is not positive definite, which can usually be fixed with more samples. See likely::BinnedDataResampler
         // for more details.
-        likely::CovarianceMatrixPtr estimateCombinedCovariance(int nSamples, bool scalarWeights) const;
+        likely::CovarianceMatrixPtr estimateCombinedCovariance(int nSamples) const;
 	private:
         std::string _method;
         double _rmin, _rmax, _zdata;
@@ -136,8 +137,9 @@ namespace baofit {
     inline int CorrelationAnalyzer::getNData() const { return _resampler.getNObservations(); }
     inline void CorrelationAnalyzer::setModel(AbsCorrelationModelPtr model) { _model = model; }
     inline likely::CovarianceMatrixPtr
-    CorrelationAnalyzer::estimateCombinedCovariance(int nSamples, bool scalarWeights) const {
-        return _resampler.estimateCombinedCovariance(nSamples,10,scalarWeights);
+    CorrelationAnalyzer::estimateCombinedCovariance(int nSamples) const {
+        // Print a message every 10 samples
+        return _resampler.estimateCombinedCovariance(nSamples,10);
     }
 
 } // baofit

@@ -165,6 +165,7 @@ int main(int argc, char **argv) {
             "Number of points spanning [rmin,rmax] to use for dumping models (zero for no dumps).")
         ("decorrelated", "Combined data is saved with decorrelated errors.")
         ("no-initial-fit", "Skips initial fit to combined sample.")
+        ("scalar-weights", "Combine plates using scalar weights instead of Cinv weights.")
         ("refit-config", po::value<std::string>(&refitConfig)->default_value(""),
             "Script to modify parameters for refits.")
         ("fit-each", "Fits each observation separately.")
@@ -174,7 +175,6 @@ int main(int argc, char **argv) {
             "Size of each bootstrap trial or zero to use the number of plates.")
         ("bootstrap-cov-trials", po::value<int>(&bootstrapCovTrials)->default_value(0),
             "Number of bootstrap trials for estimating and saving combined covariance.")
-        ("bootstrap-scalar", "Uses scalar weights for combining bootstrap samples.")
         ("jackknife-drop", po::value<int>(&jackknifeDrop)->default_value(0),
             "Number of observations to drop from each jackknife sample (zero for no jackknife analysis)")
         ("mcmc-save", po::value<int>(&mcmcSave)->default_value(0),
@@ -240,7 +240,7 @@ int main(int argc, char **argv) {
         toymcSave(vm.count("toymc-save")), expanded(vm.count("expanded")), sectors(vm.count("sectors")),
         saveICov(vm.count("save-icov")), multiSpline(vm.count("multi-spline")),
         fixAlnCov(vm.count("fix-aln-cov")), saveData(vm.count("save-data")),
-        bootstrapScalar(vm.count("bootstrap-scalar")), noInitialFit(vm.count("no-initial-fit"));
+        scalarWeights(vm.count("scalar-weights")), noInitialFit(vm.count("no-initial-fit"));
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
@@ -265,7 +265,7 @@ int main(int argc, char **argv) {
 
     // Initialize our analyzer.
     likely::Random::instance()->setSeed(randomSeed);
-    baofit::CorrelationAnalyzer analyzer(minMethod,rmin,rmax,verbose);
+    baofit::CorrelationAnalyzer analyzer(minMethod,rmin,rmax,verbose,scalarWeights);
 
     // Initialize the fit model we will use.
     cosmo::AbsHomogeneousUniversePtr cosmology;
@@ -481,7 +481,7 @@ int main(int argc, char **argv) {
             // in order to get the indexing right.
             bool verbose(false),finalized(false);
             baofit::AbsCorrelationDataPtr copy = analyzer.getCombined(verbose,finalized);
-            copy->setCovarianceMatrix(analyzer.estimateCombinedCovariance(bootstrapCovTrials,bootstrapScalar));
+            copy->setCovarianceMatrix(analyzer.estimateCombinedCovariance(bootstrapCovTrials));
             copy->saveInverseCovariance(outputPrefix + "bs.icov");
         }
         // Generate a Markov-chain for marginalization, if requested.
