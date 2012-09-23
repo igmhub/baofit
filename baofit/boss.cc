@@ -667,7 +667,7 @@ AbsCorrelationDataCPtr prototype, bool verbose, bool weighted, int reuseCov, boo
     // Loop over lines in the parameter file.
     std::string paramsName(dataName + ".params");
     std::ifstream paramsIn(paramsName.c_str());
-    if(!paramsIn.good()) throw RuntimeError("loadCosmolib: Unable to open " + paramsName);
+    if(!paramsIn.good()) throw RuntimeError("loadCosmolibXi: Unable to open " + paramsName);
     lines = 0;
     double data,cinvData;
     std::vector<double> bin(3);
@@ -707,7 +707,7 @@ AbsCorrelationDataCPtr prototype, bool verbose, bool weighted, int reuseCov, boo
         boost::regex namePattern("([a-zA-Z0-9/_\\.]+/)?([0-9]+_)([0-9]+)\\.cat\\.([0-9]+)");
         boost::match_results<std::string::const_iterator> what;
         if(!boost::regex_match(dataName,what,namePattern)) {
-            throw RuntimeError("loadCosmolib: cannot parse name \"" + dataName + "\"");
+            throw RuntimeError("loadCosmolibXi: cannot parse name \"" + dataName + "\"");
         }
         covName = what[1]+what[2]+boost::lexical_cast<std::string>(reuseCov)+".cat."+what[4];
     }
@@ -718,7 +718,7 @@ AbsCorrelationDataCPtr prototype, bool verbose, bool weighted, int reuseCov, boo
 
     // Loop over lines in the covariance file.
     std::ifstream covIn(covName.c_str());
-    if(!covIn.good()) throw RuntimeError("Unable to open " + covName);
+    if(!covIn.good()) throw RuntimeError("loadCosmolibXi: Unable to open " + covName);
     lines = 0;
     double value;
     int offset1,offset2;
@@ -731,12 +731,12 @@ AbsCorrelationDataCPtr prototype, bool verbose, bool weighted, int reuseCov, boo
             ),
             ascii::space);
         if(!ok) {
-            throw RuntimeError("loadCosmolib: error reading line " +
+            throw RuntimeError("loadCosmolibXi: error reading line " +
                 boost::lexical_cast<std::string>(lines) + " of " + paramsName);
         }
         // Check for invalid offsets.
         if(offset1 < 0 || offset2 < 0 || offset1 >= ndata || offset2 >= ndata) {
-            throw RuntimeError("loadCosmolib: invalid covariance indices on line " +
+            throw RuntimeError("loadCosmolibXi: invalid covariance indices on line " +
                 boost::lexical_cast<std::string>(lines) + " of " + paramsName);
         }
         // Add this covariance to our dataset.
