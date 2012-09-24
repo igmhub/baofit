@@ -375,10 +375,6 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose) {
         if(iter > end) throw RuntimeError("loadSectors: internal parsing error.");
     }
 
-    // Compress our binned data to take advantage of a very sparse (diagonal) covariance matrix.
-    // Calculate the determinant first so that it is cached in the compressed data.
-    //binnedData->getCovarianceMatrix()->getLogDeterminant();
-    binnedData->compress();
     return binnedData;   
 }
 
@@ -490,10 +486,6 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose) {
             << " covariance values from " << covName << std::endl;
     }
 
-    // Compress our binned data to take advantage of a potentially sparse covariance matrix.
-    // Calculate the determinant first so that it is cached in the compressed data.
-    //binnedData->getCovarianceMatrix()->getLogDeterminant();
-    binnedData->compress();
     return binnedData;
 }
 
@@ -651,11 +643,6 @@ bool checkPosDef) {
         }
     }
     
-    // Compress our binned data to take advantage of a potentially sparse covariance matrix.
-    // Calculate the determinant first so that it is cached in the compressed data.
-    //binnedData->getCovarianceMatrix()->getLogDeterminant();
-    binnedData->compress();
-    
     return binnedData;
 }
 
@@ -800,9 +787,5 @@ AbsCorrelationDataCPtr prototype, bool verbose, bool weighted, int reuseCov, boo
         }
     }
 
-    // Compress our binned data to take advantage of a potentially sparse covariance matrix.
-    // Calculate the determinant first so that it is cached in the compressed data.
-    //binnedData->getCovarianceMatrix()->getLogDeterminant();
-    binnedData->compress();
     return binnedData;    
 }
