@@ -28,11 +28,11 @@ int main(int argc, char **argv) {
         analysisOptions("Analysis options");
 
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin,
-        rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax,kloSpline,khiSpline,mcScale,saveICovScale,
+        rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax,kloSpline,khiSpline,toymcScale,saveICovScale,
         zMin, zMax;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
-      mcmcSave,mcmcInterval,mcSamples,xiNr,reuseCov,nSpline,splineOrder;
-    std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,mcConfig,
+      mcmcSave,mcmcInterval,toymcSamples,xiNr,reuseCov,nSpline,splineOrder,bootstrapCovTrials;
+    std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,toymcConfig,
         platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig;
     std::vector<std::string> modelConfig;
 
@@ -89,6 +89,7 @@ int main(int argc, char **argv) {
         ("max-plates", po::value<int>(&maxPlates)->default_value(0),
             "Maximum number of plates to load (zero uses all available plates).")
         ("check-posdef", "Checks that each covariance is positive-definite (slow).")
+        ("save-data", "Saves the combined (unweighted) data after final cuts.")
         ("save-icov", "Saves the inverse covariance of the combined data after final cuts.")
         ("save-icov-scale", po::value<double>(&saveICovScale)->default_value(1),
             "Scale factor applied to inverse covariance elements when using save-icov.")
@@ -125,7 +126,7 @@ int main(int argc, char **argv) {
             "Redshift binsize.")
         ("nz", po::value<int>(&nz)->default_value(2),
             "Maximum number of redshift bins.")
-        ("demo-format", "Cosmolib data in demo format.")
+        ("saved-format", "Cosmolib data in format written by our save options.")
         ("xi-format", "Cosmolib data in Xi format.")
         ("xi-rmin", po::value<double>(&xiRmin)->default_value(0),
             "Minimum separation in Mpc/h (Xi format only).")
@@ -163,27 +164,31 @@ int main(int argc, char **argv) {
         ("ndump", po::value<int>(&ndump)->default_value(100),
             "Number of points spanning [rmin,rmax] to use for dumping models (zero for no dumps).")
         ("decorrelated", "Combined data is saved with decorrelated errors.")
+        ("no-initial-fit", "Skips initial fit to combined sample.")
+        ("scalar-weights", "Combine plates using scalar weights instead of Cinv weights.")
         ("refit-config", po::value<std::string>(&refitConfig)->default_value(""),
             "Script to modify parameters for refits.")
+        ("compare-each", "Compares each observation to the combined data.")
         ("fit-each", "Fits each observation separately.")
         ("bootstrap-trials", po::value<int>(&bootstrapTrials)->default_value(0),
             "Number of bootstrap trials to run if a platelist was provided.")
         ("bootstrap-size", po::value<int>(&bootstrapSize)->default_value(0),
             "Size of each bootstrap trial or zero to use the number of plates.")
+        ("bootstrap-cov-trials", po::value<int>(&bootstrapCovTrials)->default_value(0),
+            "Number of bootstrap trials for estimating and saving combined covariance.")
         ("jackknife-drop", po::value<int>(&jackknifeDrop)->default_value(0),
-            "Number of observations to drop from each jackknife sample (zero for no jackknife analysis)")
+            "Number of observations to drop from each jackknife sample (zero for no jackknife)")
         ("mcmc-save", po::value<int>(&mcmcSave)->default_value(0),
             "Number of Markov chain Monte Carlo samples to save (zero for no MCMC analysis)")
         ("mcmc-interval", po::value<int>(&mcmcInterval)->default_value(10),
             "Interval for saving MCMC trials (larger for less correlations and longer running time)")
-        ("mcmc-reset", "Reset covariance used for MCMC to initial model config.")
-        ("mc-samples", po::value<int>(&mcSamples)->default_value(0),
-            "Number of MC samples to generate and fit.")
-        ("mc-config", po::value<std::string>(&mcConfig)->default_value(""),
-            "Fit parameter configuration to apply before generating samples.")
-        ("mc-save", "Saves first generated MC sample.")
-        ("mc-scale", po::value<double>(&mcScale)->default_value(1),
-            "Scales the covariance used for MC noise sampling (but not fitting).")
+        ("toymc-samples", po::value<int>(&toymcSamples)->default_value(0),
+            "Number of toy MC samples to generate and fit.")
+        ("toymc-config", po::value<std::string>(&toymcConfig)->default_value(""),
+            "Fit parameter configuration to apply before generating toy MC samples.")
+        ("toymc-save", "Saves first generated toy MC sample.")
+        ("toymc-scale", po::value<double>(&toymcScale)->default_value(1),
+            "Scales the covariance used for toy MC noise sampling (but not fitting).")
         ("random-seed", po::value<int>(&randomSeed)->default_value(1966),
             "Random seed to use for generating bootstrap samples.")
         ("min-method", po::value<std::string>(&minMethod)->default_value("mn2::vmetric"),
@@ -194,7 +199,8 @@ int main(int argc, char **argv) {
         .add(frenchOptions).add(cosmolibOptions).add(analysisOptions);
     po::variables_map vm;
 
-    // Parse command line options first so they override anything in an INI file (except for --model-config)
+    // Parse command line options first so they override anything in an INI file
+    // (except for --model-config)
     try {
         po::store(po::parse_command_line(argc, argv, allOptions), vm);
         po::notify(vm);
@@ -231,11 +237,13 @@ int main(int argc, char **argv) {
     bool verbose(0 == vm.count("quiet")), french(vm.count("french")), weighted(vm.count("weighted")),
         checkPosDef(vm.count("check-posdef")), fixCovariance(0 == vm.count("naive-covariance")),
         dr9lrg(vm.count("dr9lrg")), unweighted(vm.count("unweighted")), anisotropic(vm.count("anisotropic")),
-        fitEach(vm.count("fit-each")), xiHexa(vm.count("xi-hexa")), demoFormat(vm.count("demo-format")),
-        xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")), mcSave(vm.count("mc-save")),
-        expanded(vm.count("expanded")), sectors(vm.count("sectors")), saveICov(vm.count("save-icov")),
-        multiSpline(vm.count("multi-spline")), fixAlnCov(vm.count("fix-aln-cov")),
-        mcmcReset(vm.count("mcmc-reset"));
+        fitEach(vm.count("fit-each")), xiHexa(vm.count("xi-hexa")), savedFormat(vm.count("saved-format")),
+        xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")),
+        toymcSave(vm.count("toymc-save")), expanded(vm.count("expanded")), sectors(vm.count("sectors")),
+        saveICov(vm.count("save-icov")), multiSpline(vm.count("multi-spline")),
+        fixAlnCov(vm.count("fix-aln-cov")), saveData(vm.count("save-data")),
+        scalarWeights(vm.count("scalar-weights")), noInitialFit(vm.count("no-initial-fit")),
+        compareEach(vm.count("compare-each"));
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
@@ -260,7 +268,7 @@ int main(int argc, char **argv) {
 
     // Initialize our analyzer.
     likely::Random::instance()->setSeed(randomSeed);
-    baofit::CorrelationAnalyzer analyzer(minMethod,rmin,rmax,verbose);
+    baofit::CorrelationAnalyzer analyzer(minMethod,rmin,rmax,verbose,scalarWeights);
 
     // Initialize the fit model we will use.
     cosmo::AbsHomogeneousUniversePtr cosmology;
@@ -319,7 +327,7 @@ int main(int argc, char **argv) {
             zdata = 2.25;
             prototype = baofit::boss::createCosmolibXiPrototype(minz,dz,nz,xiRmin,xiRmax,xiNr,xiHexa);
         }
-        else { // default is cosmolib (demo) format
+        else { // default is cosmolib (saved) format
             zdata = 2.25;
             prototype = baofit::boss::createCosmolibPrototype(
                 minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,llmin,fixAlnCov,cosmology);
@@ -341,64 +349,96 @@ int main(int argc, char **argv) {
             std::ifstream platelist(platelistName.c_str());
             if(!platelist.good()) {
                 std::cerr << "Unable to open platelist file " << platelistName << std::endl;
-                return -1;
+                return -3;
             }
             while(platelist.good() && !platelist.eof()) {
                 platelist >> plateName;
                 if(platelist.eof()) break;
                 if(!platelist.good()) {
                     std::cerr << "Error while reading platelist from " << platelistName << std::endl;
-                    return -1;
+                    return -3;
                 }
                 filelist.push_back(boost::str(platefile % platerootName % plateName));
                 if(filelist.size() == maxPlates) break;
             }
             platelist.close();
             if(verbose) {
-                std::cout << "Read " << filelist.size() << " entries from " << platelistName << std::endl;
+                std::cout << "Read " << filelist.size() << " entries from "
+                    << platelistName << std::endl;
             }
         }
         
         // Load each file into our analyzer.
         for(std::vector<std::string>::const_iterator filename = filelist.begin();
         filename != filelist.end(); ++filename) {
+            baofit::AbsCorrelationDataCPtr data;
+            int reuseCovIndex(-1);
             if(french) {
-                analyzer.addData(baofit::boss::loadFrench(*filename,prototype,
-                    verbose,unweighted,expanded,checkPosDef));
+                data = baofit::boss::loadFrench(*filename,prototype,
+                    verbose,unweighted,expanded);
             }
             else if(sectors) {
-                analyzer.addData(baofit::boss::loadSectors(*filename,prototype,verbose));
+                data = baofit::boss::loadSectors(*filename,prototype,verbose);
             }
             else if(dr9lrg) {
-                analyzer.addData(baofit::boss::loadDR9LRG(*filename,prototype,verbose));
+                data = baofit::boss::loadDR9LRG(*filename,prototype,verbose);
             }
             else if(xiFormat) {
-                analyzer.addData(baofit::boss::loadCosmolibXi(*filename,prototype,
-                    verbose,weighted,reuseCov,checkPosDef));
+                data = baofit::boss::loadCosmolibXi(*filename,prototype,
+                    verbose,weighted,reuseCov);
             }
             else {
                 // Add a cosmolib dataset, assumed to provided icov instead of cov.
-                if(demoFormat) {
-                    analyzer.addData(baofit::boss::loadCosmolibDemo(*filename,prototype,verbose));                    
+                if(savedFormat) {
+                    data = baofit::boss::loadCosmolibSaved(*filename,prototype,verbose); 
                 }
                 else {
-                    analyzer.addData(baofit::boss::loadCosmolib(*filename,prototype,
-                        verbose,true,weighted,reuseCov,checkPosDef));
+                    data = baofit::boss::loadCosmolib(*filename,prototype,
+                        verbose,true,weighted,reuseCovIndex,reuseCov);
                 }
             }
+            if(checkPosDef && !data->getCovarianceMatrix()->isPositiveDefinite()) {
+                std::cerr << "!!! Covariance matrix not positive-definite for "
+                    << *filename << std::endl;
+            }
+            analyzer.addData(data,reuseCovIndex);
         }
     }
     catch(baofit::RuntimeError const &e) {
         std::cerr << "ERROR while reading data:\n  " << e.what() << std::endl;
-        return -2;
+        return -3;
     }
     analyzer.setZData(zdata);
+    // Fetch the combined data after final cuts.
+    baofit::AbsCorrelationDataCPtr combined = analyzer.getCombined(verbose);
+    // Check that the combined covariance is positive definite.
+    if(!combined->getCovarianceMatrix()->isPositiveDefinite()) {
+        std::cerr << "Combined covariance matrix is not positive definite." << std::endl;
+        return -3;
+    }
+    // Save the combined (unweighted) data, if requested.
+    if(saveData) combined->saveData(outputPrefix + "save.data");
+    // Save the combined inverse covariance, if requested.
+    if(saveICov) combined->saveInverseCovariance(outputPrefix + "save.icov",saveICovScale);
 
     // Do the requested analyses...
     try {
-        // Always fit the combined sample.
-        likely::FunctionMinimumPtr fmin = analyzer.fitCombined();
-        // Print out some extra info if this fit has floating "BAO alpha-*" and "gamma-alpha" parameters.
+        // Compare each observation to the combined average.
+        if(compareEach && analyzer.getNData() > 1) {
+            std::cout << "Chi-square of each dataset relative to the combined average:" << std::endl;
+            analyzer.compareEach(combined);
+        }
+        // Fit the combined sample or use the initial model-config.
+        likely::FunctionMinimumPtr fmin;
+        if(noInitialFit) {
+            baofit::CorrelationFitter fitter(combined,model);
+            fmin = fitter.guess();
+        }
+        else {
+            fmin = analyzer.fitSample(combined);
+        }
+        // Print out some extra info if this fit has floating "BAO alpha-*"
+        // and "gamma-alpha" parameters.
         std::cout << std::endl;
         analyzer.printScaleZEff(fmin,zref,"BAO alpha-iso");
         analyzer.printScaleZEff(fmin,zref,"BAO alpha-parallel");
@@ -407,34 +447,14 @@ int main(int argc, char **argv) {
         if(french || dr9lrg || xiFormat) {
             std::string outName = outputPrefix + "combined.dat";
             std::ofstream out(outName.c_str());
-            boost::shared_ptr<baofit::MultipoleCorrelationData> combined =
-                boost::dynamic_pointer_cast<baofit::MultipoleCorrelationData>(analyzer.getCombined());
+            boost::shared_ptr<const baofit::MultipoleCorrelationData> combinedMultipoles =
+                boost::dynamic_pointer_cast<const baofit::MultipoleCorrelationData>(combined);
             std::vector<double> dweights;
             if(decorrelated) {
                 // Calculate the decorrelated weights for the combined fit.
-                analyzer.getDecorrelatedWeights(analyzer.getCombined(),fmin->getParameters(),dweights);
+                analyzer.getDecorrelatedWeights(combined,fmin->getParameters(),dweights);
             }
-            combined->dump(out,rmin,rmax,dweights);
-            out.close();
-        }
-        // Save the combined inverse covariance, if requested.
-        if(saveICov) {
-            baofit::AbsCorrelationDataPtr combined = analyzer.getCombined();
-            std::string outName = outputPrefix + "icov.dat";
-            std::ofstream out(outName.c_str());
-            for(likely::BinnedData::IndexIterator iter1 = combined->begin(); iter1 != combined->end(); ++iter1) {
-                int index1(*iter1);
-                // Save all diagonal elements.
-                out << index1 << ' ' << index1 << ' '
-                    << saveICovScale*combined->getInverseCovariance(index1,index1) << std::endl;
-                // Loop over pairs with index2 > index1
-                for(likely::BinnedData::IndexIterator iter2 = iter1; ++iter2 != combined->end();) {
-                    int index2(*iter2);
-                    // Only save non-zero off-diagonal elements.
-                    double Cinv(saveICovScale*combined->getInverseCovariance(index1,index2));
-                    if(Cinv != 0) out << index1 << ' ' << index2 << ' ' << Cinv << std::endl;
-                }
-            }
+            combinedMultipoles->dump(out,rmin,rmax,dweights);
             out.close();
         }
         if(ndump > 0) {
@@ -465,12 +485,21 @@ int main(int argc, char **argv) {
             analyzer.dumpResiduals(out,fmin);
             out.close();
         }
+        // Calculate and save a bootstrap estimate of the (unfinalized) combined covariance
+        // matrix, if requested.
+        if(bootstrapCovTrials > 0) {
+            if(verbose) std::cout << "Estimating combined covariance with bootstrap..." << std::endl;
+            // Although we will only save icov, we still need a copy of the unfinalized combined data
+            // in order to get the indexing right.
+            bool verbose(false),finalized(false);
+            baofit::AbsCorrelationDataPtr copy = analyzer.getCombined(verbose,finalized);
+            copy->setCovarianceMatrix(analyzer.estimateCombinedCovariance(bootstrapCovTrials));
+            copy->saveInverseCovariance(outputPrefix + "bs.icov");
+        }
         // Generate a Markov-chain for marginalization, if requested.
         if(mcmcSave > 0) {
             std::string outName = outputPrefix + "mcmc.dat";
-            analyzer.generateMarkovChain(mcmcSave,mcmcInterval,
-                mcmcReset ? likely::FunctionMinimumCPtr() : fmin,
-                outName,ndump);
+            analyzer.generateMarkovChain(mcmcSave,mcmcInterval,fmin,outName,ndump);
         }
         // Refit the combined sample, if requested.
         likely::FunctionMinimumPtr fmin2;
@@ -478,7 +507,7 @@ int main(int argc, char **argv) {
             if(verbose) {
                 std::cout << std::endl << "Re-fitting combined with: " << refitConfig << std::endl;
             }
-            fmin2 = analyzer.fitCombined(refitConfig);
+            fmin2 = analyzer.fitSample(combined,refitConfig);
             if(ndump > 0) {
                 // Dump the best-fit model.
                 std::string outName = outputPrefix + "refit.dat";
@@ -490,11 +519,12 @@ int main(int argc, char **argv) {
                 << 2*(fmin2->getMinValue() - fmin->getMinValue()) << std::endl;
         }
         // Generate and fit MC samples, if requested.
-        if(mcSamples > 0) {
-            std::string outName = outputPrefix + "mc.dat";
-            std::string mcSaveName;
-            if(mcSave) mcSaveName = outputPrefix + "mcsave.dat";
-            analyzer.doMCSampling(mcSamples,mcConfig,mcSaveName,mcScale,fmin,fmin2,refitConfig,outName,ndump);
+        if(toymcSamples > 0) {
+            std::string outName = outputPrefix + "toymc.dat";
+            std::string toymcSaveName;
+            if(toymcSave) toymcSaveName = outputPrefix + "toymcsave.data";
+            analyzer.doToyMCSampling(toymcSamples,toymcConfig,toymcSaveName,toymcScale,
+                fmin,fmin2,refitConfig,outName,ndump);
         }
         // Perform a bootstrap analysis, if requested.
         if(bootstrapTrials > 0) {
@@ -514,8 +544,8 @@ int main(int argc, char **argv) {
         }
     }
     catch(std::runtime_error const &e) {
-        std::cerr << "ERROR during fit:\n  " << e.what() << std::endl;
-        return -2;
+        std::cerr << "ERROR during analysis:\n  " << e.what() << std::endl;
+        return -4;
     }
     // All done: normal exit.
     return 0;

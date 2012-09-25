@@ -25,8 +25,9 @@
 
 namespace local = baofit;
 
-local::CorrelationAnalyzer::CorrelationAnalyzer(std::string const &method, double rmin, double rmax, bool verbose)
-: _method(method), _rmin(rmin), _rmax(rmax), _verbose(verbose)
+local::CorrelationAnalyzer::CorrelationAnalyzer(std::string const &method, double rmin, double rmax,
+bool verbose, bool scalarWeights)
+: _method(method), _rmin(rmin), _rmax(rmax), _verbose(verbose), _resampler(scalarWeights)
 {
     if(rmin >= rmax) {
         throw RuntimeError("CorrelationAnalyzer: expected rmin < rmax.");
@@ -42,8 +43,9 @@ void local::CorrelationAnalyzer::setZData(double zdata) {
     _zdata = zdata;
 }
 
-void local::CorrelationAnalyzer::addData(AbsCorrelationDataCPtr data) {
-    _resampler.addObservation(boost::dynamic_pointer_cast<const likely::BinnedData>(data));
+int local::CorrelationAnalyzer::addData(AbsCorrelationDataCPtr data, int reuseCovIndex) {
+    return _resampler.addObservation(
+        boost::dynamic_pointer_cast<const likely::BinnedData>(data),reuseCovIndex);
 }
 
 local::AbsCorrelationDataPtr local::CorrelationAnalyzer::getCombined(bool verbose, bool finalized) const {
@@ -57,6 +59,37 @@ local::AbsCorrelationDataPtr local::CorrelationAnalyzer::getCombined(bool verbos
             << ") bins with data after (before) finalizing." << std::endl;
     }
     return combined;    
+}
+
+void local::CorrelationAnalyzer::compareEach(AbsCorrelationDataCPtr refData) const {
+    // Check that the reference data is finalized.
+    if(!refData->isFinalized()) {
+        throw RuntimeError("CorrelationAnalyzer::compareEach: expected finalized reference data.");
+    }
+    if(_resampler.usesScalarWeights()) {
+        std::cerr << "CorrelationAnalyzer::compareEach: not supported with scalar weights." << std::endl;
+        return;
+    }
+    // Load a "theory" vector with the unweighed reference data.
+    std::vector<double> theory;
+    for(likely::BinnedData::IndexIterator iter = refData->begin(); iter != refData->end(); ++iter) {
+        theory.push_back(refData->getData(*iter));
+    }
+    // Loop over observations.
+    int nbins = refData->getNBinsWithData();
+    std::cout << "   N     Prob     Chi2  input|C| final|C|" << std::endl;
+    for(int obsIndex = 0; obsIndex < _resampler.getNObservations(); ++obsIndex) {
+        AbsCorrelationDataPtr observation = boost::dynamic_pointer_cast<baofit::AbsCorrelationData>(
+            _resampler.getObservationCopy(obsIndex));
+        double logdetBefore = observation->getCovarianceMatrix()->getLogDeterminant();
+        observation->finalize();
+        double logdetAfter = observation->getCovarianceMatrix()->getLogDeterminant();
+        // Calculate the chi-square of this observation relative to the "theory"
+        double chi2 = observation->chiSquare(theory);
+        double prob = 1 - boost::math::gamma_p(nbins/2.,chi2/2);
+        std::cout << boost::format("%4d %.6lf %8.1lf %8.2lf %8.1lf\n")
+            % obsIndex % prob % chi2 % logdetBefore % logdetAfter;
+    }
 }
 
 bool local::CorrelationAnalyzer::printScaleZEff(likely::FunctionMinimumCPtr fmin, double zref,
@@ -101,18 +134,18 @@ std::string const &scaleName) const {
     return true;
 }
 
-likely::FunctionMinimumPtr local::CorrelationAnalyzer::fitCombined(std::string const &config) const {
-    AbsCorrelationDataCPtr combined = getCombined(true);
-    CorrelationFitter fitter(combined,_model);
+likely::FunctionMinimumPtr local::CorrelationAnalyzer::fitSample(
+AbsCorrelationDataCPtr sample, std::string const &config) const {
+    CorrelationFitter fitter(sample,_model);
     likely::FunctionMinimumPtr fmin = fitter.fit(_method,config);
     if(_verbose) {
         double chisq = 2*fmin->getMinValue();
-        int nbins = combined->getNBinsWithData();
+        int nbins = sample->getNBinsWithData();
         int npar = fmin->getNParameters(true);
-        double prob = 1 - boost::math::gamma_p((nbins-npar)/2,chisq/2);
-        std::cout << std::endl << "Results of combined fit: chiSquare / dof = " << chisq << " / ("
+        double prob = 1 - boost::math::gamma_p((nbins-npar)/2.,chisq/2);
+        std::cout << std::endl << "Fit results: chiSquare / dof = " << chisq << " / ("
             << nbins << '-' << npar << "), prob = " << prob << ", log(det(Covariance)) = "
-            << combined->getCovarianceMatrix()->getLogDeterminant() << std::endl << std::endl;
+            << sample->getCovarianceMatrix()->getLogDeterminant() << std::endl << std::endl;
         fmin->printToStream(std::cout);
     }
     return fmin;
@@ -172,9 +205,10 @@ namespace baofit {
         int _next;
         likely::BinnedDataResampler const &_resampler;
     };
-    class CorrelationAnalyzer::MCSampler : public CorrelationAnalyzer::AbsSampler {
+    class CorrelationAnalyzer::ToyMCSampler : public CorrelationAnalyzer::AbsSampler {
     public:
-        MCSampler(int ngen, AbsCorrelationDataPtr prototype, std::vector<double> truth, std::string const &filename)
+        ToyMCSampler(int ngen, AbsCorrelationDataPtr prototype, std::vector<double> truth,
+        std::string const &filename)
         : _remaining(ngen), _prototype(prototype), _truth(truth), _first(true), _filename(filename) { }
         virtual AbsCorrelationDataCPtr nextSample() {
             AbsCorrelationDataPtr sample;
@@ -192,13 +226,7 @@ namespace baofit {
                 }
                 // We don't finalize here because the prototype should already be finalized.
                 // Save this file?
-                if(_first && _filename.length() > 0) {
-                    std::ofstream out(_filename.c_str());
-                    for(likely::BinnedData::IndexIterator iter = sample->begin(); iter != sample->end(); ++iter) {
-                        out << *iter << ' ' << sample->getData(*iter) << std::endl;
-                    }
-                    out.close();
-                }
+                if(_first && _filename.length() > 0) sample->saveData(_filename);
                 _first = false;
             }
             return sample;
@@ -248,9 +276,10 @@ std::string const &refitConfig, std::string const &saveName, int nsave) const {
     return doSamplingAnalysis(sampler, "Individual", fmin, fmin2, refitConfig, saveName, nsave);    
 }
 
-int local::CorrelationAnalyzer::doMCSampling(int ngen, std::string const &mcConfig, std::string const &mcSaveFile,
-double varianceScale, likely::FunctionMinimumPtr fmin, likely::FunctionMinimumPtr fmin2,
-std::string const &refitConfig, std::string const &saveName, int nsave) const {
+int local::CorrelationAnalyzer::doToyMCSampling(int ngen, std::string const &mcConfig,
+std::string const &mcSaveFile, double varianceScale, likely::FunctionMinimumPtr fmin,
+likely::FunctionMinimumPtr fmin2, std::string const &refitConfig,
+std::string const &saveName, int nsave) const {
     if(ngen <= 0) {
         throw RuntimeError("CorrelationAnalyzer::doMCSampling: expected ngen > 0.");
     }
@@ -281,7 +310,7 @@ std::string const &refitConfig, std::string const &saveName, int nsave) const {
     std::vector<double> truth;
     fitter.getPrediction(pvalues,truth);
     // Build the sampler for this analysis.
-    CorrelationAnalyzer::MCSampler sampler(ngen,prototype,truth,mcSaveFile);
+    CorrelationAnalyzer::ToyMCSampler sampler(ngen,prototype,truth,mcSaveFile);
     return doSamplingAnalysis(sampler, "MonteCarlo", fmin, fmin2, refitConfig, saveName, nsave);
 }
 
@@ -435,7 +464,7 @@ std::string const &saveName, int nsave) const {
     CorrelationFitter fitter(combined,_model);
     // Generate the MCMC chains, saving the results in a vector.
     std::vector<double> samples;
-    fmin = fitter.mcmc(fmin, nchain, interval, samples);
+    fitter.mcmc(fmin, nchain, interval, samples);
     // Output the results and accumulate statistics.
     SamplingOutput output(fmin,likely::FunctionMinimumCPtr(),saveName,nsave,*this);
     likely::FitParameters parameters(fmin->getFitParameters());
