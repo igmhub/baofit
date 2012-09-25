@@ -494,6 +494,8 @@ int main(int argc, char **argv) {
             bool verbose(false),finalized(false);
             baofit::AbsCorrelationDataPtr copy = analyzer.getCombined(verbose,finalized);
             copy->setCovarianceMatrix(analyzer.estimateCombinedCovariance(bootstrapCovTrials));
+            // Try to save the inverse covariance. This will fail gracefully with a warning message
+            // in case we don't have enough statistics yet for a positive definite estimate.
             copy->saveInverseCovariance(outputPrefix + "bs.icov");
         }
         // Generate a Markov-chain for marginalization, if requested.

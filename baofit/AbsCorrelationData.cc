@@ -3,6 +3,8 @@
 #include "baofit/AbsCorrelationData.h"
 #include "baofit/RuntimeError.h"
 
+#include "likely/CovarianceMatrix.h"
+
 #include "boost/lexical_cast.hpp"
 
 #include <iostream>
@@ -93,6 +95,11 @@ void local::AbsCorrelationData::saveData(std::string const &filename, bool weigh
 }
 
 void local::AbsCorrelationData::saveInverseCovariance(std::string const &filename, double scale) const {
+    if(!getCovarianceMatrix()->isPositiveDefinite()) {
+        std::cerr << "AbsCorrelationData::saveInverseCovariance: not positive definite, so nothing saved to "
+            << filename << std::endl;
+        return;
+    }
     std::ofstream out(filename.c_str());
     for(likely::BinnedData::IndexIterator iter1 = begin(); iter1 != end(); ++iter1) {
         int index1(*iter1);
