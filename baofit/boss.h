@@ -16,7 +16,7 @@ namespace baofit {
 
         AbsCorrelationDataPtr loadFrench(std::string const &dataName,
             AbsCorrelationDataCPtr prototype, bool verbose,
-            bool unweighted = false, bool expanded = false, bool checkPosDef = false);
+            bool unweighted = false, bool expanded = false);
             
         AbsCorrelationDataPtr createSectorsPrototype(double zref);
             
@@ -40,15 +40,15 @@ namespace baofit {
             AbsCorrelationDataCPtr prototype, bool verbose);
 
         AbsCorrelationDataPtr loadCosmolib(std::string const &dataName,
-            AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted, int &reuseCovIndex,
-            int reuseCov = -1, bool checkPosDef = false);
+            AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted,
+            int &reuseCovIndex, int reuseCov = -1);
 
         AbsCorrelationDataPtr createCosmolibXiPrototype(double minz, double dz, int nz,
             double minr, double maxr, double nr, bool hasHexadecapole);
             
         AbsCorrelationDataPtr loadCosmolibXi(std::string const &dataName,
             AbsCorrelationDataCPtr prototype, bool verbose, bool weighted,
-            int reuseCov = -1, bool checkPosDef = false);
+            int reuseCov = -1);
 
     } // boss
 } // baofit

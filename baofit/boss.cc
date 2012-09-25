@@ -165,7 +165,7 @@ baofit::AbsCorrelationDataPtr local::createFrenchPrototype(double zref) {
 // a MultipoleCorrelationData.
 baofit::AbsCorrelationDataPtr
 local::loadFrench(std::string const &dataName, baofit::AbsCorrelationDataCPtr prototype,
-bool verbose, bool unweighted, bool expanded, bool checkPosDef) {
+bool verbose, bool unweighted, bool expanded) {
 
     // Create the new AbsCorrelationData that we will fill.
     baofit::AbsCorrelationDataPtr binnedData((baofit::MultipoleCorrelationData *)(prototype->clone(true)));
@@ -269,15 +269,6 @@ bool verbose, bool unweighted, bool expanded, bool checkPosDef) {
             std::cout << "Read " << lines << " and stored "
                 << binnedData->getCovarianceMatrix()->getNElements()
                 << " covariance values from " << covName << std::endl;
-        }
-        if(checkPosDef) {
-            // Check that the covariance is positive definite by triggering an inversion.
-            try {
-                binnedData->getInverseCovariance(0,0);
-            }
-            catch(likely::RuntimeError const &e) {
-                std::cerr << "### Inverse covariance not positive-definite: " << covName << std::endl;
-            }
         }
     }
 
@@ -493,7 +484,7 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose) {
 // Loads a binned correlation function in cosmolib format and returns a BinnedData object.
 baofit::AbsCorrelationDataPtr local::loadCosmolib(std::string const &dataName,
 baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted,
-int &reuseCovIndex, int reuseCov, bool checkPosDef) {
+int &reuseCovIndex, int reuseCov) {
 
     // Create the new AbsCorrelationData that we will fill.
     baofit::AbsCorrelationDataPtr binnedData((baofit::QuasarCorrelationData *)(prototype->clone(true)));
@@ -633,17 +624,6 @@ int &reuseCovIndex, int reuseCov, bool checkPosDef) {
                 }                
             }
         }
-
-        if(checkPosDef) {
-            // Check that the covariance is positive definite by triggering an inversion.
-            try {
-                binnedData->getInverseCovariance(0,0);
-                binnedData->getCovariance(0,0);
-            }
-            catch(likely::RuntimeError const &e) {
-                std::cerr << "### Covariance not positive-definite: " << covName << std::endl;
-            }
-        }
     }
     
     return binnedData;
@@ -667,7 +647,7 @@ double minr, double maxr, double nr, bool hasHexadecapole) {
 }
 
 baofit::AbsCorrelationDataPtr local::loadCosmolibXi(std::string const &dataName,
-AbsCorrelationDataCPtr prototype, bool verbose, bool weighted, int reuseCov, bool checkPosDef) {
+AbsCorrelationDataCPtr prototype, bool verbose, bool weighted, int reuseCov) {
     
     // Create the new AbsCorrelationData that we will fill.
     baofit::AbsCorrelationDataPtr binnedData((baofit::MultipoleCorrelationData *)(prototype->clone(true)));
@@ -776,17 +756,6 @@ AbsCorrelationDataCPtr prototype, bool verbose, bool weighted, int reuseCov, boo
         int index = *iter;
         if(0 == binnedData->getInverseCovariance(index,index)) {
             binnedData->setInverseCovariance(index,index,1e-30);
-        }
-    }
-
-    if(checkPosDef) {
-        // Check that the covariance is positive definite by triggering an inversion.
-        try {
-            binnedData->getInverseCovariance(0,0);
-            binnedData->getCovariance(0,0);
-        }
-        catch(likely::RuntimeError const &e) {
-            std::cerr << "### Inverse covariance not positive-definite: " << covName << std::endl;
         }
     }
 

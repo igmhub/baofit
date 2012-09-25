@@ -176,7 +176,7 @@ int main(int argc, char **argv) {
         ("bootstrap-cov-trials", po::value<int>(&bootstrapCovTrials)->default_value(0),
             "Number of bootstrap trials for estimating and saving combined covariance.")
         ("jackknife-drop", po::value<int>(&jackknifeDrop)->default_value(0),
-            "Number of observations to drop from each jackknife sample (zero for no jackknife analysis)")
+            "Number of observations to drop from each jackknife sample (zero for no jackknife)")
         ("mcmc-save", po::value<int>(&mcmcSave)->default_value(0),
             "Number of Markov chain Monte Carlo samples to save (zero for no MCMC analysis)")
         ("mcmc-interval", po::value<int>(&mcmcInterval)->default_value(10),
@@ -198,7 +198,8 @@ int main(int argc, char **argv) {
         .add(frenchOptions).add(cosmolibOptions).add(analysisOptions);
     po::variables_map vm;
 
-    // Parse command line options first so they override anything in an INI file (except for --model-config)
+    // Parse command line options first so they override anything in an INI file
+    // (except for --model-config)
     try {
         po::store(po::parse_command_line(argc, argv, allOptions), vm);
         po::notify(vm);
@@ -360,7 +361,8 @@ int main(int argc, char **argv) {
             }
             platelist.close();
             if(verbose) {
-                std::cout << "Read " << filelist.size() << " entries from " << platelistName << std::endl;
+                std::cout << "Read " << filelist.size() << " entries from "
+                    << platelistName << std::endl;
             }
         }
         
@@ -371,7 +373,7 @@ int main(int argc, char **argv) {
             int reuseCovIndex(-1);
             if(french) {
                 data = baofit::boss::loadFrench(*filename,prototype,
-                    verbose,unweighted,expanded,checkPosDef);
+                    verbose,unweighted,expanded);
             }
             else if(sectors) {
                 data = baofit::boss::loadSectors(*filename,prototype,verbose);
@@ -381,7 +383,7 @@ int main(int argc, char **argv) {
             }
             else if(xiFormat) {
                 data = baofit::boss::loadCosmolibXi(*filename,prototype,
-                    verbose,weighted,reuseCov,checkPosDef);
+                    verbose,weighted,reuseCov);
             }
             else {
                 // Add a cosmolib dataset, assumed to provided icov instead of cov.
@@ -390,8 +392,12 @@ int main(int argc, char **argv) {
                 }
                 else {
                     data = baofit::boss::loadCosmolib(*filename,prototype,
-                        verbose,true,weighted,reuseCovIndex,reuseCov,checkPosDef);
+                        verbose,true,weighted,reuseCovIndex,reuseCov);
                 }
+            }
+            if(checkPosDef && !data->getCovarianceMatrix()->isPositiveDefinite()) {
+                std::cerr << "!!! Covariance matrix not positive-definite for "
+                    << *filename << std::endl;
             }
             analyzer.addData(data,reuseCovIndex);
         }
@@ -404,12 +410,7 @@ int main(int argc, char **argv) {
     // Fetch the combined data after final cuts.
     baofit::AbsCorrelationDataCPtr combined = analyzer.getCombined(verbose);
     // Check that the combined covariance is positive definite.
-    try {
-        int first = *combined->begin();
-        combined->getCovariance(first,first);
-        combined->getInverseCovariance(first,first);
-    }
-    catch(likely::RuntimeError const &e) {
+    if(!combined->getCovarianceMatrix()->isPositiveDefinite()) {
         std::cerr << "Combined covariance matrix is not positive definite." << std::endl;
         return -3;
     }
@@ -429,7 +430,8 @@ int main(int argc, char **argv) {
         else {
             fmin = analyzer.fitSample(combined);
         }
-        // Print out some extra info if this fit has floating "BAO alpha-*" and "gamma-alpha" parameters.
+        // Print out some extra info if this fit has floating "BAO alpha-*"
+        // and "gamma-alpha" parameters.
         std::cout << std::endl;
         analyzer.printScaleZEff(fmin,zref,"BAO alpha-iso");
         analyzer.printScaleZEff(fmin,zref,"BAO alpha-parallel");
