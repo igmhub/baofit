@@ -404,7 +404,7 @@ int main(int argc, char **argv) {
             analyzer.addData(data,reuseCovIndex);
         }
     }
-    catch(baofit::RuntimeError const &e) {
+    catch(std::runtime_error const &e) {
         std::cerr << "ERROR while reading data:\n  " << e.what() << std::endl;
         return -3;
     }
