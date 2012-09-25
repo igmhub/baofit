@@ -168,6 +168,7 @@ int main(int argc, char **argv) {
         ("scalar-weights", "Combine plates using scalar weights instead of Cinv weights.")
         ("refit-config", po::value<std::string>(&refitConfig)->default_value(""),
             "Script to modify parameters for refits.")
+        ("compare-each", "Compares each observation to the combined data.")
         ("fit-each", "Fits each observation separately.")
         ("bootstrap-trials", po::value<int>(&bootstrapTrials)->default_value(0),
             "Number of bootstrap trials to run if a platelist was provided.")
@@ -241,7 +242,8 @@ int main(int argc, char **argv) {
         toymcSave(vm.count("toymc-save")), expanded(vm.count("expanded")), sectors(vm.count("sectors")),
         saveICov(vm.count("save-icov")), multiSpline(vm.count("multi-spline")),
         fixAlnCov(vm.count("fix-aln-cov")), saveData(vm.count("save-data")),
-        scalarWeights(vm.count("scalar-weights")), noInitialFit(vm.count("no-initial-fit"));
+        scalarWeights(vm.count("scalar-weights")), noInitialFit(vm.count("no-initial-fit")),
+        compareEach(vm.count("compare-each"));
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
@@ -421,6 +423,11 @@ int main(int argc, char **argv) {
 
     // Do the requested analyses...
     try {
+        // Compare each observation to the combined average.
+        if(compareEach && analyzer.getNData() > 1) {
+            std::cout << "Chi-square of each dataset relative to the combined average:" << std::endl;
+            analyzer.compareEach(combined);
+        }
         // Fit the combined sample or use the initial model-config.
         likely::FunctionMinimumPtr fmin;
         if(noInitialFit) {

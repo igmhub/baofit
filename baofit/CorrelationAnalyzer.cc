@@ -61,6 +61,37 @@ local::AbsCorrelationDataPtr local::CorrelationAnalyzer::getCombined(bool verbos
     return combined;    
 }
 
+void local::CorrelationAnalyzer::compareEach(AbsCorrelationDataCPtr refData) const {
+    // Check that the reference data is finalized.
+    if(!refData->isFinalized()) {
+        throw RuntimeError("CorrelationAnalyzer::compareEach: expected finalized reference data.");
+    }
+    if(_resampler.usesScalarWeights()) {
+        std::cerr << "CorrelationAnalyzer::compareEach: not supported with scalar weights." << std::endl;
+        return;
+    }
+    // Load a "theory" vector with the unweighed reference data.
+    std::vector<double> theory;
+    for(likely::BinnedData::IndexIterator iter = refData->begin(); iter != refData->end(); ++iter) {
+        theory.push_back(refData->getData(*iter));
+    }
+    // Loop over observations.
+    int nbins = refData->getNBinsWithData();
+    std::cout << "   N     Prob     Chi2  input|C| final|C|" << std::endl;
+    for(int obsIndex = 0; obsIndex < _resampler.getNObservations(); ++obsIndex) {
+        AbsCorrelationDataPtr observation = boost::dynamic_pointer_cast<baofit::AbsCorrelationData>(
+            _resampler.getObservationCopy(obsIndex));
+        double logdetBefore = observation->getCovarianceMatrix()->getLogDeterminant();
+        observation->finalize();
+        double logdetAfter = observation->getCovarianceMatrix()->getLogDeterminant();
+        // Calculate the chi-square of this observation relative to the "theory"
+        double chi2 = observation->chiSquare(theory);
+        double prob = 1 - boost::math::gamma_p(nbins/2.,chi2/2);
+        std::cout << boost::format("%4d %.6lf %8.1lf %8.2lf %8.1lf\n")
+            % obsIndex % prob % chi2 % logdetBefore % logdetAfter;
+    }
+}
+
 bool local::CorrelationAnalyzer::printScaleZEff(likely::FunctionMinimumCPtr fmin, double zref,
 std::string const &scaleName) const {
     likely::FitParameters params = fmin->getFitParameters();
@@ -111,7 +142,7 @@ AbsCorrelationDataCPtr sample, std::string const &config) const {
         double chisq = 2*fmin->getMinValue();
         int nbins = sample->getNBinsWithData();
         int npar = fmin->getNParameters(true);
-        double prob = 1 - boost::math::gamma_p((nbins-npar)/2,chisq/2);
+        double prob = 1 - boost::math::gamma_p((nbins-npar)/2.,chisq/2);
         std::cout << std::endl << "Fit results: chiSquare / dof = " << chisq << " / ("
             << nbins << '-' << npar << "), prob = " << prob << ", log(det(Covariance)) = "
             << sample->getCovarianceMatrix()->getLogDeterminant() << std::endl << std::endl;
