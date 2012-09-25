@@ -23,8 +23,10 @@ namespace baofit {
 		virtual ~CorrelationAnalyzer();
 		// Set the verbose level during analysis.
         void setVerbose(bool value);
-		// Adds a new correlation data object to this analyzer.
-        void addData(AbsCorrelationDataCPtr data);
+		// Adds a new correlation data object to this analyzer. Reuse the covariance of a
+		// previously added dataset specified by reuseCovIndex, unless it is < 0. Returns
+		// the index of the newly added dataset.
+        int addData(AbsCorrelationDataCPtr data, int reuseCovIndex);
         // Returns the number of data objects added to this analyzer.
         int getNData() const;
         // Sets the correlation model to use.

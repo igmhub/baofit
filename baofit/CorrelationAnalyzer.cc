@@ -43,8 +43,9 @@ void local::CorrelationAnalyzer::setZData(double zdata) {
     _zdata = zdata;
 }
 
-void local::CorrelationAnalyzer::addData(AbsCorrelationDataCPtr data) {
-    _resampler.addObservation(boost::dynamic_pointer_cast<const likely::BinnedData>(data));
+int local::CorrelationAnalyzer::addData(AbsCorrelationDataCPtr data, int reuseCovIndex) {
+    return _resampler.addObservation(
+        boost::dynamic_pointer_cast<const likely::BinnedData>(data),reuseCovIndex);
 }
 
 local::AbsCorrelationDataPtr local::CorrelationAnalyzer::getCombined(bool verbose, bool finalized) const {

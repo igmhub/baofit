@@ -27,6 +27,7 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include <map>
 
 namespace local = baofit::boss;
 
@@ -491,8 +492,8 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose) {
 
 // Loads a binned correlation function in cosmolib format and returns a BinnedData object.
 baofit::AbsCorrelationDataPtr local::loadCosmolib(std::string const &dataName,
-baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted, int reuseCov,
-bool checkPosDef) {
+baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted,
+int &reuseCovIndex, int reuseCov, bool checkPosDef) {
 
     // Create the new AbsCorrelationData that we will fill.
     baofit::AbsCorrelationDataPtr binnedData((baofit::QuasarCorrelationData *)(prototype->clone(true)));
@@ -539,11 +540,6 @@ bool checkPosDef) {
             << binnedData->getNBinsTotal() << " data values from " << paramsName << std::endl;
     }
 
-    // Initialize a dictionary of cached datasets whose covariance matrices we have already loaded.
-    typedef std::map<std::string,likely::BinnedDataCPtr> CovarianceCache;
-    static CovarianceCache covarianceCache;
-    typedef CovarianceCache::value_type CovarianceCacheEntry;
-
     // Do we need to reuse the covariance estimated for the first realization of this plate?
     std::string covName;
     if(reuseCov >= 0) {
@@ -560,21 +556,28 @@ bool checkPosDef) {
     }
     covName += (icov ? ".icov" : ".cov");
     
-    // Have we already loaded this covariance matrix?
+    // Can we reuse a previously loaded covariance matrix?
+    // Initialize a dictionary of dataset indices and covariance filenames.
+    typedef std::map<std::string,int> CovarianceCache;
+    static CovarianceCache covarianceCache;
+    typedef CovarianceCache::value_type CovarianceCacheEntry;
+    static int nextIndex(0);
     if(reuseCov) {
         CovarianceCache::const_iterator found = covarianceCache.find(covName);
         if(found == covarianceCache.end()) {
-            covarianceCache.insert(CovarianceCacheEntry(covName,binnedData));
+            covarianceCache.insert(CovarianceCacheEntry(covName,nextIndex));
         }
         else {
-            binnedData->shareCovarianceMatrix(*(found->second));
+            reuseCovIndex = found->second;
             if(verbose) {
-                std::cout << "Reusing cached covariance matrix." << std::endl;
+                std::cout << "Reusing covariance matrix for observation ["
+                    << reuseCovIndex << "] from " << covName << std::endl;
             }
         }
     }
+    nextIndex++;
 
-    if(!binnedData->hasCovariance()) {
+    if(reuseCovIndex < 0) {
         // Loop over lines in the covariance file.
         std::ifstream covIn(covName.c_str());
         if(!covIn.good()) throw RuntimeError("loadCosmolib: Unable to open " + covName);

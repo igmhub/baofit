@@ -367,30 +367,33 @@ int main(int argc, char **argv) {
         // Load each file into our analyzer.
         for(std::vector<std::string>::const_iterator filename = filelist.begin();
         filename != filelist.end(); ++filename) {
+            baofit::AbsCorrelationDataCPtr data;
+            int reuseCovIndex(-1);
             if(french) {
-                analyzer.addData(baofit::boss::loadFrench(*filename,prototype,
-                    verbose,unweighted,expanded,checkPosDef));
+                data = baofit::boss::loadFrench(*filename,prototype,
+                    verbose,unweighted,expanded,checkPosDef);
             }
             else if(sectors) {
-                analyzer.addData(baofit::boss::loadSectors(*filename,prototype,verbose));
+                data = baofit::boss::loadSectors(*filename,prototype,verbose);
             }
             else if(dr9lrg) {
-                analyzer.addData(baofit::boss::loadDR9LRG(*filename,prototype,verbose));
+                data = baofit::boss::loadDR9LRG(*filename,prototype,verbose);
             }
             else if(xiFormat) {
-                analyzer.addData(baofit::boss::loadCosmolibXi(*filename,prototype,
-                    verbose,weighted,reuseCov,checkPosDef));
+                data = baofit::boss::loadCosmolibXi(*filename,prototype,
+                    verbose,weighted,reuseCov,checkPosDef);
             }
             else {
                 // Add a cosmolib dataset, assumed to provided icov instead of cov.
                 if(savedFormat) {
-                    analyzer.addData(baofit::boss::loadCosmolibSaved(*filename,prototype,verbose));                    
+                    data = baofit::boss::loadCosmolibSaved(*filename,prototype,verbose); 
                 }
                 else {
-                    analyzer.addData(baofit::boss::loadCosmolib(*filename,prototype,
-                        verbose,true,weighted,reuseCov,checkPosDef));
+                    data = baofit::boss::loadCosmolib(*filename,prototype,
+                        verbose,true,weighted,reuseCovIndex,reuseCov,checkPosDef);
                 }
             }
+            analyzer.addData(data,reuseCovIndex);
         }
     }
     catch(baofit::RuntimeError const &e) {
