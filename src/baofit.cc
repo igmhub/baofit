@@ -437,6 +437,13 @@ int main(int argc, char **argv) {
         else {
             fmin = analyzer.fitSample(combined);
         }
+        // Dump the fit parameters in model-config format.
+        {
+            std::string outName = outputPrefix + "fit.config";
+            std::ofstream out(outName.c_str());
+            out << likely::fitParametersToScript(fmin->getFitParameters());
+            out.close();
+        }
         // Print out some extra info if this fit has floating "BAO alpha-*"
         // and "gamma-alpha" parameters.
         std::cout << std::endl;
