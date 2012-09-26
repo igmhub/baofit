@@ -493,7 +493,8 @@ int main(int argc, char **argv) {
             // in order to get the indexing right.
             bool verbose(false),finalized(false);
             baofit::AbsCorrelationDataPtr copy = analyzer.getCombined(verbose,finalized);
-            copy->setCovarianceMatrix(analyzer.estimateCombinedCovariance(bootstrapCovTrials));
+            copy->setCovarianceMatrix(
+                analyzer.estimateCombinedCovariance(bootstrapCovTrials, outputPrefix + "bs_cov_work.dat"));
             // Try to save the inverse covariance. This will fail gracefully with a warning message
             // in case we don't have enough statistics yet for a positive definite estimate.
             copy->saveInverseCovariance(outputPrefix + "bs.icov");
