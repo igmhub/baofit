@@ -404,7 +404,7 @@ int main(int argc, char **argv) {
             analyzer.addData(data,reuseCovIndex);
         }
     }
-    catch(baofit::RuntimeError const &e) {
+    catch(std::runtime_error const &e) {
         std::cerr << "ERROR while reading data:\n  " << e.what() << std::endl;
         return -3;
     }
@@ -436,6 +436,13 @@ int main(int argc, char **argv) {
         }
         else {
             fmin = analyzer.fitSample(combined);
+        }
+        // Dump the fit parameters in model-config format.
+        {
+            std::string outName = outputPrefix + "fit.config";
+            std::ofstream out(outName.c_str());
+            out << likely::fitParametersToScript(fmin->getFitParameters());
+            out.close();
         }
         // Print out some extra info if this fit has floating "BAO alpha-*"
         // and "gamma-alpha" parameters.
@@ -493,7 +500,10 @@ int main(int argc, char **argv) {
             // in order to get the indexing right.
             bool verbose(false),finalized(false);
             baofit::AbsCorrelationDataPtr copy = analyzer.getCombined(verbose,finalized);
-            copy->setCovarianceMatrix(analyzer.estimateCombinedCovariance(bootstrapCovTrials));
+            copy->setCovarianceMatrix(
+                analyzer.estimateCombinedCovariance(bootstrapCovTrials, outputPrefix + "bs_cov_work.dat"));
+            // Try to save the inverse covariance. This will fail gracefully with a warning message
+            // in case we don't have enough statistics yet for a positive definite estimate.
             copy->saveInverseCovariance(outputPrefix + "bs.icov");
         }
         // Generate a Markov-chain for marginalization, if requested.

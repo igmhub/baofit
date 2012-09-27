@@ -116,10 +116,10 @@ namespace baofit {
         // calculate the redshift evolution of the scale and its error.
         bool printScaleZEff(likely::FunctionMinimumCPtr fmin, double zref, std::string const &scaleName) const;
         // Returns a bootstrap estimate of the combined data's covariance matrix (before any final cuts)
-        // using the specified number of bootstrap trials. Throws a RuntimeError if the estimated covariance
-        // is not positive definite, which can usually be fixed with more samples. See likely::BinnedDataResampler
+        // using the specified number of bootstrap trials. See likely::BinnedDataResampler
         // for more details.
-        likely::CovarianceMatrixPtr estimateCombinedCovariance(int nSamples) const;
+        likely::CovarianceMatrixPtr
+            estimateCombinedCovariance(int nSamples, std::string const &filename) const;
 	private:
         std::string _method;
         double _rmin, _rmax, _zdata;
@@ -141,11 +141,6 @@ namespace baofit {
     inline void CorrelationAnalyzer::setVerbose(bool value) { _verbose = value; }
     inline int CorrelationAnalyzer::getNData() const { return _resampler.getNObservations(); }
     inline void CorrelationAnalyzer::setModel(AbsCorrelationModelPtr model) { _model = model; }
-    inline likely::CovarianceMatrixPtr
-    CorrelationAnalyzer::estimateCombinedCovariance(int nSamples) const {
-        // Print a message every 10 samples
-        return _resampler.estimateCombinedCovariance(nSamples,10);
-    }
 
 } // baofit
 

@@ -9,6 +9,7 @@
 #include "likely/FunctionMinimum.h"
 #include "likely/FitParameter.h"
 #include "likely/CovarianceMatrix.h"
+#include "likely/CovarianceAccumulator.h"
 #include "likely/FitParameterStatistics.h"
 
 #include "boost/smart_ptr.hpp"
@@ -589,4 +590,27 @@ likely::Parameters const &params, std::vector<double> &dweights) const {
     std::vector<double> prediction;
     fitter.getPrediction(params,prediction);
     data->getDecorrelatedWeights(prediction,dweights);
+}
+
+namespace baofit {
+    bool accumulationCallback(likely::CovarianceAccumulatorCPtr accumulator) {
+        std::cout << "accumulated " << accumulator->count() << " samples." << std::endl;
+        return true;
+    }
+}
+
+likely::CovarianceMatrixPtr
+local::CorrelationAnalyzer::estimateCombinedCovariance(int nSamples, std::string const &filename) const {
+    // Print a message every 10 samples during accumulation.
+    likely::CovarianceAccumulatorPtr accumulator = _resampler.estimateCombinedCovariance(nSamples,
+        likely::BinnedDataResampler::AccumulationCallback(accumulationCallback),10);
+    // Save the work in progress if a filename was specified.
+    if(filename.length() > 0) {
+        std::cout << "saving work in progress to " << filename << std::endl;
+        std::ofstream out(filename.c_str());
+        accumulator->dump(out);
+        out.close();
+    }
+    // Return the estimate covariance (which might not be positive definite)
+    return accumulator->getCovariance();
 }
