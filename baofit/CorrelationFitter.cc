@@ -77,6 +77,11 @@ std::string const &config) const {
     return _model->findMinimum(fptr,methodName,config);
 }
 
+likely::FunctionMinimumPtr local::CorrelationFitter::guess() const {
+    likely::FunctionPtr fptr(new likely::Function(*this));
+    return _model->guessMinimum(fptr);
+}
+
 namespace baofit {
     // A simple MCMC callback that appends sample and fval to samples.
     void mcmcCallback(std::vector<double> &samples, std::vector<double> const &sample, double fval) {
@@ -87,21 +92,12 @@ namespace baofit {
     }
 }
 
-likely::FunctionMinimumCPtr
-local::CorrelationFitter::mcmc(likely::FunctionMinimumCPtr fminStart, int nchain, int interval,
+void local::CorrelationFitter::mcmc(likely::FunctionMinimumCPtr fminStart, int nchain, int interval,
 std::vector<double> &samples) const {
     likely::FunctionPtr fptr(new likely::Function(*this));
-    likely::FunctionMinimumPtr fmin;
-    if(fminStart) {
-        // Use a non-const copy of the input function minimum, if one is provided, since the
-        // generate method below wants to update it.
-        fmin.reset(new likely::FunctionMinimum(*fminStart));
-    }
-    else {
-        // If no function minimum was provided, use our best guess from our model's fit parameter
-        // initial configuration.
-        fmin = _model->guessMinimum(fptr);
-    }
+    // Use a non-const copy of the input function minimum since the generate method below wants to
+    // update it (but we will ignore the updates).
+    likely::FunctionMinimumPtr fmin(new likely::FunctionMinimum(*fminStart));
     likely::FitParameters params(fmin->getFitParameters());
     int npar(params.size());
     samples.reserve(nchain*npar);
@@ -110,6 +106,4 @@ std::vector<double> &samples) const {
     int ntrial(nchain*interval);
     likely::MarkovChainEngine::Callback callback = boost::bind(mcmcCallback,boost::ref(samples),_1,_3);
     engine.generate(fmin,ntrial,ntrial,callback,interval);
-    // Return the (updated) function minimum that was actually used.
-    return fmin;
 }
