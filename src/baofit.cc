@@ -32,11 +32,12 @@ int main(int argc, char **argv) {
         zMin, zMax;
     
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
-      mcmcSave,mcmcInterval,mcSamples,xiNr,reuseCov,nSpline,splineOrder;
+      mcmcSave,mcmcInterval,toymcSamples,xiNr,reuseCov,nSpline,splineOrder,bootstrapCovTrials;
     int bb3_rpmin, bb3_rpmax, bb3_mupmax, bb3_zpmax;
     bool bb3_muodd;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,mcConfig,
-      mcmcSave,mcmcInterval,toymcSamples,xiNr,reuseCov,nSpline,splineOrder,bootstrapCovTrials;
+      iniName,xiMethod, altConfig, platelistName, platerootName, outputPrefix, refitConfig,
+      toymcConfig, minMethod;
     std::vector<std::string> modelConfig;
 
     // Default values in quotes below are to avoid roundoff errors leading to ugly --help

@@ -119,7 +119,7 @@ namespace baofit {
     class BaoCorrelationModel::BBand2 {
     public:
         BBand2(double c, double r1, double r2) : _c(c), _r1(r1), _r2(r2) { }
-        double operator()(double r) { return _c + _r1/r + _r2/(r*r); }
+        double operator()(double r) { return _c + _r1/r + _r2*(r-100.0); }
     private:
         double _c,_r1,_r2;
     };
@@ -283,7 +283,8 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
 
     // std::cout <<"debg:" << bbandXModel(r,mu) << " " <<bband3<<std::endl;
     
-    return bias*bias*zfactor*(cosmoxi + bband1 + bband2 + bband3);
+    return bias*bias*zfactor*(cosmoxi *(1+bband2) + bband1 + bband3);
+   
 }
 
 double local::BaoCorrelationModel::_evaluate(double r, cosmo::Multipole multipole, double z,
