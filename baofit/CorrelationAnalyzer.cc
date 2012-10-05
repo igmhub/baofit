@@ -78,17 +78,18 @@ void local::CorrelationAnalyzer::compareEach(AbsCorrelationDataCPtr refData) con
     }
     // Loop over observations.
     int nbins = refData->getNBinsWithData();
-    std::cout << "   N     Prob     Chi2  input|C| final|C|" << std::endl;
+    std::cout << "   N     Prob     Chi2  ln|C|^1/n ln|C'|^1/n'" << std::endl;
     for(int obsIndex = 0; obsIndex < _resampler.getNObservations(); ++obsIndex) {
         AbsCorrelationDataPtr observation = boost::dynamic_pointer_cast<baofit::AbsCorrelationData>(
             _resampler.getObservationCopy(obsIndex));
-        double logdetBefore = observation->getCovarianceMatrix()->getLogDeterminant();
+        int nbefore = observation->getNBinsWithData();
+        double logdetBefore = observation->getCovarianceMatrix()->getLogDeterminant()/nbefore;
         observation->finalize();
-        double logdetAfter = observation->getCovarianceMatrix()->getLogDeterminant();
+        double logdetAfter = observation->getCovarianceMatrix()->getLogDeterminant()/nbins;
         // Calculate the chi-square of this observation relative to the "theory"
         double chi2 = observation->chiSquare(theory);
         double prob = 1 - boost::math::gamma_p(nbins/2.,chi2/2);
-        std::cout << boost::format("%4d %.6lf %8.1lf %8.2lf %8.1lf\n")
+        std::cout << boost::format("%4d %.6lf %8.1lf %9.2lf %9.2lf\n")
             % obsIndex % prob % chi2 % logdetBefore % logdetAfter;
     }
 }
