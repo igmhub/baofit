@@ -62,36 +62,47 @@ local::AbsCorrelationDataPtr local::CorrelationAnalyzer::getCombined(bool verbos
     return combined;    
 }
 
-void local::CorrelationAnalyzer::compareEach(AbsCorrelationDataCPtr refData) const {
-    // Check that the reference data is finalized.
-    if(!refData->isFinalized()) {
-        throw RuntimeError("CorrelationAnalyzer::compareEach: expected finalized reference data.");
-    }
+void local::CorrelationAnalyzer::compareEach(std::string const &saveName) const {
     if(_resampler.usesScalarWeights()) {
-        std::cerr << "CorrelationAnalyzer::compareEach: not supported with scalar weights." << std::endl;
-        return;
+        throw RuntimeError("CorrelationAnalyzer::compareEach: not supported with scalar weights.");
     }
+    // Open the output file.
+    std::ofstream out(saveName.c_str());
+    // Get our unfinalized combined data to use as a reference
+    baofit::AbsCorrelationDataCPtr refData = getCombined(false,false);
+    // Copy the unfinalized combined covariance
+    likely::CovarianceMatrixCPtr Cref = refData->getCovarianceMatrix();
     // Load a "theory" vector with the unweighed reference data.
     std::vector<double> theory;
     for(likely::BinnedData::IndexIterator iter = refData->begin(); iter != refData->end(); ++iter) {
         theory.push_back(refData->getData(*iter));
     }
-    // Loop over observations.
     int nbins = refData->getNBinsWithData();
-    std::cout << "   N     Prob     Chi2  ln|C|^1/n ln|C'|^1/n'" << std::endl;
+    // Loop over observations.
+    std::cout << "   N     Prob     Chi2   log|C|/n" << std::endl;
     for(int obsIndex = 0; obsIndex < _resampler.getNObservations(); ++obsIndex) {
         AbsCorrelationDataPtr observation = boost::dynamic_pointer_cast<baofit::AbsCorrelationData>(
             _resampler.getObservationCopy(obsIndex));
-        int nbefore = observation->getNBinsWithData();
-        double logdetBefore = observation->getCovarianceMatrix()->getLogDeterminant()/nbefore;
-        observation->finalize();
-        double logdetAfter = observation->getCovarianceMatrix()->getLogDeterminant()/nbins;
+        // Calculate log(|C|)/nbins
+        double logDet = observation->getCovarianceMatrix()->getLogDeterminant()/nbins;
+        // Subtract the reference data covariance.
+        likely::CovarianceMatrixPtr Csub(new likely::CovarianceMatrix(*observation->getCovarianceMatrix()));
+        for(int row = 0; row < nbins; ++row) {
+            for(int col = 0; col <= row; ++col) {
+                double value(Csub->getCovariance(row,col)-Cref->getCovariance(row,col));
+                Csub->setCovariance(row,col,value);
+            }
+        }
+        observation->setCovarianceMatrix(Csub);
         // Calculate the chi-square of this observation relative to the "theory"
         double chi2 = observation->chiSquare(theory);
+        // Calculate the corresponding chi-square probability
         double prob = 1 - boost::math::gamma_p(nbins/2.,chi2/2);
-        std::cout << boost::format("%4d %.6lf %8.1lf %9.2lf %9.2lf\n")
-            % obsIndex % prob % chi2 % logdetBefore % logdetAfter;
+        std::cout << boost::format("%4d %.6lf %8.1lf %10.4lf\n")
+            % obsIndex % prob % chi2 % logDet;
+        out << obsIndex << ' ' << prob << ' '  << chi2 << ' '  << logDet << std::endl;
     }
+    out.close();
 }
 
 bool local::CorrelationAnalyzer::printScaleZEff(likely::FunctionMinimumCPtr fmin, double zref,

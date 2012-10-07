@@ -423,10 +423,10 @@ int main(int argc, char **argv) {
 
     // Do the requested analyses...
     try {
-        // Compare each observation to the combined average.
         if(compareEach && analyzer.getNData() > 1) {
+            // Compare each observation to the combined average, before and after final cuts.
             std::cout << "Chi-square of each dataset relative to the combined average:" << std::endl;
-            analyzer.compareEach(combined);
+            analyzer.compareEach(outputPrefix + "compare.dat");
         }
         // Fit the combined sample or use the initial model-config.
         likely::FunctionMinimumPtr fmin;

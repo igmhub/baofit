@@ -71,9 +71,13 @@ namespace baofit {
         // description of the other parameters.
         void generateMarkovChain(int nchain, int interval, likely::FunctionMinimumCPtr fmin,
             std::string const &saveName = "", int nsave = 0) const;
-        // Compares each finalized observation to the specified finalized reference data set and prints
-        // the chi-square probability and value.
-        void compareEach(AbsCorrelationDataCPtr refData) const;
+        // Compares each (unfinalized) observation to the combined (unfinalized) observations, saving
+        // the values of prob(chi2_k), chi2_k and log(|C_k|)/n to the specified filename for each
+        // observation, where chi2 is calculated using the covariance C_k - C. Note that we can only
+        // do this test on the unfinalized observations: since we calculate C by combining
+        // the unfinalized C_k, the combination C_k - C is not guaranteed to be positive definite
+        // after C_k and C have been separately finalized.
+        void compareEach(std::string const &saveName) const;
         // Fits each observation separately and returns the number of fits that failed.
         // See doBootstrapAnalysis for a description of the other parameters.
         int fitEach(likely::FunctionMinimumPtr fmin,
