@@ -70,37 +70,43 @@ void local::CorrelationAnalyzer::compareEach(std::string const &saveName) const 
     std::ofstream out(saveName.c_str());
     // Get our unfinalized combined data to use as a reference
     baofit::AbsCorrelationDataCPtr refData = getCombined(false,false);
-    // Copy the unfinalized combined covariance
+    // Get the unfinalized combined covariance
     likely::CovarianceMatrixCPtr Cref = refData->getCovarianceMatrix();
-    // Load a "theory" vector with the unweighed reference data.
-    std::vector<double> theory;
-    for(likely::BinnedData::IndexIterator iter = refData->begin(); iter != refData->end(); ++iter) {
-        theory.push_back(refData->getData(*iter));
-    }
     int nbins = refData->getNBinsWithData();
+    // Initialize storage.
+    std::vector<double> eigenvalues,eigenvectors,chi2modes;
+    // Initialize formats.
+    boost::format summary("%4d %.6lf %8.1lf %10.4lf\n"), oneValue(" %.4lg");
     // Loop over observations.
     std::cout << "   N     Prob     Chi2   log|C|/n" << std::endl;
     for(int obsIndex = 0; obsIndex < _resampler.getNObservations(); ++obsIndex) {
-        AbsCorrelationDataPtr observation = boost::dynamic_pointer_cast<baofit::AbsCorrelationData>(
+        AbsCorrelationDataCPtr observation =
+            boost::dynamic_pointer_cast<const baofit::AbsCorrelationData>(
             _resampler.getObservationCopy(obsIndex));
         // Calculate log(|C|)/nbins
-        double logDet = observation->getCovarianceMatrix()->getLogDeterminant()/nbins;
-        // Subtract the reference data covariance.
         likely::CovarianceMatrixPtr Csub(new likely::CovarianceMatrix(*observation->getCovarianceMatrix()));
+        double logDet = Csub->getLogDeterminant()/nbins;
+        // Subtract the reference data covariance.
         for(int row = 0; row < nbins; ++row) {
             for(int col = 0; col <= row; ++col) {
                 double value(Csub->getCovariance(row,col)-Cref->getCovariance(row,col));
                 Csub->setCovariance(row,col,value);
             }
         }
-        observation->setCovarianceMatrix(Csub);
-        // Calculate the chi-square of this observation relative to the "theory"
-        double chi2 = observation->chiSquare(theory);
-        // Calculate the corresponding chi-square probability
+        // Subtract the reference data vector.
+        std::vector<double> delta;
+        for(likely::BinnedData::IndexIterator iter = refData->begin(); iter != refData->end(); ++iter) {
+            delta.push_back(observation->getData(*iter) - refData->getData(*iter));
+        }
+        // Calculate the chi-square of this observation relative to the combined data
+        double chi2 = Csub->chiSquareModes(delta,eigenvalues,eigenvectors,chi2modes);
+        // Calculate the corresponding chi-square probability and print a summary for this observation.
         double prob = 1 - boost::math::gamma_p(nbins/2.,chi2/2);
-        std::cout << boost::format("%4d %.6lf %8.1lf %10.4lf\n")
-            % obsIndex % prob % chi2 % logDet;
-        out << obsIndex << ' ' << prob << ' '  << chi2 << ' '  << logDet << std::endl;
+        std::cout << summary % obsIndex % prob % chi2 % logDet;
+        // Save the contributions of each mode to the output file.
+        out << obsIndex << ' ' << logDet << ' ' << chi2;
+        for(int i = 0; i < nbins; ++i) out << oneValue % chi2modes[i];
+        out << std::endl;
     }
     out.close();
 }
