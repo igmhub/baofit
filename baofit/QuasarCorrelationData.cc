@@ -13,26 +13,32 @@ namespace local = baofit;
 
 local::QuasarCorrelationData::QuasarCorrelationData(
 likely::AbsBinningCPtr axis1, likely::AbsBinningCPtr axis2, likely::AbsBinningCPtr axis3,
-double llmin, bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology)
+double llMin, double llMax, double sepMin, double sepMax,
+bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology)
 : AbsCorrelationData(axis1,axis2,axis3,Coordinate)
 {
-  _initialize(llmin,fixCov,cosmology);
+  _initialize(llMin,llMax,sepMin,sepMax,fixCov,cosmology);
 }
 
 local::QuasarCorrelationData::QuasarCorrelationData(
-std::vector<likely::AbsBinningCPtr> axes, double llmin, bool fixCov,
-cosmo::AbsHomogeneousUniversePtr cosmology)
+std::vector<likely::AbsBinningCPtr> axes, double llMin, double llMax, double sepMin, double sepMax,
+bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology)
 : AbsCorrelationData(axes,Coordinate)
 {
     if(axes.size() != 3) {
         throw RuntimeError("QuasarCorrelationData: expected 3 axes.");
     }
-    _initialize(llmin,fixCov,cosmology);
+    _initialize(llMin,llMax,sepMin,sepMax,fixCov,cosmology);
 }
 
-void local::QuasarCorrelationData::_initialize(double llmin, bool fixCov,
-cosmo::AbsHomogeneousUniversePtr cosmology) {
-    _llmin = llmin;
+void local::QuasarCorrelationData::_initialize(double llMin, double llMax, double sepMin, double sepMax,
+bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology) {
+    if(llMin > llMax) throw RuntimeError("QuasarCorrelationData: expected llMin <= llMax.");
+    if(sepMin > sepMax) throw RuntimeError("QuasarCorrelationData: expected sepMin <= sepMax.");
+    _llMin = llMin;
+    _llMax = llMax;
+    _sepMin = sepMin;
+    _sepMax = sepMax;
     _fixCov = fixCov; 
     _cosmology = cosmology;
     _lastIndex = -1;
@@ -43,7 +49,7 @@ local::QuasarCorrelationData::~QuasarCorrelationData() { }
 
 local::QuasarCorrelationData *local::QuasarCorrelationData::clone(bool binningOnly) const {
     QuasarCorrelationData *data = binningOnly ?
-        new QuasarCorrelationData(getAxisBinning(),_llmin,_fixCov,_cosmology) :
+        new QuasarCorrelationData(getAxisBinning(),_llMin,_llMax,_sepMin,_sepMax,_fixCov,_cosmology) :
         new QuasarCorrelationData(*this);
     _cloneFinalCuts(*data);
     return data;
@@ -111,9 +117,9 @@ void local::QuasarCorrelationData::finalize() {
         if(0 == keep.count(index)) continue;        
         // Lookup the value of ll at the center of this bin.
         getBinCenters(index,_binCenter);
-        double ll(_binCenter[0]);
+        double ll(_binCenter[0]),sep(_binCenter[1]);
         // Keep this bin in our pruned dataset?
-        if(ll < _llmin) {
+        if(ll < _llMin || ll > _llMax || sep < _sepMin || sep > _sepMax) {
             keep.erase(index);
             continue;
         }

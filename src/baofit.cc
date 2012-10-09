@@ -27,9 +27,9 @@ int main(int argc, char **argv) {
         frenchOptions("French data options"), cosmolibOptions("Cosmolib data options"),
         analysisOptions("Analysis options");
 
-    double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin,
+    double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,
         rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax,kloSpline,khiSpline,toymcScale,saveICovScale,
-        zMin, zMax;
+        zMin,zMax,llMin,llMax,sepMin,sepMax;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
       mcmcSave,mcmcInterval,toymcSamples,xiNr,reuseCov,nSpline,splineOrder,bootstrapCovTrials;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,toymcConfig,
@@ -153,8 +153,14 @@ int main(int argc, char **argv) {
             "Final cut on minimum value of redshift (coordinate data only).")
         ("z-max", po::value<double>(&zMax)->default_value(10.),
             "Final cut on maximum value of redshift (coordinate data only).")
-        ("llmin", po::value<double>(&llmin)->default_value(0),
-            "Minimum value of log(lam2/lam1) to use in fit (multipole data only).")
+        ("ll-min", po::value<double>(&llMin)->default_value(0),
+            "Minimum value of log(lam2/lam1) to use in fit (Aln2 data only).")
+        ("ll-max", po::value<double>(&llMax)->default_value(1),
+            "Maximum value of log(lam2/lam1) to use in fit (Aln2 data only).")
+        ("sep-min", po::value<double>(&sepMin)->default_value(0),
+            "Minimum value of separation in arcmins to use in fit (Aln2 data only).")
+        ("sep-max", po::value<double>(&sepMax)->default_value(200),
+            "Maximum value of separation in arcmins to use in fit (Aln2 data only).")
         ("lmin", po::value<int>(&lmin)->default_value(0),
             "Final cut on minimum multipole ell (0,2,4) to use in fit (multipole data only).")
         ("lmax", po::value<int>(&lmax)->default_value(2),
@@ -331,7 +337,8 @@ int main(int argc, char **argv) {
         else { // default is cosmolib (saved) format
             zdata = 2.25;
             prototype = baofit::boss::createCosmolibPrototype(
-                minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,llmin,fixAlnCov,cosmology);
+                minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,llMin,llMax,sepMin,sepMax,
+                fixAlnCov,cosmology);
         }
         // Set the final cuts that have not already been specified in the prototype ctors above.
         prototype->setFinalCuts(rmin,rmax,rVetoMin,rVetoMax,muMin,muMax,ellmin,ellmax,zMin,zMax);
