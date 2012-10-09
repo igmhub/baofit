@@ -168,7 +168,8 @@ int main(int argc, char **argv) {
         ("scalar-weights", "Combine plates using scalar weights instead of Cinv weights.")
         ("refit-config", po::value<std::string>(&refitConfig)->default_value(""),
             "Script to modify parameters for refits.")
-        ("compare-each", "Compares each observation to the combined data.")
+        ("compare-each", "Compares each observation to the combined data, before final cuts.")
+        ("compare-each-final", "Compares each observation to the combined data, after final cuts.")
         ("fit-each", "Fits each observation separately.")
         ("bootstrap-trials", po::value<int>(&bootstrapTrials)->default_value(0),
             "Number of bootstrap trials to run if a platelist was provided.")
@@ -243,7 +244,7 @@ int main(int argc, char **argv) {
         saveICov(vm.count("save-icov")), multiSpline(vm.count("multi-spline")),
         fixAlnCov(vm.count("fix-aln-cov")), saveData(vm.count("save-data")),
         scalarWeights(vm.count("scalar-weights")), noInitialFit(vm.count("no-initial-fit")),
-        compareEach(vm.count("compare-each"));
+        compareEach(vm.count("compare-each")), compareEachFinal(vm.count("compare-each-final"));
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
@@ -424,9 +425,14 @@ int main(int argc, char **argv) {
     // Do the requested analyses...
     try {
         if(compareEach && analyzer.getNData() > 1) {
-            // Compare each observation to the combined average, before and after final cuts.
-            std::cout << "Chi-square of each dataset relative to the combined average:" << std::endl;
-            analyzer.compareEach(outputPrefix + "compare.dat");
+            // Compare each observation to the combined average before final cuts.
+            std::cout << "Comparing each observation with combined before final cuts:" << std::endl;
+            analyzer.compareEach(outputPrefix + "compare.dat",false);
+        }
+        if(compareEachFinal && analyzer.getNData() > 1) {
+            // Compare each observation to the combined average after final cuts.
+            std::cout << "Comparing each observation with combined after final cuts:" << std::endl;
+            analyzer.compareEach(outputPrefix + "final_compare.dat",true);
         }
         // Fit the combined sample or use the initial model-config.
         likely::FunctionMinimumPtr fmin;

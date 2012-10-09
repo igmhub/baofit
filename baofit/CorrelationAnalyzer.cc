@@ -62,15 +62,15 @@ local::AbsCorrelationDataPtr local::CorrelationAnalyzer::getCombined(bool verbos
     return combined;    
 }
 
-void local::CorrelationAnalyzer::compareEach(std::string const &saveName) const {
+void local::CorrelationAnalyzer::compareEach(std::string const &saveName, bool finalized) const {
     if(_resampler.usesScalarWeights()) {
         throw RuntimeError("CorrelationAnalyzer::compareEach: not supported with scalar weights.");
     }
     // Open the output file.
     std::ofstream out(saveName.c_str());
-    // Get our unfinalized combined data to use as a reference
-    baofit::AbsCorrelationDataCPtr refData = getCombined(false,false);
-    // Get the unfinalized combined covariance
+    // Get our combined data to use as a reference
+    baofit::AbsCorrelationDataCPtr refData = getCombined(false,finalized);
+    // Get the combined data's covariance
     likely::CovarianceMatrixCPtr Cref = refData->getCovarianceMatrix();
     int nbins = refData->getNBinsWithData();
     // Initialize storage.
@@ -80,9 +80,10 @@ void local::CorrelationAnalyzer::compareEach(std::string const &saveName) const 
     // Loop over observations.
     std::cout << "   N     Prob     Chi2   log|C|/n" << std::endl;
     for(int obsIndex = 0; obsIndex < _resampler.getNObservations(); ++obsIndex) {
-        AbsCorrelationDataCPtr observation =
-            boost::dynamic_pointer_cast<const baofit::AbsCorrelationData>(
+        AbsCorrelationDataPtr observation =
+            boost::dynamic_pointer_cast<baofit::AbsCorrelationData>(
             _resampler.getObservationCopy(obsIndex));
+        if(finalized) observation->finalize();
         // Calculate log(|C|)/nbins
         likely::CovarianceMatrixPtr Csub(new likely::CovarianceMatrix(*observation->getCovarianceMatrix()));
         double logDet = Csub->getLogDeterminant()/nbins;
