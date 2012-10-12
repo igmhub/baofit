@@ -33,7 +33,8 @@ int main(int argc, char **argv) {
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
       mcmcSave,mcmcInterval,toymcSamples,xiNr,reuseCov,nSpline,splineOrder,bootstrapCovTrials;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,toymcConfig,
-        platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig;
+        platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig,
+        fixModeScales;
     std::vector<std::string> modelConfig;
 
     // Default values in quotes below are to avoid roundoff errors leading to ugly --help
@@ -94,6 +95,8 @@ int main(int argc, char **argv) {
         ("save-icov-scale", po::value<double>(&saveICovScale)->default_value(1),
             "Scale factor applied to inverse covariance elements when using save-icov.")
         ("fix-aln-cov", "Fixes covariance matrix of points in 'aln' parametrization")
+        ("fix-mode-scales", po::value<std::string>(&fixModeScales)->default_value(""),
+            "Fixes covariance matrix using mode scales from the specified file.")
         ;
     frenchOptions.add_options()
         ("french", "Correlation data files are in the French format (default is cosmolib).")
@@ -343,6 +346,20 @@ int main(int argc, char **argv) {
         // Set the final cuts that have not already been specified in the prototype ctors above.
         prototype->setFinalCuts(rmin,rmax,rVetoMin,rVetoMax,muMin,muMax,ellmin,ellmax,zMin,zMax);
         
+        // Load the vector of mode scale corrections to apply, if any
+        std::vector<double> modeScales;
+        if(fixModeScales.length() > 0) {
+            std::ifstream in(fixModeScales.c_str());
+            std::vector<std::vector<double> > vectors(1);
+            int nread = likely::readVectors(in, vectors, false);
+            in.close();
+            modeScales = vectors[0];
+            if(verbose) {
+                std::cout << "Read " << modeScales.size()
+                    << " mode scales from " << fixModeScales << std::endl;
+            }
+        }
+        
         // Build a list of the data files we will read.
         std::vector<std::string> filelist;
         if(0 < dataName.length()) {
@@ -379,7 +396,7 @@ int main(int argc, char **argv) {
         // Load each file into our analyzer.
         for(std::vector<std::string>::const_iterator filename = filelist.begin();
         filename != filelist.end(); ++filename) {
-            baofit::AbsCorrelationDataCPtr data;
+            baofit::AbsCorrelationDataPtr data;
             int reuseCovIndex(-1);
             if(french) {
                 data = baofit::boss::loadFrench(*filename,prototype,
@@ -408,6 +425,10 @@ int main(int argc, char **argv) {
             if(checkPosDef && !data->getCovarianceMatrix()->isPositiveDefinite()) {
                 std::cerr << "!!! Covariance matrix not positive-definite for "
                     << *filename << std::endl;
+            }
+            if(reuseCovIndex < 0 && modeScales.size() > 0) {
+                if(verbose) std::cout << "Correcting mode scales..." << std::endl;
+                data->rescaleEigenvalues(modeScales);
             }
             analyzer.addData(data,reuseCovIndex);
         }
