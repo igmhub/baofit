@@ -204,11 +204,11 @@ int main(int argc, char **argv) {
             "Scan parameter 1 maximum")
         ("scan1step", po::value<double>(&scan1step)->default_value(0.02),
             "Scan parameter 1 step")
-        ("scan2min", po::value<double>(&scan2min)->default_value(0.8),
+        ("scan2min", po::value<double>(&scan2min)->default_value(0.85),
 	   "Scan parameter 1 minimum")
-        ("scan2max", po::value<double>(&scan2max)->default_value(1.2),
+        ("scan2max", po::value<double>(&scan2max)->default_value(1.15),
             "Scan parameter 1 maximum")
-        ("scan2step", po::value<double>(&scan2step)->default_value(0.02),
+        ("scan2step", po::value<double>(&scan2step)->default_value(0.01),
             "Scan parameter 1 step")
         ;
 
