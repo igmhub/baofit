@@ -152,6 +152,65 @@ AbsCorrelationDataCPtr sample, std::string const &config) const {
     return fmin;
 }
 
+
+
+void local::CorrelationAnalyzer::doScanAnalysis (AbsCorrelationDataCPtr sample,likely::FunctionMinimumPtr fmin, std::string scan1, double scan1min,
+		     double scan1max, double scan1step, std::string scan2, double scan2min, double scan2max,
+		     double scan2step, std::string saveName) const {
+
+  
+  //lets make our own copy of model an update its parameters based on fmin
+  boost::format cfg("value[%s]=%g;");
+  boost::format cfgfix("fix[%s]=%g;");
+  std::string bconfig;
+		    
+  std::ofstream sstream;
+  sstream.open(saveName.c_str());
+  
+  AbsCorrelationModelPtr model(_model);
+  likely::FitParameters params(fmin->getFitParameters());
+  BOOST_FOREACH(likely::FitParameter p, params) {
+    model->setParameterValue(p.getName(), p.getValue());
+    bconfig+=boost::str( cfg % p.getName() % p.getValue());
+  }
+
+  if (scan2.size()==0) {
+    // we want exactly one iteration in that loop so
+    scan2min=0.0;
+    scan2max=1.0;
+    scan2step=2.0;
+  }
+  
+  for (double scan1val=scan1min; scan1val<scan1max; scan1val+=scan1step) {
+      for (double scan2val=scan2min; scan2val<scan2max; scan2val+=scan2step) {
+	std::string tconfig (bconfig);
+	model->setParameterValue(scan1, scan1val);
+	tconfig+=boost::str(cfgfix % scan1 % scan1val);
+
+	if (scan2.size()>0) {
+	  model->setParameterValue(scan2, scan2val);
+	  tconfig+=boost::str(cfgfix % scan2 % scan2val);
+	}
+	
+	CorrelationFitter fitter(sample,model);
+
+
+	likely::FunctionMinimumPtr cfmin =  fitter.fit(_method,tconfig);
+	//likely::FunctionMinimumPtr cfmin =  fitter.fit(_method,
+	//					       boost::str(config% scan1 % scan1val %scan2 % scan2val) );
+	double chisq = 2 * cfmin->getMinValue();
+
+	cfmin->printToStream(std::cout);
+
+	sstream << scan1val << " " <<scan2val << " " <<chisq <<std::endl;
+
+      }
+  }
+  sstream.close();
+}
+
+
+
 namespace baofit {
     class CorrelationAnalyzer::AbsSampler {
     public:
