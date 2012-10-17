@@ -174,3 +174,27 @@ double local::QuasarCorrelationData::getRedshift(int index) const {
     _setIndex(index);
     return _zLast;
 }
+
+void local::QuasarCorrelationData::rescaleEigenvalues(std::vector<double> modeScales) {
+    // First do the rescaling.
+    BinnedData::rescaleEigenvalues(modeScales);
+    // Loop over all bins with data.
+    std::vector<int> bin(3);
+    for(IndexIterator iter1 = begin(); iter1 != end(); ++iter1) {
+        int i1(*iter1);
+        // Remember the separation index of this bin.
+        getBinIndices(i1,bin);
+        int sepIndex(bin[1]);
+        // Loop over unique pairs (iter1,iter2) with iter2 <= iter1 (which does not
+        // necessarily imply that i2 <= i1).
+        for(IndexIterator iter2 = begin(); iter2 <= iter1; ++iter2) {
+            int i2(*iter2);
+            // Does this bin have a different separation index?
+            getBinIndices(i2,bin);
+            if(bin[1] != sepIndex) {
+                // Force the covariance between (i1,i2) to zero.
+                setCovariance(i1,i2,0);
+            }
+        }
+    }
+}

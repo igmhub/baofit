@@ -32,6 +32,10 @@ namespace baofit {
         virtual double getCosAngle(int index) const;
         // Returns the redshift associated with the specified global index.
 	    virtual double getRedshift(int index) const;
+	    // This implementation adds a post-processing step to BinnedData::rescaleEigenvalue, in which
+	    // covariances between different separations are forced to zero, removing the effects of
+	    // round-off errors.
+	    virtual void rescaleEigenvalues(std::vector<double> modeScales);
     	// This fixes covariance by adding the correct terms for a typical BAO analysis
     	// that throw away unwanted modes spuriosly appearing (for not yet completelly understood
     	// reasons). The covariance between bins at the same redshift and separation, and
