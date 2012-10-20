@@ -168,42 +168,55 @@ void local::CorrelationAnalyzer::doScanAnalysis (AbsCorrelationDataCPtr sample,l
   sstream.open(saveName.c_str());
   
   AbsCorrelationModelPtr model(_model);
-  likely::FitParameters params(fmin->getFitParameters());
-  BOOST_FOREACH(likely::FitParameter p, params) {
-    model->setParameterValue(p.getName(), p.getValue());
-    bconfig+=boost::str( cfg % p.getName() % p.getValue());
-  }
-
   if (scan2.size()==0) {
     // we want exactly one iteration in that loop so
     scan2min=0.0;
     scan2max=1.0;
     scan2step=2.0;
   }
+
+  likely::FunctionMinimumPtr lastmin (fmin);
   
   for (double scan1val=scan1min; scan1val<scan1max; scan1val+=scan1step) {
       for (double scan2val=scan2min; scan2val<scan2max; scan2val+=scan2step) {
-	std::string tconfig (bconfig);
-	model->setParameterValue(scan1, scan1val);
-	tconfig+=boost::str(cfgfix % scan1 % scan1val);
 
-	if (scan2.size()>0) {
-	  model->setParameterValue(scan2, scan2val);
-	  tconfig+=boost::str(cfgfix % scan2 % scan2val);
-	}
+	// use last guys realizations, just to check if this works better.
+	{
+	  double chisq=1e30;
+	  for (int pco=0; pco<2; pco++) {
+	    likely::FunctionMinimumPtr prior(pco==0 ? fmin : lastmin);
+	  
+	    bconfig="";
+	    likely::FitParameters params(prior->getFitParameters());
+	    BOOST_FOREACH(likely::FitParameter p, params) {
+	      model->setParameterValue(p.getName(), p.getValue());
+	      bconfig+=boost::str( cfg % p.getName() % p.getValue());
+	    }
+	    
+	  
+	    std::string tconfig (bconfig);
+	    model->setParameterValue(scan1, scan1val);
+	    tconfig+=boost::str(cfgfix % scan1 % scan1val);
+	    
+	    if (scan2.size()>0) {
+	      model->setParameterValue(scan2, scan2val);
+	      tconfig+=boost::str(cfgfix % scan2 % scan2val);
+	    }
 	
-	CorrelationFitter fitter(sample,model);
+	    CorrelationFitter fitter(sample,model);
 
 
-	likely::FunctionMinimumPtr cfmin =  fitter.fit(_method,tconfig);
-	//likely::FunctionMinimumPtr cfmin =  fitter.fit(_method,
-	//					       boost::str(config% scan1 % scan1val %scan2 % scan2val) );
-	double chisq = 2 * cfmin->getMinValue();
-
-	cfmin->printToStream(std::cout);
-
-	sstream << scan1val << " " <<scan2val << " " <<chisq <<std::endl;
-
+	    likely::FunctionMinimumPtr cfmin =  fitter.fit(_method,tconfig);
+	    cfmin->printToStream(std::cout);
+	    double curchisq = 2 * cfmin->getMinValue();
+	    if (curchisq<chisq) {
+	      lastmin = cfmin;
+	      chisq=curchisq;
+	    }
+	  }
+	  
+	  sstream << scan1val << " " <<scan2val << " " <<chisq <<std::endl;
+	}
       }
   }
   sstream.close();

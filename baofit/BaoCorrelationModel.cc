@@ -237,7 +237,7 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     bband2Model.setDistortion(beta);
     // Calculate the peak contribution with scaled radius.
     double cosmoxi(0);
-    if(ampl != 0) {
+    if(ampl !=0 || true) {
         double rPeak, muPeak;
         if(_anisotropic) {
             double ap1(scale_parallel);
@@ -254,8 +254,8 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
             */
         }
         else {
-	        rPeak = r*scale;
-            muPeak = mu;
+	  rPeak = r*scale;
+	  muPeak = mu;
         }
         double fid((*_fid)(rPeak,muPeak)), nw((*_nw)(rPeak,muPeak));
 	cosmoxi = nw+ampl*(fid-nw);
