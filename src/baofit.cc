@@ -548,7 +548,9 @@ int main(int argc, char **argv) {
         }
 
 	// Generate scanned space if required
-
+        if (scan1=="none") scan1="";
+        if (scan2=="none") scan2="";
+       
 	if (scan1.size()>0) {
 	  analyzer.doScanAnalysis(combined, fmin, scan1, scan1min,scan1max, scan1step,
 				  scan2, scan2min, scan2max,
