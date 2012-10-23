@@ -31,7 +31,8 @@ int main(int argc, char **argv) {
         rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax,kloSpline,khiSpline,toymcScale,saveICovScale,
         zMin,zMax,llMin,llMax,sepMin,sepMax;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
-      mcmcSave,mcmcInterval,toymcSamples,xiNr,reuseCov,nSpline,splineOrder,bootstrapCovTrials;
+        mcmcSave,mcmcInterval,toymcSamples,xiNr,reuseCov,nSpline,splineOrder,bootstrapCovTrials,
+        projectModesNKeep;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,toymcConfig,
         platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig,
         fixModeScales;
@@ -97,6 +98,8 @@ int main(int argc, char **argv) {
         ("fix-aln-cov", "Fixes covariance matrix of points in 'aln' parametrization")
         ("fix-mode-scales", po::value<std::string>(&fixModeScales)->default_value(""),
             "Fixes covariance matrix using mode scales from the specified file.")
+        ("project-modes-keep", po::value<int>(&projectModesNKeep)->default_value(0),
+            "Projects combined data onto the largest (nkeep>0) or smallest (nkeep<0) variance modes.")
         ;
     frenchOptions.add_options()
         ("french", "Correlation data files are in the French format (default is cosmolib).")
@@ -441,7 +444,12 @@ int main(int argc, char **argv) {
     }
     analyzer.setZData(zdata);
     // Fetch the combined data after final cuts.
-    baofit::AbsCorrelationDataCPtr combined = analyzer.getCombined(verbose);
+    baofit::AbsCorrelationDataPtr combined = analyzer.getCombined(verbose);
+    // Project onto eigenmodes, if requested.
+    if(projectModesNKeep != 0) {
+        if(verbose) std::cout << "Projecting onto modes with nkeep = " << projectModesNKeep << std::endl;
+        combined->projectOntoModes(projectModesNKeep);
+    }
     // Check that the combined covariance is positive definite.
     if(!combined->getCovarianceMatrix()->isPositiveDefinite()) {
         std::cerr << "Combined covariance matrix is not positive definite." << std::endl;
