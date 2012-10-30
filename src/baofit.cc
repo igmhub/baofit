@@ -29,11 +29,12 @@ int main(int argc, char **argv) {
 
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin,
         rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax,kloSpline,khiSpline,toymcScale,saveICovScale,
-        zMin, zMax;
+      zMin, zMax, scan1min, scan1max, scan1step, scan2min, scan2max, scan2step;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
       mcmcSave,mcmcInterval,toymcSamples,xiNr,reuseCov,nSpline,splineOrder,bootstrapCovTrials;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,toymcConfig,
-        platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig;
+      platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig,
+      scan1, scan2;
     std::vector<std::string> modelConfig;
 
     // Default values in quotes below are to avoid roundoff errors leading to ugly --help
@@ -193,6 +194,22 @@ int main(int argc, char **argv) {
             "Random seed to use for generating bootstrap samples.")
         ("min-method", po::value<std::string>(&minMethod)->default_value("mn2::vmetric"),
             "Minimization method to use for fitting.")
+        ("scan1", po::value<std::string>(&scan1)->default_value(""),
+            "Scan parameter 1 (no scanning if empty)")
+        ("scan2", po::value<std::string>(&scan2)->default_value(""),
+            "Scan parameter 2 (no scanning if empty)")
+        ("scan1min", po::value<double>(&scan1min)->default_value(0.8),
+	   "Scan parameter 1 minimum")
+        ("scan1max", po::value<double>(&scan1max)->default_value(1.2),
+            "Scan parameter 1 maximum")
+        ("scan1step", po::value<double>(&scan1step)->default_value(0.02),
+            "Scan parameter 1 step")
+        ("scan2min", po::value<double>(&scan2min)->default_value(0.85),
+	   "Scan parameter 1 minimum")
+        ("scan2max", po::value<double>(&scan2max)->default_value(1.15),
+            "Scan parameter 1 maximum")
+        ("scan2step", po::value<double>(&scan2step)->default_value(0.01),
+            "Scan parameter 1 step")
         ;
 
     allOptions.add(genericOptions).add(modelOptions).add(dataOptions)
@@ -506,6 +523,20 @@ int main(int argc, char **argv) {
             // in case we don't have enough statistics yet for a positive definite estimate.
             copy->saveInverseCovariance(outputPrefix + "bs.icov");
         }
+
+	// Generate scanned space if required
+        if (scan1=="none") scan1="";
+        if (scan2=="none") scan2="";
+       
+	if (scan1.size()>0) {
+	  analyzer.doScanAnalysis(combined, fmin, scan1, scan1min,scan1max, scan1step,
+				  scan2, scan2min, scan2max,
+				  scan2step, outputPrefix+"scan");
+	  
+
+	}
+
+	
         // Generate a Markov-chain for marginalization, if requested.
         if(mcmcSave > 0) {
             std::string outName = outputPrefix + "mcmc.dat";
