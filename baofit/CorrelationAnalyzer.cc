@@ -11,6 +11,7 @@
 #include "likely/CovarianceMatrix.h"
 #include "likely/CovarianceAccumulator.h"
 #include "likely/FitParameterStatistics.h"
+#include "likely/Random.h"
 
 #include "boost/smart_ptr.hpp"
 #include "boost/format.hpp"
@@ -176,7 +177,7 @@ void local::CorrelationAnalyzer::doScanAnalysis (AbsCorrelationDataCPtr sample,l
   }
 
   likely::FunctionMinimumPtr lastmin (fmin);
-  
+  likely::Random R;
   for (double scan1val=scan1min; scan1val<scan1max; scan1val+=scan1step) {
       for (double scan2val=scan2min; scan2val<scan2max; scan2val+=scan2step) {
 
@@ -189,7 +190,9 @@ void local::CorrelationAnalyzer::doScanAnalysis (AbsCorrelationDataCPtr sample,l
 	    bconfig="";
 	    likely::FitParameters params(prior->getFitParameters());
 	    BOOST_FOREACH(likely::FitParameter p, params) {
-	      model->setParameterValue(p.getName(), p.getValue());
+	      double newval(p.getValue() + 1*R.getNormal()*p.getError());
+	      std::cout << "setting "<<p.getName() << " to " <<newval <<std::endl;
+	      model->setParameterValue(p.getName(), newval);
 	      bconfig+=boost::str( cfg % p.getName() % p.getValue());
 	    }
 	    
@@ -215,7 +218,14 @@ void local::CorrelationAnalyzer::doScanAnalysis (AbsCorrelationDataCPtr sample,l
 	    }
 	  }
 	  
-	  sstream << scan1val << " " <<scan2val << " " <<chisq <<std::endl;
+	  sstream << scan1val << " " <<scan2val << " " <<chisq <<" ";
+	  { 
+	    likely::FitParameters params(lastmin->getFitParameters());
+	    BOOST_FOREACH(likely::FitParameter p, params) {
+	      sstream << p.getValue() << " ";
+	    }
+	  }
+	  sstream << std::endl;
 	}
       }
   }
