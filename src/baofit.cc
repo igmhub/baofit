@@ -320,7 +320,7 @@ int main(int argc, char **argv) {
     
     // Load the data we will fit.
     double zdata;
-    baofit::AbsCorrelationDataPtr combined;
+    baofit::AbsCorrelationDataCPtr combined;
     try {
         
         // Create a prototype of the binned data we will be loading.
@@ -438,13 +438,20 @@ int main(int argc, char **argv) {
             }
             analyzer.addData(data,reuseCovIndex);
         }
+        // Specify the nominal redshift associated with the data.
         analyzer.setZData(zdata);
-        // Fetch the combined data after final cuts.
-        combined = analyzer.getCombined(verbose);
-        // Project onto eigenmodes, if requested.
+        // Initialize combined as a read-only pointer to the finalized data to fit...
         if(projectModesNKeep != 0) {
+            // Project onto eigenmodes before finalizing.
             if(verbose) std::cout << "Projecting onto modes with nkeep = " << projectModesNKeep << std::endl;
-            combined->projectOntoModes(projectModesNKeep);
+            baofit::AbsCorrelationDataPtr beforeCuts = analyzer.getCombined(false,false);
+            beforeCuts->projectOntoModes(projectModesNKeep);
+            beforeCuts->finalize();
+            combined = beforeCuts;
+        }
+        else {
+            // Fetch the combined data after final cuts.
+            combined = analyzer.getCombined(verbose);
         }
         // Check that the combined covariance is positive definite.
         if(!combined->getCovarianceMatrix()->isPositiveDefinite()) {
