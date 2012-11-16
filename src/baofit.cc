@@ -320,6 +320,7 @@ int main(int argc, char **argv) {
     
     // Load the data we will fit.
     double zdata;
+    baofit::AbsCorrelationDataPtr combined;
     try {
         
         // Create a prototype of the binned data we will be loading.
@@ -437,28 +438,28 @@ int main(int argc, char **argv) {
             }
             analyzer.addData(data,reuseCovIndex);
         }
+        analyzer.setZData(zdata);
+        // Fetch the combined data after final cuts.
+        combined = analyzer.getCombined(verbose);
+        // Project onto eigenmodes, if requested.
+        if(projectModesNKeep != 0) {
+            if(verbose) std::cout << "Projecting onto modes with nkeep = " << projectModesNKeep << std::endl;
+            combined->projectOntoModes(projectModesNKeep);
+        }
+        // Check that the combined covariance is positive definite.
+        if(!combined->getCovarianceMatrix()->isPositiveDefinite()) {
+            std::cerr << "Combined covariance matrix is not positive definite." << std::endl;
+            return -3;
+        }
+        // Save the combined (unweighted) data, if requested.
+        if(saveData) combined->saveData(outputPrefix + "save.data");
+        // Save the combined inverse covariance, if requested.
+        if(saveICov) combined->saveInverseCovariance(outputPrefix + "save.icov",saveICovScale);
     }
     catch(std::runtime_error const &e) {
         std::cerr << "ERROR while reading data:\n  " << e.what() << std::endl;
         return -3;
     }
-    analyzer.setZData(zdata);
-    // Fetch the combined data after final cuts.
-    baofit::AbsCorrelationDataPtr combined = analyzer.getCombined(verbose);
-    // Project onto eigenmodes, if requested.
-    if(projectModesNKeep != 0) {
-        if(verbose) std::cout << "Projecting onto modes with nkeep = " << projectModesNKeep << std::endl;
-        combined->projectOntoModes(projectModesNKeep);
-    }
-    // Check that the combined covariance is positive definite.
-    if(!combined->getCovarianceMatrix()->isPositiveDefinite()) {
-        std::cerr << "Combined covariance matrix is not positive definite." << std::endl;
-        return -3;
-    }
-    // Save the combined (unweighted) data, if requested.
-    if(saveData) combined->saveData(outputPrefix + "save.data");
-    // Save the combined inverse covariance, if requested.
-    if(saveICov) combined->saveInverseCovariance(outputPrefix + "save.icov",saveICovScale);
 
     // Do the requested analyses...
     try {
