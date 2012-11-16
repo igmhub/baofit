@@ -99,7 +99,7 @@ int main(int argc, char **argv) {
         ("fix-mode-scales", po::value<std::string>(&fixModeScales)->default_value(""),
             "Fixes covariance matrix using mode scales from the specified file.")
         ("project-modes-keep", po::value<int>(&projectModesNKeep)->default_value(0),
-            "Projects combined data onto the smallest (nkeep>0) or largest (nkeep<0) variance modes.")
+            "Projects combined data onto the largest (nkeep>0) or smallest (nkeep<0) variance modes.")
         ;
     frenchOptions.add_options()
         ("french", "Correlation data files are in the French format (default is cosmolib).")
