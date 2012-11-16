@@ -511,11 +511,10 @@ std::string const &saveName, int nsave) const {
 }
 
 void local::CorrelationAnalyzer::dumpResiduals(std::ostream &out, likely::FunctionMinimumPtr fmin,
-std::string const &script, bool dumpGradients) const {
+AbsCorrelationDataCPtr combined, std::string const &script, bool dumpGradients) const {
     if(getNData() == 0) {
         throw RuntimeError("CorrelationAnalyzer::dumpResiduals: no observations have been added.");
     }
-    AbsCorrelationDataCPtr combined = getCombined();
     AbsCorrelationData::TransverseBinningType type = combined->getTransverseBinningType();
     // Get a copy of the the parameters at this minimum.
     likely::FitParameters parameters(fmin->getFitParameters());
