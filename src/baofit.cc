@@ -433,8 +433,8 @@ int main(int argc, char **argv) {
             if(reuseCovIndex < 0 && modeScales.size() > 0) {
                 if(verbose) std::cout << "Correcting mode scales..." << std::endl;
                 data->rescaleEigenvalues(modeScales);
-                data->saveData(*filename + ".fixed2.data");
-                data->saveInverseCovariance(*filename + ".fixed2.icov");
+                data->saveData(*filename + ".fixed.data");
+                data->saveInverseCovariance(*filename + ".fixed.icov");
             }
             analyzer.addData(data,reuseCovIndex);
         }
