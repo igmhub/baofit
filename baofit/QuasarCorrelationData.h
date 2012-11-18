@@ -17,9 +17,10 @@ namespace baofit {
 	    // into co-moving coordinates. The data will be pruned to rmin <= r < rmax (in Mpc/h) and
 	    // log(lambda2/lambda1) > llmin when the finalize() method is called.
 		QuasarCorrelationData(likely::AbsBinningCPtr axis1, likely::AbsBinningCPtr axis2,
-		    likely::AbsBinningCPtr axis3, double llmin, bool fixCov,
-			cosmo::AbsHomogeneousUniversePtr cosmology);
-        QuasarCorrelationData(std::vector<likely::AbsBinningCPtr> axes, double llmin,
+		    likely::AbsBinningCPtr axis3, double llMin, double llMax, double sepMin, double sepMax,
+		    bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology);
+        QuasarCorrelationData(std::vector<likely::AbsBinningCPtr> axes,
+            double llMin, double llMax, double sepMin, double sepMax,
             bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology);
 		virtual ~QuasarCorrelationData();
 		// Polymorphic shallow copy so this type of data can be used with likely::BinnedDataResampler.
@@ -31,6 +32,10 @@ namespace baofit {
         virtual double getCosAngle(int index) const;
         // Returns the redshift associated with the specified global index.
 	    virtual double getRedshift(int index) const;
+	    // This implementation adds a post-processing step to BinnedData::rescaleEigenvalue, in which
+	    // covariances between different separations are forced to zero, removing the effects of
+	    // round-off errors.
+	    virtual void rescaleEigenvalues(std::vector<double> modeScales);
     	// This fixes covariance by adding the correct terms for a typical BAO analysis
     	// that throw away unwanted modes spuriosly appearing (for not yet completelly understood
     	// reasons). The covariance between bins at the same redshift and separation, and
@@ -46,8 +51,9 @@ namespace baofit {
         // Transforms the specified values of ll,sep,dsep,z to co-moving r,mu.
         void transform(double ll, double sep, double dsep, double z, double &r, double &mu) const;
 	private:
-        void _initialize(double llmin, bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology);
-        double _llmin;
+        void _initialize(double llMin, double llMax, double sepMin, double sepMax,
+            bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology);
+        double _llMin, _llMax, _sepMin, _sepMax;
     	bool _fixCov;
         cosmo::AbsHomogeneousUniversePtr _cosmology;
         std::vector<double> _rLookup, _muLookup, _zLookup;

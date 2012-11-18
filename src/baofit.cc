@@ -27,13 +27,15 @@ int main(int argc, char **argv) {
         frenchOptions("French data options"), cosmolibOptions("Cosmolib data options"),
         analysisOptions("Analysis options");
 
-    double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,llmin,
+    double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,
         rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax,kloSpline,khiSpline,toymcScale,saveICovScale,
-        zMin, zMax;
+        zMin,zMax,llMin,llMax,sepMin,sepMax;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
-      mcmcSave,mcmcInterval,toymcSamples,xiNr,reuseCov,nSpline,splineOrder,bootstrapCovTrials;
+        mcmcSave,mcmcInterval,toymcSamples,xiNr,reuseCov,nSpline,splineOrder,bootstrapCovTrials,
+        projectModesNKeep;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,toymcConfig,
-        platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig;
+        platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig,
+        fixModeScales;
     std::vector<std::string> modelConfig;
 
     // Default values in quotes below are to avoid roundoff errors leading to ugly --help
@@ -94,6 +96,10 @@ int main(int argc, char **argv) {
         ("save-icov-scale", po::value<double>(&saveICovScale)->default_value(1),
             "Scale factor applied to inverse covariance elements when using save-icov.")
         ("fix-aln-cov", "Fixes covariance matrix of points in 'aln' parametrization")
+        ("fix-mode-scales", po::value<std::string>(&fixModeScales)->default_value(""),
+            "Fixes covariance matrix using mode scales from the specified file.")
+        ("project-modes-keep", po::value<int>(&projectModesNKeep)->default_value(0),
+            "Projects combined data onto the largest (nkeep>0) or smallest (nkeep<0) variance modes.")
         ;
     frenchOptions.add_options()
         ("french", "Correlation data files are in the French format (default is cosmolib).")
@@ -153,8 +159,14 @@ int main(int argc, char **argv) {
             "Final cut on minimum value of redshift (coordinate data only).")
         ("z-max", po::value<double>(&zMax)->default_value(10.),
             "Final cut on maximum value of redshift (coordinate data only).")
-        ("llmin", po::value<double>(&llmin)->default_value(0),
-            "Minimum value of log(lam2/lam1) to use in fit (multipole data only).")
+        ("ll-min", po::value<double>(&llMin)->default_value(0),
+            "Minimum value of log(lam2/lam1) to use in fit (Aln2 data only).")
+        ("ll-max", po::value<double>(&llMax)->default_value(1),
+            "Maximum value of log(lam2/lam1) to use in fit (Aln2 data only).")
+        ("sep-min", po::value<double>(&sepMin)->default_value(0),
+            "Minimum value of separation in arcmins to use in fit (Aln2 data only).")
+        ("sep-max", po::value<double>(&sepMax)->default_value(200),
+            "Maximum value of separation in arcmins to use in fit (Aln2 data only).")
         ("lmin", po::value<int>(&lmin)->default_value(0),
             "Final cut on minimum multipole ell (0,2,4) to use in fit (multipole data only).")
         ("lmax", po::value<int>(&lmax)->default_value(2),
@@ -168,7 +180,8 @@ int main(int argc, char **argv) {
         ("scalar-weights", "Combine plates using scalar weights instead of Cinv weights.")
         ("refit-config", po::value<std::string>(&refitConfig)->default_value(""),
             "Script to modify parameters for refits.")
-        ("compare-each", "Compares each observation to the combined data.")
+        ("compare-each", "Compares each observation to the combined data, before final cuts.")
+        ("compare-each-final", "Compares each observation to the combined data, after final cuts.")
         ("fit-each", "Fits each observation separately.")
         ("bootstrap-trials", po::value<int>(&bootstrapTrials)->default_value(0),
             "Number of bootstrap trials to run if a platelist was provided.")
@@ -243,7 +256,7 @@ int main(int argc, char **argv) {
         saveICov(vm.count("save-icov")), multiSpline(vm.count("multi-spline")),
         fixAlnCov(vm.count("fix-aln-cov")), saveData(vm.count("save-data")),
         scalarWeights(vm.count("scalar-weights")), noInitialFit(vm.count("no-initial-fit")),
-        compareEach(vm.count("compare-each"));
+        compareEach(vm.count("compare-each")), compareEachFinal(vm.count("compare-each-final"));
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
@@ -307,6 +320,7 @@ int main(int argc, char **argv) {
     
     // Load the data we will fit.
     double zdata;
+    baofit::AbsCorrelationDataCPtr combined;
     try {
         
         // Create a prototype of the binned data we will be loading.
@@ -330,10 +344,25 @@ int main(int argc, char **argv) {
         else { // default is cosmolib (saved) format
             zdata = 2.25;
             prototype = baofit::boss::createCosmolibPrototype(
-                minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,llmin,fixAlnCov,cosmology);
+                minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,llMin,llMax,sepMin,sepMax,
+                fixAlnCov,cosmology);
         }
         // Set the final cuts that have not already been specified in the prototype ctors above.
         prototype->setFinalCuts(rmin,rmax,rVetoMin,rVetoMax,muMin,muMax,ellmin,ellmax,zMin,zMax);
+        
+        // Load the vector of mode scale corrections to apply, if any
+        std::vector<double> modeScales;
+        if(fixModeScales.length() > 0) {
+            std::ifstream in(fixModeScales.c_str());
+            std::vector<std::vector<double> > vectors(1);
+            int nread = likely::readVectors(in, vectors, false);
+            in.close();
+            modeScales = vectors[0];
+            if(verbose) {
+                std::cout << "Read " << modeScales.size()
+                    << " mode scales from " << fixModeScales << std::endl;
+            }
+        }
         
         // Build a list of the data files we will read.
         std::vector<std::string> filelist;
@@ -371,7 +400,7 @@ int main(int argc, char **argv) {
         // Load each file into our analyzer.
         for(std::vector<std::string>::const_iterator filename = filelist.begin();
         filename != filelist.end(); ++filename) {
-            baofit::AbsCorrelationDataCPtr data;
+            baofit::AbsCorrelationDataPtr data;
             int reuseCovIndex(-1);
             if(french) {
                 data = baofit::boss::loadFrench(*filename,prototype,
@@ -401,32 +430,55 @@ int main(int argc, char **argv) {
                 std::cerr << "!!! Covariance matrix not positive-definite for "
                     << *filename << std::endl;
             }
+            if(reuseCovIndex < 0 && modeScales.size() > 0) {
+                if(verbose) std::cout << "Correcting mode scales..." << std::endl;
+                data->rescaleEigenvalues(modeScales);
+                data->saveData(*filename + ".fixed.data");
+                data->saveInverseCovariance(*filename + ".fixed.icov");
+            }
             analyzer.addData(data,reuseCovIndex);
         }
+        // Specify the nominal redshift associated with the data.
+        analyzer.setZData(zdata);
+        // Initialize combined as a read-only pointer to the finalized data to fit...
+        if(projectModesNKeep != 0) {
+            // Project onto eigenmodes before finalizing.
+            if(verbose) std::cout << "Projecting onto modes with nkeep = " << projectModesNKeep << std::endl;
+            baofit::AbsCorrelationDataPtr beforeCuts = analyzer.getCombined(false,false);
+            beforeCuts->projectOntoModes(projectModesNKeep);
+            beforeCuts->finalize();
+            combined = beforeCuts;
+        }
+        else {
+            // Fetch the combined data after final cuts.
+            combined = analyzer.getCombined(verbose);
+        }
+        // Check that the combined covariance is positive definite.
+        if(!combined->getCovarianceMatrix()->isPositiveDefinite()) {
+            std::cerr << "Combined covariance matrix is not positive definite." << std::endl;
+            return -3;
+        }
+        // Save the combined (unweighted) data, if requested.
+        if(saveData) combined->saveData(outputPrefix + "save.data");
+        // Save the combined inverse covariance, if requested.
+        if(saveICov) combined->saveInverseCovariance(outputPrefix + "save.icov",saveICovScale);
     }
     catch(std::runtime_error const &e) {
         std::cerr << "ERROR while reading data:\n  " << e.what() << std::endl;
         return -3;
     }
-    analyzer.setZData(zdata);
-    // Fetch the combined data after final cuts.
-    baofit::AbsCorrelationDataCPtr combined = analyzer.getCombined(verbose);
-    // Check that the combined covariance is positive definite.
-    if(!combined->getCovarianceMatrix()->isPositiveDefinite()) {
-        std::cerr << "Combined covariance matrix is not positive definite." << std::endl;
-        return -3;
-    }
-    // Save the combined (unweighted) data, if requested.
-    if(saveData) combined->saveData(outputPrefix + "save.data");
-    // Save the combined inverse covariance, if requested.
-    if(saveICov) combined->saveInverseCovariance(outputPrefix + "save.icov",saveICovScale);
 
     // Do the requested analyses...
     try {
-        // Compare each observation to the combined average.
         if(compareEach && analyzer.getNData() > 1) {
-            std::cout << "Chi-square of each dataset relative to the combined average:" << std::endl;
-            analyzer.compareEach(combined);
+            // Compare each observation to the combined average before final cuts.
+            std::cout << "Comparing each observation with combined before final cuts:" << std::endl;
+            analyzer.compareEach(outputPrefix + "compare.dat",false);
+        }
+        if(compareEachFinal && analyzer.getNData() > 1) {
+            // Compare each observation to the combined average after final cuts.
+            std::cout << "Comparing each observation with combined after final cuts:" << std::endl;
+            analyzer.compareEach(outputPrefix + "final_compare.dat",true);
         }
         // Fit the combined sample or use the initial model-config.
         likely::FunctionMinimumPtr fmin;
@@ -489,7 +541,7 @@ int main(int argc, char **argv) {
             // Dump the best-fit residuals for each data bin.
             std::string outName = outputPrefix + "residuals.dat";
             std::ofstream out(outName.c_str());
-            analyzer.dumpResiduals(out,fmin);
+            analyzer.dumpResiduals(out,fmin,combined);
             out.close();
         }
         // Calculate and save a bootstrap estimate of the (unfinalized) combined covariance
