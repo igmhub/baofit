@@ -13,9 +13,9 @@ The NL models have isotropic non-linear broadening added via a factor exp(-(S*k)
 
 The DR9LyaMocksNLeff smooth+peak templates are effective NL broadening models calculated with beta0 = 1.4, Sigma_par = 6.41 Mpc/h, Sigma_per = 3.26 Mpc/h.
 
-The DR9LyaMocksNLSB templates are smooth templates calculated by subtracting broadened linear peak templates from DR9LyaMocksNLeff, which effectively applies broadening at all scales.
+The DR9LyaMocksNLeffSB templates are smooth templates calculated by subtracting broadened linear peak templates from DR9LyaMocksNLeff, which effectively applies broadening at all scales.
 
-The DR9LyaMocksNLPk smooth+peak templates are calculated by adding the linear smooth DR9LyaMocksSB templates to broadened linear peak templates, which effectively only applies non-linear effects to the peak feature.
+The DR9LyaMocksNLeffPk smooth+peak templates are calculated by adding the linear smooth DR9LyaMocksSB templates to broadened linear peak templates, which effectively only applies non-linear effects to the peak feature.
 
 The "no-wiggles" models can be generated several ways. Models ending with "SB" are sideband models where the region below and above the ell=0 correlation function are fit to a smooth model, which is then interpolated under the peak. The DR9LyaMocks SB model fits xi0(r) from [50,82] and [145,190] Mpc/h to a sum of r^p terms with p = -3,-2,-1,0,1.
 
