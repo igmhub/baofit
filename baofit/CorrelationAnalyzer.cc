@@ -169,12 +169,22 @@ void local::CorrelationAnalyzer::doScanAnalysis (AbsCorrelationDataCPtr sample,l
   sstream.open(saveName.c_str());
   
   AbsCorrelationModelPtr model(_model);
+
   if (scan2.size()==0) {
     // we want exactly one iteration in that loop so
     scan2min=0.0;
     scan2max=1.0;
     scan2step=2.0;
   }
+
+  // Careful scan tries more initial positions to prevent minimizer induced crap
+  int pcomax(2);
+  if (scan1[0]=='*') {
+    scan1.erase(0,1);
+    std::cout << "Doing careful scan!" << std::endl;
+    pcomax=10;
+  }
+  
 
   likely::FunctionMinimumPtr lastmin (fmin);
   likely::Random R;
@@ -184,18 +194,27 @@ void local::CorrelationAnalyzer::doScanAnalysis (AbsCorrelationDataCPtr sample,l
 	// use last guys realizations, just to check if this works better.
 	{
 	  double chisq=1e30;
-	  for (int pco=0; pco<2; pco++) {
-	    likely::FunctionMinimumPtr prior(pco==0 ? fmin : lastmin);
+	  for (int pco=0; pco<pcomax; pco++) {
+	    likely::FunctionMinimumPtr prior;
+	    if (pco%2==0) prior=fmin;
+	    else prior=lastmin;
+	    // else if (pco==2) {
+	    //   //lets start with no prior
+	    //   //prior=NULL;
+	    // }
 	  
 	    bconfig="";
-	    likely::FitParameters params(prior->getFitParameters());
-	    BOOST_FOREACH(likely::FitParameter p, params) {
-	      double newval(p.getValue() + 1*R.getNormal()*p.getError());
-	      std::cout << "setting "<<p.getName() << " to " <<newval <<std::endl;
-	      model->setParameterValue(p.getName(), newval);
-	      bconfig+=boost::str( cfg % p.getName() % p.getValue());
+	    if (pco<5) {
+	      double pfact(1.0);
+	      if (pco>2) pfact=10.0+pco*pco;
+	      likely::FitParameters params(prior->getFitParameters());
+	      BOOST_FOREACH(likely::FitParameter p, params) {
+		double newval(p.getValue() + pfact*R.getNormal()*p.getError());
+		std::cout << "setting "<<p.getName() << " to " <<newval <<std::endl;
+		model->setParameterValue(p.getName(), newval);
+		bconfig+=boost::str( cfg % p.getName() % p.getValue());
+	      }
 	    }
-	    
 	  
 	    std::string tconfig (bconfig);
 	    model->setParameterValue(scan1, scan1val);
@@ -208,14 +227,18 @@ void local::CorrelationAnalyzer::doScanAnalysis (AbsCorrelationDataCPtr sample,l
 	
 	    CorrelationFitter fitter(sample,model);
 
-
+	    std::cout <<"tconfig="<<tconfig<<std::endl;
+	    
 	    likely::FunctionMinimumPtr cfmin =  fitter.fit(_method,tconfig);
 	    cfmin->printToStream(std::cout);
 	    double curchisq = 2 * cfmin->getMinValue();
+	    std::cout << "trial " << pco << " " <<curchisq;
 	    if (curchisq<chisq) {
 	      lastmin = cfmin;
 	      chisq=curchisq;
+	      std::cout <<" * ";
 	    }
+	    std::cout << std::endl;
 	  }
 	  
 	  sstream << scan1val << " " <<scan2val << " " <<chisq <<" ";

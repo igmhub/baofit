@@ -185,19 +185,19 @@ template cosmo::CorrelationFunctionPtr likely::createFunctionPtr<local::BaoCorre
     (local::BaoCorrelationModel::BBand2Ptr pimpl);
 
 double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
-  static double beta, bb, gamma_bias, gamma_beta, ampl, scale, scale_parallel, scale_perp, gamma_scale,
+  static double betain, bb, gamma_bias, gamma_beta, ampl, scalein, scale_parallelin, scale_perpin, gamma_scale,
     xio, a0, a1, a2;
   
   if (anyChanged) {
    
-    beta = getParameterValue("beta");
+     betain = getParameterValue("beta");
      bb = getParameterValue("(1+beta)*bias");
      gamma_bias = getParameterValue("gamma-bias");
      gamma_beta = getParameterValue("gamma-beta");
      ampl = getParameterValue("BAO amplitude");
-     scale = getParameterValue("BAO alpha-iso");
-     scale_parallel = getParameterValue("BAO alpha-parallel");
-     scale_perp = getParameterValue("BAO alpha-perp");
+     scalein = getParameterValue("BAO alpha-iso");
+     scale_parallelin = getParameterValue("BAO alpha-parallel");
+     scale_perpin = getParameterValue("BAO alpha-perp");
      gamma_scale = getParameterValue("gamma-scale");
      xio = getParameterValue("BBand1 xio");
      a0 = getParameterValue("BBand1 a0");
@@ -205,15 +205,17 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
      a2 = getParameterValue("BBand1 a2");
   } 
     // Calculate bias(zref) from beta(zref) and bb(zref).
-    double bias = bb/(1+beta);
+    double bias = bb/(1+betain);
     // Calculate redshift evolution.
     double zratio((1+z)/(1+_zref));
     double zfactor = std::pow(zratio,gamma_bias);
     double scaleFactor = std::pow(zratio,gamma_scale);
-    scale *= scaleFactor;
-    scale_parallel *= scaleFactor;
-    scale_perp *= scaleFactor;
-    beta *= std::pow(zratio,gamma_beta);
+    double scale (scalein*scaleFactor);
+    //if (r<60)
+    // printf("gamma_scale %g %g %g %g \n",gamma_scale, z, scaleFactor, scale);
+    double scale_parallel (scale_parallelin* scaleFactor);
+    double scale_perp (scale_perpin*scaleFactor);
+    double beta (betain * std::pow(zratio,gamma_beta));
     // Build a model with xi(ell=0,2,4) = c(ell).
     cosmo::RsdCorrelationFunction bband2Model(
         likely::createFunctionPtr(BBand2Ptr(new BBand2(
