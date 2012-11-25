@@ -11,6 +11,24 @@
 #include <vector>
 
 namespace baofit {
+  class BinnedPeakModel {
+  public:
+    BinnedPeakModel(std::string const &points);
+    ~BinnedPeakModel();
+
+    double evaluate(double r, double mu, double z, double beta) const;
+    void initializeInterpolators(const likely::FitModel* m) const;
+    std::vector<std::string> parameterNames() {return _pNames;}
+  private:
+    std::vector<double> _rValues;
+    mutable std::vector<double> _xiValues;
+    std::vector<std::string>  _pNames;
+    mutable likely::InterpolatorPtr _xi0, _xi2, _xi4;
+  };
+}
+
+namespace baofit {
+
 	// Represents a two-point correlation model parameterized in terms of the relative scale and amplitude
 	// of a BAO peak, with possible broadband distortion.
 	class BaoCorrelationModel : public AbsCorrelationModel {
@@ -20,7 +38,8 @@ namespace baofit {
 	    // on the BAO scale.
 		BaoCorrelationModel(std::string const &modelrootName,
 		    std::string const &fiducialName, std::string const &nowigglesName,
-            std::string const &broadbandName, double zref, bool anisotropic = false);
+				    std::string const &broadbandName, double zref, bool anisotropic = false,
+				    std::string xip="");
 		virtual ~BaoCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
@@ -38,7 +57,8 @@ namespace baofit {
         cosmo::RsdCorrelationFunctionPtr _fid, _nw, _bbc, _bb1, _bb2;
         class BBand2;
         typedef boost::shared_ptr<BBand2> BBand2Ptr;
-	}; // BaoCorrelationModel
+	boost::scoped_ptr<BinnedPeakModel> _bpm;
+  }; // BaoCorrelationModel
 } // baofit
 
 #endif // BAOFIT_BAO_CORRELATION_MODEL

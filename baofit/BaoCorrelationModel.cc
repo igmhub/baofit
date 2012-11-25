@@ -9,7 +9,12 @@
 #include "likely/function.h"
 #include "likely/RuntimeError.h"
 
+
 #include "boost/format.hpp"
+#include "boost/spirit/include/qi.hpp"
+#include "boost/spirit/include/phoenix_core.hpp"
+#include "boost/spirit/include/phoenix_operator.hpp"
+#include "boost/spirit/include/phoenix_stl.hpp"
 
 #include <cmath>
 
@@ -17,8 +22,8 @@ namespace local = baofit;
 
 local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName,
     std::string const &fiducialName, std::string const &nowigglesName,
-    std::string const &broadbandName, double zref, bool anisotropic)
-: AbsCorrelationModel("BAO Correlation Model"), _zref(zref), _anisotropic(anisotropic)
+						std::string const &broadbandName, double zref, bool anisotropic, std::string xip)
+  : AbsCorrelationModel("BAO Correlation Model"), _zref(zref), _anisotropic(anisotropic), _bpm(new BinnedPeakModel(xip))
 {
     if(zref < 0) {
         throw RuntimeError("BaoCorrelationModel: expected zref >= 0.");
@@ -50,6 +55,12 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
     defineParameter("BBand2 mono 1/(r*r)",0,0.6);
     defineParameter("BBand2 quad 1/(r*r)",0,1.2);
     defineParameter("BBand2 hexa 1/(r*r)",0,2.4);
+
+
+    BOOST_FOREACH(std::string s, _bpm->parameterNames()) {
+        defineParameter (s,0.0, 1.0);
+      }
+
     // Load the interpolation data we will use for each multipole of each model.
     std::string root(modelrootName);
     if(0 < root.size() && root[root.size()-1] != '/') root += '/';
@@ -163,6 +174,7 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     _bbc->setDistortion(beta);
     _bb1->setDistortion(beta);
     _bb2->setDistortion(beta);
+    
     bband2Model.setDistortion(beta);
     // Calculate the peak contribution with scaled radius.
     double peak(0);
@@ -197,7 +209,11 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     if(a2 != 0) bband1 += a2*(*_bb2)(r,mu);
     double bband2 = bband2Model(r,mu);
     // Combine the peak and broadband components, with bias and redshift evolution.
-    return bias*bias*zfactor*(peak + bband1 + bband2);
+
+    if (anyChanged) _bpm->initializeInterpolators(this);
+    double bpeak(_bpm->evaluate(r,mu,z,beta));
+    
+    return bias*bias*zfactor*(peak + bband1 + bband2)+zfactor*bpeak*0.14*0.14;
 }
 
 double local::BaoCorrelationModel::_evaluate(double r, cosmo::Multipole multipole, double z,
@@ -298,3 +314,123 @@ void  local::BaoCorrelationModel::printToStream(std::ostream &out, std::string c
     out << std::endl << "Reference redshift = " << _zref << std::endl;
     out << "Using " << (_anisotropic ? "anisotropic":"isotropic") << " BAO scales." << std::endl;
 }
+
+
+
+///////////////////////// BinnedPeakModel Start here
+
+namespace local = baofit;
+namespace qi = boost::spirit::qi;
+namespace ascii = boost::spirit::ascii;
+namespace phoenix = boost::phoenix;
+
+baofit::BinnedPeakModel::BinnedPeakModel(std::string const &points)  {
+  
+    // import boost spirit parser symbols
+    using qi::double_;
+    using qi::_1;
+    using phoenix::ref;
+    using phoenix::push_back;
+
+    if (points.size()==0) return;
+    
+    // Parse the points string into a vector of doubles.
+    std::string::const_iterator iter = points.begin();
+    bool ok = qi::phrase_parse(iter,points.end(),
+        (
+            double_[push_back(ref(_rValues),_1)] % ','
+        ),
+        ascii::space);
+    if(!ok || iter != points.end()) {
+        throw RuntimeError("XiCorrelationModel: badly formatted points list.");
+    }
+
+    
+    // Create parameters
+    boost::format pname("peak (%g) ");
+    for(int index = 0; index < _rValues.size(); ++index) {
+      double rval(_rValues[index]);
+      //defineParameter(boost::str(pname % rval),0,1e-4);
+      _pNames.push_back(boost::str(pname % rval));
+      _xiValues.push_back(0.0);
+    }
+   
+}
+
+
+void baofit::BinnedPeakModel::initializeInterpolators(const likely::FitModel* m) const {
+  if (_rValues.size()==0) return;
+  std::vector<double>::iterator  vit=_xiValues.begin();
+  std::vector<std::string>::const_iterator pit(_pNames.begin());
+
+  
+  for ( ; pit!=_pNames.end(); vit++,pit++) {
+    *vit=m->getParameterValue(*pit);
+  }
+  
+
+  //need to integrate this to xi2 and xi4/
+  // we'll do this in a clunky way in order because we suport gay marriage.
+
+  std::vector<double> rv,xv;
+  rv.push_back(_rValues[0]-(_rValues[1]-_rValues[0]));
+  xv.push_back(0);
+
+  rv.insert(rv.end(), _rValues.begin(), _rValues.end());
+  xv.insert(xv.end(),_xiValues.begin(),_xiValues.end());
+
+  double re=_rValues[_rValues.size()-1];   
+  double re2=_rValues[_rValues.size()-2];   
+    
+  rv.push_back(re+(re-re2));
+  xv.push_back(0);
+  
+  _xi0.reset(new likely::Interpolator(rv,xv,"linear"));
+
+  std::vector< double > rvals,xi2vals, xi4vals;
+  for (double r=10.0; r<200; r+=1.0) rvals.push_back(r);
+
+  // and now integral
+  double xis(0), xiss(0);
+  const double dr(0.1);
+  int i=0;
+  for (double r=0.1; true; r+=dr) {
+    double rsq(r*r);
+    double xi0((*_xi0)(r)/rsq);
+    xis+=rsq*xi0*dr;
+    xiss+=rsq*rsq*xi0*dr;
+    if (r>rvals[i]) {
+      double xib (xis*3/(r*r*r)), xibb(xiss*5/pow(r,5));
+      
+      xi2vals.push_back ( (xi0-xib)*rsq);
+      xi4vals.push_back ( (xi0+2.5*xib-3.5*xibb)*rsq);
+      i++;
+      if (i==rvals.size()) break;
+    }
+  }
+
+  _xi2.reset(new likely::Interpolator(rvals, xi2vals,"cspline"));
+  _xi4.reset(new likely::Interpolator(rvals, xi4vals,"cspline"));
+    
+}
+
+
+
+double baofit::BinnedPeakModel::evaluate(double r, double mu, double z, double beta) const{
+
+  if (_rValues.size()==0) return 0.0;
+  // Calculate the Legendre weights.
+  double muSq(mu*mu);
+  double L0(1), L2 = (3*muSq - 1)/2., L4 = (35*muSq*muSq - 30*muSq + 3)/8.;
+  // Put the pieces together.
+  return (
+	  (1 + beta*(2./3. + (1./5.)*beta))  *L0*  (*_xi0)(r) +
+	  (beta*(4./3. + (4./7.)*beta))      *L2*  (*_xi2)(r) +
+	  (beta*beta*(8./35.))               *L4*  (*_xi4)(r)
+	  )/(r*r);
+}
+
+
+
+baofit::BinnedPeakModel::~BinnedPeakModel() { }
+

@@ -294,13 +294,13 @@ int main(int argc, char **argv) {
             model.reset(new baofit::PkCorrelationModel(modelrootName,nowigglesName,
                 kloSpline,khiSpline,nSpline,splineOrder,multiSpline,zref));
         }
-        else if(xiPoints.length() > 0) {
-            model.reset(new baofit::XiCorrelationModel(xiPoints,zref,xiMethod));
-        }
+//        else if(xiPoints.length() > 0) {
+//            model.reset(new baofit::XiCorrelationModel(xiPoints,zref,xiMethod));
+//        }
         else {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
             model.reset(new baofit::BaoCorrelationModel(
-                modelrootName,fiducialName,nowigglesName,broadbandName,zref,anisotropic));
+							modelrootName,fiducialName,nowigglesName,broadbandName,zref,anisotropic, xiPoints));
         }
              
         // Configure our fit model parameters by applying all model-config options in turn,
@@ -489,6 +489,14 @@ int main(int argc, char **argv) {
         else {
             fmin = analyzer.fitSample(combined);
         }
+	// Dump the fit parameters and covariance matrix in machine-readable format
+	{
+	  std::string outName = outputPrefix + ".fit.out";
+	  std::ofstream out(outName.c_str());
+	  fmin->printMachineReadableToStream(out);
+	  out.close();
+	}
+
         // Dump the fit parameters in model-config format.
         {
             std::string outName = outputPrefix + "fit.config";
