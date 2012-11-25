@@ -9,7 +9,13 @@ cosmocalc --verbose --load-power DR9LyaMocks_matterpower.dat --rmin 5 --rmax 215
 cosmocalc --verbose --load-power DR9LyaMocks_matterpower.dat --rmin 5 --rmax 215 --nr 211 --save-correlation DR9LyaMocks.2.dat --quad
 cosmocalc --verbose --load-power DR9LyaMocks_matterpower.dat --rmin 5 --rmax 215 --nr 211 --save-correlation DR9LyaMocks.4.dat --hexa
 
-The NL models have isotropic non-linear broadening added via a factor exp(-(S*k)^2/2) that multiplies P(k). Note that the NL3 monopole correlation function calculated with cosmocalc needs the option --eps-rel 1e-5 for numerical convergence.
+The NL models have isotropic non-linear broadening added via a factor exp(-(S*k)^2/2) that multiplies P(k), with S = 3, 6, 12 Mpc/h. Note that the NL3 monopole correlation function calculated with cosmocalc needs the option --eps-rel 1e-5 for numerical convergence.
+
+The DR9LyaMocksNLeff smooth+peak templates are effective NL broadening models calculated with beta0 = 1.4, Sigma_par = 6.41 Mpc/h, Sigma_per = 3.26 Mpc/h.
+
+The DR9LyaMocksNLeffSB templates are smooth templates calculated by subtracting broadened linear peak templates from DR9LyaMocksNLeff, which effectively applies broadening at all scales.
+
+The DR9LyaMocksNLeffPk smooth+peak templates are calculated by adding the linear smooth DR9LyaMocksSB templates to broadened linear peak templates, which effectively only applies non-linear effects to the peak feature.
 
 The "no-wiggles" models can be generated several ways. Models ending with "SB" are sideband models where the region below and above the ell=0 correlation function are fit to a smooth model, which is then interpolated under the peak. The DR9LyaMocks SB model fits xi0(r) from [50,82] and [145,190] Mpc/h to a sum of r^p terms with p = -3,-2,-1,0,1.
 

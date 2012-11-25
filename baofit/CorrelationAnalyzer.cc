@@ -63,35 +63,54 @@ local::AbsCorrelationDataPtr local::CorrelationAnalyzer::getCombined(bool verbos
     return combined;    
 }
 
-void local::CorrelationAnalyzer::compareEach(AbsCorrelationDataCPtr refData) const {
-    // Check that the reference data is finalized.
-    if(!refData->isFinalized()) {
-        throw RuntimeError("CorrelationAnalyzer::compareEach: expected finalized reference data.");
-    }
+void local::CorrelationAnalyzer::compareEach(std::string const &saveName, bool finalized) const {
     if(_resampler.usesScalarWeights()) {
-        std::cerr << "CorrelationAnalyzer::compareEach: not supported with scalar weights." << std::endl;
-        return;
+        throw RuntimeError("CorrelationAnalyzer::compareEach: not supported with scalar weights.");
     }
-    // Load a "theory" vector with the unweighed reference data.
-    std::vector<double> theory;
-    for(likely::BinnedData::IndexIterator iter = refData->begin(); iter != refData->end(); ++iter) {
-        theory.push_back(refData->getData(*iter));
-    }
-    // Loop over observations.
+    // Open the output file.
+    std::ofstream out(saveName.c_str());
+    // Get our combined data to use as a reference
+    baofit::AbsCorrelationDataCPtr refData = getCombined(false,finalized);
+    // Get the combined data's covariance
+    likely::CovarianceMatrixCPtr Cref = refData->getCovarianceMatrix();
     int nbins = refData->getNBinsWithData();
-    std::cout << "   N     Prob     Chi2  input|C| final|C|" << std::endl;
+    // Initialize storage.
+    std::vector<double> eigenvalues,eigenvectors,chi2modes;
+    // Initialize formats.
+    boost::format summary("%4d %.6lf %8.1lf %10.4lf\n"), oneValue(" %.4lg");
+    // Loop over observations.
+    std::cout << "   N     Prob     Chi2   log|C|/n" << std::endl;
     for(int obsIndex = 0; obsIndex < _resampler.getNObservations(); ++obsIndex) {
-        AbsCorrelationDataPtr observation = boost::dynamic_pointer_cast<baofit::AbsCorrelationData>(
+        AbsCorrelationDataPtr observation =
+            boost::dynamic_pointer_cast<baofit::AbsCorrelationData>(
             _resampler.getObservationCopy(obsIndex));
-        double logdetBefore = observation->getCovarianceMatrix()->getLogDeterminant();
-        observation->finalize();
-        double logdetAfter = observation->getCovarianceMatrix()->getLogDeterminant();
-        // Calculate the chi-square of this observation relative to the "theory"
-        double chi2 = observation->chiSquare(theory);
+        if(finalized) observation->finalize();
+        // Calculate log(|C|)/nbins
+        likely::CovarianceMatrixPtr Csub(new likely::CovarianceMatrix(*observation->getCovarianceMatrix()));
+        double logDet = Csub->getLogDeterminant()/nbins;
+        // Subtract the reference data covariance.
+        for(int row = 0; row < nbins; ++row) {
+            for(int col = 0; col <= row; ++col) {
+                double value(Csub->getCovariance(row,col)-Cref->getCovariance(row,col));
+                Csub->setCovariance(row,col,value);
+            }
+        }
+        // Subtract the reference data vector.
+        std::vector<double> delta;
+        for(likely::BinnedData::IndexIterator iter = refData->begin(); iter != refData->end(); ++iter) {
+            delta.push_back(observation->getData(*iter) - refData->getData(*iter));
+        }
+        // Calculate the chi-square of this observation relative to the combined data
+        double chi2 = Csub->chiSquareModes(delta,eigenvalues,eigenvectors,chi2modes);
+        // Calculate the corresponding chi-square probability and print a summary for this observation.
         double prob = 1 - boost::math::gamma_p(nbins/2.,chi2/2);
-        std::cout << boost::format("%4d %.6lf %8.1lf %8.2lf %8.1lf\n")
-            % obsIndex % prob % chi2 % logdetBefore % logdetAfter;
+        std::cout << summary % obsIndex % prob % chi2 % logDet;
+        // Save the contributions of each mode to the output file.
+        out << obsIndex << ' ' << logDet << ' ' << chi2;
+        for(int i = 0; i < nbins; ++i) out << oneValue % chi2modes[i];
+        out << std::endl;
     }
+    out.close();
 }
 
 bool local::CorrelationAnalyzer::printScaleZEff(likely::FunctionMinimumCPtr fmin, double zref,
@@ -597,11 +616,10 @@ std::string const &saveName, int nsave) const {
 }
 
 void local::CorrelationAnalyzer::dumpResiduals(std::ostream &out, likely::FunctionMinimumPtr fmin,
-std::string const &script, bool dumpGradients) const {
+AbsCorrelationDataCPtr combined, std::string const &script, bool dumpGradients) const {
     if(getNData() == 0) {
         throw RuntimeError("CorrelationAnalyzer::dumpResiduals: no observations have been added.");
     }
-    AbsCorrelationDataCPtr combined = getCombined();
     AbsCorrelationData::TransverseBinningType type = combined->getTransverseBinningType();
     // Get a copy of the the parameters at this minimum.
     likely::FitParameters parameters(fmin->getFitParameters());

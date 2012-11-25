@@ -79,9 +79,17 @@ namespace baofit {
         // description of the other parameters.
         void generateMarkovChain(int nchain, int interval, likely::FunctionMinimumCPtr fmin,
             std::string const &saveName = "", int nsave = 0) const;
-        // Compares each finalized observation to the specified finalized reference data set and prints
-        // the chi-square probability and value.
-        void compareEach(AbsCorrelationDataCPtr refData) const;
+        // Compares each observation to the combined observations, saving one line per observation
+        // to the specified filename with the format (k indexes observations):
+        //
+        //   k log(|C_k|)/n chi2_k chi2_k,1 chi2_k,2 ... chi2_k,nbins
+        //
+        // where chi2_k = (d_k - D).(C_k - C)^(-1).(d_k - D) for combined data D and covariance C,
+        // which should be chi-square distributed with nbins dof if each C_k is correct. The
+        // chi2_k,i are the contributions to chi2_k associated with each eigenmode of C_k-C, and
+        // sum up to give chi2_k. The distribution of chi2_k,i should be chi-square with 1 dof.
+        // The individual observations and combination will be finalized if requested.
+        void compareEach(std::string const &saveName, bool finalized) const;
         // Fits each observation separately and returns the number of fits that failed.
         // See doBootstrapAnalysis for a description of the other parameters.
         int fitEach(likely::FunctionMinimumPtr fmin,
@@ -97,14 +105,15 @@ namespace baofit {
         int doToyMCSampling(int ngen, std::string const &mcConfig, std::string const &mcSaveFile,
             double varianceScale, likely::FunctionMinimumPtr fmin, likely::FunctionMinimumPtr fmin2,
             std::string const &refitConfig, std::string const &saveName, int nsave) const;
-        // Dumps the data, prediction, and diagonal error for each bin of the combined
+        // Dumps the data, prediction, and diagonal error for each bin of the specified combined
         // data set to the specified output stream. The fit result is assumed to correspond
         // to model that is currently associated with this analyzer. Use the optional script
         // to modify the parameters used in the model. By default, the gradient of each
         // bin with respect to each floating parameter is append to each output row, unless
         // dumpGradients = false.
         void dumpResiduals(std::ostream &out, likely::FunctionMinimumPtr fmin,
-            std::string const &script = "", bool dumpGradients = true) const;
+            AbsCorrelationDataCPtr combined, std::string const &script = "",
+            bool dumpGradients = true) const;
         // Dumps the model predictions for the specified fit parameters to the specified
         // output stream. The input parameters are assumed to correspond to the model that is
         // currently associated with this analyzer. Use the optional script to modify
