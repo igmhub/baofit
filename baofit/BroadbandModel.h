@@ -12,6 +12,8 @@ namespace baofit {
 	public:
 		BroadbandModel(std::string const &name, std::string const &paramSpec);
 		virtual ~BroadbandModel();
+        // Prints a multi-line description of this object to the specified output stream.
+        virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
 	protected:
 		// Returns the correlation function evaluated in redshift space where (r,mu) is
 		// the pair separation and z is their average redshift. The separation r should
@@ -21,6 +23,9 @@ namespace baofit {
         // r and average pair redshift z.
         virtual double _evaluate(double r, cosmo::Multipole multipole, double z, bool anyChanged) const;
 	private:
+        int _rIndexMin,_rIndexMax,_rIndexStep;
+        int _muIndexMin,_muIndexMax,_muIndexStep;
+        int _zIndexMin,_zIndexMax,_zIndexStep;
 	}; // BroadbandModel
 } // baofit
 
