@@ -10,7 +10,7 @@ namespace baofit {
     // and redshift, and multipoles of mu = r.z
 	class BroadbandModel : public AbsCorrelationModel {
 	public:
-		BroadbandModel(std::string const &name);
+		BroadbandModel(std::string const &name, std::string const &paramSpec);
 		virtual ~BroadbandModel();
 	protected:
 		// Returns the correlation function evaluated in redshift space where (r,mu) is

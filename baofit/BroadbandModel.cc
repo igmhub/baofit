@@ -4,7 +4,7 @@
 
 namespace local = baofit;
 
-local::BroadbandModel::BroadbandModel(std::string const &name)
+local::BroadbandModel::BroadbandModel(std::string const &name, std::string const &paramSpec)
 : AbsCorrelationModel(name)
 { }
 

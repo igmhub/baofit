@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
         projectModesNKeep;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,toymcConfig,
         platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig,
-        fixModeScales;
+        fixModeScales,bbandAdd,bbandMul;
     std::vector<std::string> modelConfig;
 
     // Default values in quotes below are to avoid roundoff errors leading to ugly --help
@@ -61,6 +61,10 @@ int main(int argc, char **argv) {
             "Common path to prepend to all model filenames.")
         ("zref", po::value<double>(&zref)->default_value(2.25),
             "Reference redshift used by model correlation functions.")
+        ("bband-add", po::value<std::string>(&bbandAdd)->default_value(""),
+            "Parameterization to use for additive broadband distortion.")
+        ("bband-mul", po::value<std::string>(&bbandMul)->default_value(""),
+            "Parameterization to use for multiplicative broadband distortion.")
         ("n-spline", po::value<int>(&nSpline)->default_value(0),
             "Number of spline knots to use spanning (klo,khi).")
         ("klo-spline", po::value<double>(&kloSpline)->default_value(0.02,"0.02"),
@@ -298,6 +302,13 @@ int main(int argc, char **argv) {
             model.reset(new baofit::XiCorrelationModel(xiPoints,zref,xiMethod));
         }
         else {
+            baofit::AbsCorrelationModelPtr distortAdd,distortMul;
+            if(bbandAdd.length() > 0) {
+                distortAdd.reset(new baofit::BroadbandModel("Additive broadband distortion",bbandAdd));
+            }
+            if(bbandMul.length() > 0) {
+                distortMul.reset(new baofit::BroadbandModel("Multiplicative broadband distortion",bbandMul));
+            }
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
             model.reset(new baofit::BaoCorrelationModel(
                 modelrootName,fiducialName,nowigglesName,broadbandName,zref,anisotropic));
