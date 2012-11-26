@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
 
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,
         rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax,kloSpline,khiSpline,toymcScale,saveICovScale,
-      zMin, zMax, scan1min, scan1max, scan1step, scan2min, scan2max, scan2step;
+      sepMin, sepMax, llMin, llMax, zMin, zMax, scan1min, scan1max, scan1step, scan2min, scan2max, scan2step;
     
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
       mcmcSave,mcmcInterval,toymcSamples,xiNr,reuseCov,nSpline,splineOrder,bootstrapCovTrials,
@@ -38,7 +38,7 @@ int main(int argc, char **argv) {
     bool bb3_muodd;
     std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,mcConfig,
       iniName,xiMethod, altConfig, platelistName, platerootName, outputPrefix, refitConfig,
-      toymcConfig, minMethod, scan1, scan2i, fixModeScales;
+      toymcConfig, minMethod, scan1, scan2, fixModeScales;
     std::vector<std::string> modelConfig;
 
     // Default values in quotes below are to avoid roundoff errors leading to ugly --help
