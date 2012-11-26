@@ -13,6 +13,7 @@ bin_PROGRAMS = baofit
 libbaofit_la_SOURCES = \
 	baofit/AbsCorrelationModel.cc \
 	baofit/BaoCorrelationModel.cc \
+	baofit/BroadbandModel.cc \
 	baofit/XiCorrelationModel.cc \
 	baofit/PkCorrelationModel.cc \
 	baofit/AbsCorrelationData.cc \
@@ -32,6 +33,7 @@ nobase_include_HEADERS = \
 	baofit/RuntimeError.h \
 	baofit/AbsCorrelationModel.h \
 	baofit/BaoCorrelationModel.h \
+	baofit/BroadbandModel.h \
 	baofit/XiCorrelationModel.h \
 	baofit/PkCorrelationModel.h \
 	baofit/AbsCorrelationData.h \
