@@ -24,16 +24,13 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
         throw RuntimeError("BaoCorrelationModel: expected zref >= 0.");
     }
     // Linear bias parameters
-    defineParameter("beta",1.4,0.1);
-    defineParameter("(1+beta)*bias",-0.336,0.03);
+    _defineLinearBiasParameters(zref);
     // BAO peak parameters
     defineParameter("BAO amplitude",1,0.15);
     defineParameter("BAO alpha-iso",1,0.02);
     defineParameter("BAO alpha-parallel",1,0.1);
     defineParameter("BAO alpha-perp",1,0.1);
     // Redshift evolution parameters
-    defineParameter("gamma-bias",3.8,0.3);
-    defineParameter("gamma-beta",0,0.1);
     defineParameter("gamma-scale",0,0.5);    
     // Broadband Model 1 parameters
     defineParameter("BBand1 xio",0,0.001);
@@ -56,19 +53,19 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
     boost::format fileName("%s%s.%d.dat"),bbandName("%s%s%c.%d.dat");
     std::string method("cspline");
     try {
+        _fid0 = likely::createFunctionPtr(likely::createInterpolator(
+            boost::str(fileName % root % fiducialName % 0),method));
+        _fid2 = likely::createFunctionPtr(likely::createInterpolator(
+            boost::str(fileName % root % fiducialName % 2),method));
+        _fid4 = likely::createFunctionPtr(likely::createInterpolator(
+            boost::str(fileName % root % fiducialName % 4),method));
+        _nw0 = likely::createFunctionPtr(likely::createInterpolator(
+            boost::str(fileName % root % nowigglesName % 0),method));
+        _nw2 = likely::createFunctionPtr(likely::createInterpolator(
+            boost::str(fileName % root % nowigglesName % 2),method));
+        _nw4 = likely::createFunctionPtr(likely::createInterpolator(
+            boost::str(fileName % root % nowigglesName % 4),method));
         cosmo::CorrelationFunctionPtr
-            fid0 = likely::createFunctionPtr(likely::createInterpolator(
-                boost::str(fileName % root % fiducialName % 0),method)),
-            fid2 = likely::createFunctionPtr(likely::createInterpolator(
-                boost::str(fileName % root % fiducialName % 2),method)),
-            fid4 = likely::createFunctionPtr(likely::createInterpolator(
-                boost::str(fileName % root % fiducialName % 4),method)),
-            nw0 = likely::createFunctionPtr(likely::createInterpolator(
-                boost::str(fileName % root % nowigglesName % 0),method)),
-            nw2 = likely::createFunctionPtr(likely::createInterpolator(
-                boost::str(fileName % root % nowigglesName % 2),method)),
-            nw4 = likely::createFunctionPtr(likely::createInterpolator(
-                boost::str(fileName % root % nowigglesName % 4),method)),
             bbc0 = likely::createFunctionPtr(likely::createInterpolator(
                 boost::str(bbandName % root % broadbandName % 'c' % 0),method)),
             bbc2 = likely::createFunctionPtr(likely::createInterpolator(
@@ -88,8 +85,8 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
             bb24 = likely::createFunctionPtr(likely::createInterpolator(
                 boost::str(bbandName % root % broadbandName % '2' % 4),method));
         // Create redshift-space distorted correlation function models from the multipole interpolators.
-        _fid.reset(new cosmo::RsdCorrelationFunction(fid0,fid2,fid4));
-        _nw.reset(new cosmo::RsdCorrelationFunction(nw0,nw2,nw4));
+        _fid.reset(new cosmo::RsdCorrelationFunction(_fid0,_fid2,_fid4));
+        _nw.reset(new cosmo::RsdCorrelationFunction(_nw0,_nw2,_nw4));
         _bbc.reset(new cosmo::RsdCorrelationFunction(bbc0,bbc2,bbc4));
         _bb1.reset(new cosmo::RsdCorrelationFunction(bb10,bb12,bb14));
         _bb2.reset(new cosmo::RsdCorrelationFunction(bb20,bb22,bb24));
@@ -120,6 +117,11 @@ template cosmo::CorrelationFunctionPtr likely::createFunctionPtr<local::BaoCorre
     (local::BaoCorrelationModel::BBand2Ptr pimpl);
 
 double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
+    // Calculate the Legendre weights.
+    double muSq(mu*mu);
+    double L0(1), L2 = (3*muSq - 1)/2., L4 = (35*muSq*muSq - 30*muSq + 3)/8.;
+    
+    
     double beta = getParameterValue("beta");
     double bb = getParameterValue("(1+beta)*bias");
     double gamma_bias = getParameterValue("gamma-bias");
