@@ -4,6 +4,17 @@
 
 namespace local = baofit;
 
-local::BroadbandModel::BroadbandModel() { }
+local::BroadbandModel::BroadbandModel(std::string const &name)
+: AbsCorrelationModel(name)
+{ }
 
 local::BroadbandModel::~BroadbandModel() { }
+
+double local::BroadbandModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
+    return 0;
+}
+
+double local::BroadbandModel::_evaluate(double r, cosmo::Multipole multipole, double z,
+bool anyChanged) const {
+    return 0;
+}
