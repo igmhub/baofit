@@ -11,6 +11,7 @@
 #include "likely/CovarianceMatrix.h"
 #include "likely/CovarianceAccumulator.h"
 #include "likely/FitParameterStatistics.h"
+#include "likely/Random.h"
 
 #include "boost/smart_ptr.hpp"
 #include "boost/format.hpp"
@@ -170,6 +171,110 @@ AbsCorrelationDataCPtr sample, std::string const &config) const {
     }
     return fmin;
 }
+
+
+
+void local::CorrelationAnalyzer::doScanAnalysis (AbsCorrelationDataCPtr sample,likely::FunctionMinimumPtr fmin, std::string scan1, double scan1min,
+		     double scan1max, double scan1step, std::string scan2, double scan2min, double scan2max,
+		     double scan2step, std::string saveName) const {
+
+  
+  //lets make our own copy of model an update its parameters based on fmin
+  boost::format cfg("value[%s]=%g;");
+  boost::format cfgfix("fix[%s]=%g;");
+  std::string bconfig;
+		    
+  std::ofstream sstream;
+  sstream.open(saveName.c_str());
+  
+  AbsCorrelationModelPtr model(_model);
+
+  if (scan2.size()==0) {
+    // we want exactly one iteration in that loop so
+    scan2min=0.0;
+    scan2max=1.0;
+    scan2step=2.0;
+  }
+
+  // Careful scan tries more initial positions to prevent minimizer induced crap
+  int pcomax(2);
+  if (scan1[0]=='*') {
+    scan1.erase(0,1);
+    std::cout << "Doing careful scan!" << std::endl;
+    pcomax=10;
+  }
+  
+
+  likely::FunctionMinimumPtr lastmin (fmin);
+  likely::Random R;
+  for (double scan1val=scan1min; scan1val<scan1max; scan1val+=scan1step) {
+      for (double scan2val=scan2min; scan2val<scan2max; scan2val+=scan2step) {
+
+	// use last guys realizations, just to check if this works better.
+	{
+	  double chisq=1e30;
+	  for (int pco=0; pco<pcomax; pco++) {
+	    likely::FunctionMinimumPtr prior;
+	    if (pco%2==0) prior=fmin;
+	    else prior=lastmin;
+	    // else if (pco==2) {
+	    //   //lets start with no prior
+	    //   //prior=NULL;
+	    // }
+	  
+	    bconfig="";
+	    if (pco<5) {
+	      double pfact(1.0);
+	      if (pco>2) pfact=10.0+pco*pco;
+	      likely::FitParameters params(prior->getFitParameters());
+	      BOOST_FOREACH(likely::FitParameter p, params) {
+		double newval(p.getValue() + pfact*R.getNormal()*p.getError());
+		std::cout << "setting "<<p.getName() << " to " <<newval <<std::endl;
+		model->setParameterValue(p.getName(), newval);
+		bconfig+=boost::str( cfg % p.getName() % p.getValue());
+	      }
+	    }
+	  
+	    std::string tconfig (bconfig);
+	    model->setParameterValue(scan1, scan1val);
+	    tconfig+=boost::str(cfgfix % scan1 % scan1val);
+	    
+	    if (scan2.size()>0) {
+	      model->setParameterValue(scan2, scan2val);
+	      tconfig+=boost::str(cfgfix % scan2 % scan2val);
+	    }
+	
+	    CorrelationFitter fitter(sample,model);
+
+	    std::cout <<"tconfig="<<tconfig<<std::endl;
+	    
+	    likely::FunctionMinimumPtr cfmin =  fitter.fit(_method,tconfig);
+	    cfmin->printToStream(std::cout);
+	    double curchisq = 2 * cfmin->getMinValue();
+	    std::cout << "trial " << pco << " " <<curchisq;
+	    if (curchisq<chisq) {
+	      lastmin = cfmin;
+	      chisq=curchisq;
+	      std::cout <<" * ";
+	    }
+	    std::cout << std::endl;
+	  }
+	  
+	  sstream << scan1val << " " <<scan2val << " " <<chisq <<" ";
+	  { 
+	    likely::FitParameters params(lastmin->getFitParameters());
+	    BOOST_FOREACH(likely::FitParameter p, params) {
+	      sstream << p.getValue() << " ";
+	    }
+	  }
+	  sstream << std::endl;
+	}
+      }
+  }
+  sstream.close();
+}
+
+
 
 namespace baofit {
     class CorrelationAnalyzer::AbsSampler {

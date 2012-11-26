@@ -43,6 +43,14 @@ namespace baofit {
         // propagate back to the model or modify subsequent fits).
         likely::FunctionMinimumPtr fitSample(AbsCorrelationDataCPtr sample,
             std::string const &config = "") const;        
+
+
+	// Do scan analsysis: scan in 1 or two parameters and outputs the best chi2
+	void doScanAnalysis (AbsCorrelationDataCPtr sample,likely::FunctionMinimumPtr fmin, std::string scan1,
+		double scan1min, double scan1max, double scan1step, std::string scan2, double scan2min, double scan2max,
+		double scan2step, std::string saveName) const;
+
+	
         // Performs a bootstrap analysis and returns the number of fits to bootstrap
         // samples that failed. Specify a non-zero bootstrapSize to generate trials with
         // a number of observations different than getNData(). Specify a refitConfig script

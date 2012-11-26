@@ -29,13 +29,16 @@ int main(int argc, char **argv) {
 
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,
         rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax,kloSpline,khiSpline,toymcScale,saveICovScale,
-        zMin,zMax,llMin,llMax,sepMin,sepMax;
+      sepMin, sepMax, llMin, llMax, zMin, zMax, scan1min, scan1max, scan1step, scan2min, scan2max, scan2step;
+    
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
-        mcmcSave,mcmcInterval,toymcSamples,xiNr,reuseCov,nSpline,splineOrder,bootstrapCovTrials,
-        projectModesNKeep;
-    std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,toymcConfig,
-        platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig,
-        fixModeScales;
+      mcmcSave,mcmcInterval,toymcSamples,xiNr,reuseCov,nSpline,splineOrder,bootstrapCovTrials,
+      projectModesNKeep;
+    int bb3_rpmin, bb3_rpmax, bb3_mupmax, bb3_zpmax;
+    bool bb3_muodd;
+    std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,mcConfig,
+      iniName,xiMethod, altConfig, platelistName, platerootName, outputPrefix, refitConfig,
+      toymcConfig, minMethod, scan1, scan2, fixModeScales;
     std::vector<std::string> modelConfig;
 
     // Default values in quotes below are to avoid roundoff errors leading to ugly --help
@@ -78,7 +81,17 @@ int main(int argc, char **argv) {
             "Model parameters configuration script (option can appear multiple times).")
         ("alt-config", po::value<std::string>(&altConfig)->default_value(""),
             "Parameter adjustments for dumping alternate best-fit model.")
-        ("anisotropic", "Uses anisotropic a,b parameters instead of isotropic scale.")
+      ("bb3-rpmin", po::value<int>(&bb3_rpmin)->default_value(0),
+       "Broadband 3, min power in r")
+      ("bb3-rpmax", po::value<int>(&bb3_rpmax)->default_value(-1),
+       "Broadband 3, max power in r")
+      ("bb3-mupmax", po::value<int>(&bb3_mupmax)->default_value(4),
+       "Broadband 3, max power in mu")
+      ("bb3-zpmax", po::value<int>(&bb3_zpmax)->default_value(0),
+       "Broadband 3, max power in z")
+      ("bb3-muodd", po::value<bool>(&bb3_muodd)->default_value(true),
+       "Broadband 3, use even mus too?")
+      ("anisotropic", "Uses anisotropic a,b parameters instead of isotropic scale.")
         ;
     dataOptions.add_options()
         ("data", po::value<std::string>(&dataName)->default_value(""),
@@ -206,6 +219,22 @@ int main(int argc, char **argv) {
             "Random seed to use for generating bootstrap samples.")
         ("min-method", po::value<std::string>(&minMethod)->default_value("mn2::vmetric"),
             "Minimization method to use for fitting.")
+        ("scan1", po::value<std::string>(&scan1)->default_value(""),
+            "Scan parameter 1 (no scanning if empty)")
+        ("scan2", po::value<std::string>(&scan2)->default_value(""),
+            "Scan parameter 2 (no scanning if empty)")
+        ("scan1min", po::value<double>(&scan1min)->default_value(0.8),
+	   "Scan parameter 1 minimum")
+        ("scan1max", po::value<double>(&scan1max)->default_value(1.2),
+            "Scan parameter 1 maximum")
+        ("scan1step", po::value<double>(&scan1step)->default_value(0.02),
+            "Scan parameter 1 step")
+        ("scan2min", po::value<double>(&scan2min)->default_value(0.85),
+	   "Scan parameter 1 minimum")
+        ("scan2max", po::value<double>(&scan2max)->default_value(1.15),
+            "Scan parameter 1 maximum")
+        ("scan2step", po::value<double>(&scan2step)->default_value(0.01),
+            "Scan parameter 1 step")
         ;
 
     allOptions.add(genericOptions).add(modelOptions).add(dataOptions)
@@ -300,7 +329,8 @@ int main(int argc, char **argv) {
         else {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
             model.reset(new baofit::BaoCorrelationModel(
-                modelrootName,fiducialName,nowigglesName,broadbandName,zref,anisotropic));
+                modelrootName,fiducialName,nowigglesName,broadbandName,zref,
+		bb3_rpmin, bb3_rpmax, bb3_mupmax, bb3_zpmax, bb3_muodd, anisotropic));
         }
              
         // Configure our fit model parameters by applying all model-config options in turn,
@@ -489,6 +519,14 @@ int main(int argc, char **argv) {
         else {
             fmin = analyzer.fitSample(combined);
         }
+	// Dump the fit parameters and covariance matrix in machine-readable format
+	{
+	  std::string outName = outputPrefix + ".fit.out";
+	  std::ofstream out(outName.c_str());
+	  fmin->printMachineReadableToStream(out);
+	  out.close();
+	}
+
         // Dump the fit parameters in model-config format.
         {
             std::string outName = outputPrefix + "fit.config";
@@ -558,6 +596,20 @@ int main(int argc, char **argv) {
             // in case we don't have enough statistics yet for a positive definite estimate.
             copy->saveInverseCovariance(outputPrefix + "bs.icov");
         }
+
+	// Generate scanned space if required
+        if (scan1=="none") scan1="";
+        if (scan2=="none") scan2="";
+       
+	if (scan1.size()>0) {
+	  analyzer.doScanAnalysis(combined, fmin, scan1, scan1min,scan1max, scan1step,
+				  scan2, scan2min, scan2max,
+				  scan2step, outputPrefix+"scan");
+	  
+
+	}
+
+	
         // Generate a Markov-chain for marginalization, if requested.
         if(mcmcSave > 0) {
             std::string outName = outputPrefix + "mcmc.dat";
