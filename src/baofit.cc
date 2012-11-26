@@ -304,10 +304,14 @@ int main(int argc, char **argv) {
         else {
             baofit::AbsCorrelationModelPtr distortAdd,distortMul;
             if(bbandAdd.length() > 0) {
-                distortAdd.reset(new baofit::BroadbandModel("Additive broadband distortion",bbandAdd));
+                distortAdd.reset(new baofit::BroadbandModel("Additive broadband distortion",
+                    "bbdist add",bbandAdd));
+                distortAdd->printToStream(std::cout);
             }
             if(bbandMul.length() > 0) {
-                distortMul.reset(new baofit::BroadbandModel("Multiplicative broadband distortion",bbandMul));
+                distortMul.reset(new baofit::BroadbandModel("Multiplicative broadband distortion",
+                    "bbdist mul",bbandMul));
+                distortMul->printToStream(std::cout);
             }
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
             model.reset(new baofit::BaoCorrelationModel(

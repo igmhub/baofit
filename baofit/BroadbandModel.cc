@@ -8,6 +8,7 @@
 #include "boost/spirit/include/phoenix_core.hpp"
 #include "boost/spirit/include/phoenix_operator.hpp"
 #include "boost/spirit/include/phoenix_stl.hpp"
+#include "boost/format.hpp"
 
 namespace local = baofit;
 namespace qi = boost::spirit::qi;
@@ -52,7 +53,8 @@ namespace broadband {
 } // broadband
 } // baofit
 
-local::BroadbandModel::BroadbandModel(std::string const &name, std::string const &paramSpec)
+local::BroadbandModel::BroadbandModel(std::string const &name, std::string const &tag,
+std::string const &paramSpec)
 : AbsCorrelationModel(name)
 {
     // Parse the parameter specification string.
@@ -83,6 +85,15 @@ local::BroadbandModel::BroadbandModel(std::string const &name, std::string const
     _zIndexStep = grammar.specs[8];
     if(_zIndexMax < _zIndexMin || _zIndexStep <= 0) {
         throw RuntimeError("BroadbandModel: illegal z-parameter specification.");
+    }
+    // Define our parameters.
+    boost::format pname("%s r%d mu%d z%d");
+    for(int rIndex = _rIndexMin; rIndex <= _rIndexMax; rIndex += _rIndexStep) {
+        for(int muIndex = _muIndexMin; muIndex <= _muIndexMax; muIndex += _muIndexStep) {
+            for(int zIndex = _zIndexMin; zIndex <= _zIndexMax; zIndex += _zIndexStep) {
+                defineParameter(boost::str(pname % tag % rIndex % muIndex % zIndex),0,0.1);
+            }
+        }
     }
 }
 

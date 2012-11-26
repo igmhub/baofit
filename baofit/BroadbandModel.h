@@ -10,7 +10,12 @@ namespace baofit {
     // and redshift, and multipoles of mu = r.z
 	class BroadbandModel : public AbsCorrelationModel {
 	public:
-		BroadbandModel(std::string const &name, std::string const &paramSpec);
+	    // Creates a broadband model with parameters named "<tag> r%d mu%d z%d" where each %d slot
+	    // is filled with a range of indices specified in paramSpec using python array notation:
+	    //   n => only index is n
+	    //   n1:n2 => indices n1...n2
+	    //   n1:n2:dn => indices n1...n2 in steps of dn
+		BroadbandModel(std::string const &name, std::string const &tag, std::string const &paramSpec);
 		virtual ~BroadbandModel();
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
