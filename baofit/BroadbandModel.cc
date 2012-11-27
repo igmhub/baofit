@@ -12,7 +12,6 @@
 
 namespace local = baofit;
 namespace qi = boost::spirit::qi;
-namespace ascii = boost::spirit::ascii;
 namespace phoenix = boost::phoenix;
 
 namespace baofit {
@@ -60,7 +59,8 @@ std::string const &paramSpec, double r0, double z0, AbsCorrelationModel *base)
     // Parse the parameter specification string.
     broadband::Grammar grammar;
     std::string::const_iterator iter = paramSpec.begin();
-    bool ok = qi::phrase_parse(iter, paramSpec.end(), grammar, ascii::space);
+    //bool ok = qi::phrase_parse(iter, paramSpec.end(), grammar, ascii::space);
+    bool ok = qi::parse(iter, paramSpec.end(), grammar);
     if(!ok || iter != paramSpec.end() || grammar.specs.size() != 9) {
         std::cout << "size = " << grammar.specs.size() << std::endl;
         throw RuntimeError("BroadbandModel: badly formatted parameter specification: " + paramSpec);
@@ -92,7 +92,7 @@ std::string const &paramSpec, double r0, double z0, AbsCorrelationModel *base)
     for(int zIndex = _zIndexMin; zIndex <= _zIndexMax; zIndex += _zIndexStep) {
         for(int muIndex = _muIndexMin; muIndex <= _muIndexMax; muIndex += _muIndexStep) {
             for(int rIndex = _rIndexMin; rIndex <= _rIndexMax; rIndex += _rIndexStep) {
-                int index = _base.defineParameter(boost::str(pname % tag % rIndex % muIndex % zIndex),0,0.1);
+                int index = _base.defineParameter(boost::str(pname % tag % rIndex % muIndex % zIndex),0,1e-3);
                 if(first) {
                     _indexBase = index;
                     first = false;
