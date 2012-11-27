@@ -17,8 +17,10 @@ namespace local = baofit;
 
 local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName,
     std::string const &fiducialName, std::string const &nowigglesName,
+    AbsCorrelationModelPtr distortAdd, AbsCorrelationModelPtr distortMul,
     double zref, bool anisotropic)
-: AbsCorrelationModel("BAO Correlation Model"), _zref(zref), _anisotropic(anisotropic)
+: AbsCorrelationModel("BAO Correlation Model"), _distortAdd(distortAdd), _distortMul(distortMul),
+_zref(zref), _anisotropic(anisotropic)
 {
     if(zref < 0) {
         throw RuntimeError("BaoCorrelationModel: expected zref >= 0.");
@@ -254,4 +256,6 @@ void  local::BaoCorrelationModel::printToStream(std::ostream &out, std::string c
     AbsCorrelationModel::printToStream(out,formatSpec);
     out << std::endl << "Reference redshift = " << _zref << std::endl;
     out << "Using " << (_anisotropic ? "anisotropic":"isotropic") << " BAO scales." << std::endl;
+    if(_distortAdd) _distortAdd->printToStream(out,formatSpec);
+    if(_distortMul) _distortMul->printToStream(out,formatSpec);
 }

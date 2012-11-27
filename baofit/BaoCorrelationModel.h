@@ -4,11 +4,11 @@
 #define BAOFIT_BAO_CORRELATION_MODEL
 
 #include "baofit/AbsCorrelationModel.h"
+#include "baofit/types.h"
 
 #include "cosmo/types.h"
 
 #include <string>
-#include <vector>
 
 namespace baofit {
 	// Represents a two-point correlation model parameterized in terms of the relative scale and amplitude
@@ -19,6 +19,7 @@ namespace baofit {
 	    // reference redshift.
 		BaoCorrelationModel(std::string const &modelrootName,
 		    std::string const &fiducialName, std::string const &nowigglesName,
+            AbsCorrelationModelPtr distortAdd, AbsCorrelationModelPtr distortMul,
             double zref, bool anisotropic = false);
 		virtual ~BaoCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
@@ -35,6 +36,7 @@ namespace baofit {
         double _zref;
         bool _anisotropic;
         cosmo::CorrelationFunctionPtr _fid0, _fid2, _fid4, _nw0, _nw2, _nw4;
+        AbsCorrelationModelPtr _distortAdd, _distortMul;
         class BBand2;
         typedef boost::shared_ptr<BBand2> BBand2Ptr;
 	}; // BaoCorrelationModel

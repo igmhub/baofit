@@ -306,16 +306,14 @@ int main(int argc, char **argv) {
             if(bbandAdd.length() > 0) {
                 distortAdd.reset(new baofit::BroadbandModel("Additive broadband distortion",
                     "bbdist add",bbandAdd,bbandR0,zref));
-                distortAdd->printToStream(std::cout);
             }
             if(bbandMul.length() > 0) {
                 distortMul.reset(new baofit::BroadbandModel("Multiplicative broadband distortion",
                     "bbdist mul",bbandMul,bbandR0,zref));
-                distortMul->printToStream(std::cout);
             }
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
             model.reset(new baofit::BaoCorrelationModel(
-                modelrootName,fiducialName,nowigglesName,zref,anisotropic));
+                modelrootName,fiducialName,nowigglesName,distortAdd,distortMul,zref,anisotropic));
         }
              
         // Configure our fit model parameters by applying all model-config options in turn,
