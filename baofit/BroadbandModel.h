@@ -36,6 +36,7 @@ namespace baofit {
         double _r0, _z0;
         AbsCorrelationModel &_base;
 	}; // BroadbandModel
+    double legendreP(int ell, double mu);
 } // baofit
 
 #endif // BAOFIT_BROADBAND_MODEL
