@@ -128,19 +128,19 @@ double local::BroadbandModel::_evaluate(double r, double mu, double z, bool anyC
                 muFactor = mu*(-3+5*musq)/2.;
                 break;
             case 4:
-                muFactor = (3-30*musq+35*musq*musq)/8.;
+                muFactor = (3+musq*(-30+35*musq))/8.;
                 break;
             case 5:
-                muFactor = mu*(15-70*musq+63*musq*musq)/8.;
+                muFactor = mu*(15+musq*(-70+63*musq))/8.;
                 break;
             case 6:
-                muFactor = (-5+105*musq-315*musq*musq+231*musq*musq*musq)/16.;
+                muFactor = (-5+musq*(105+musq*(-315+231*musq)))/16.;
                 break;
             case 7:
-                muFactor = mu*(-35+315*musq-693*musq*musq+429*musq*musq*musq)/16.;
+                muFactor = mu*(-35+musq*(315+musq*(-693+429*musq)))/16.;
                 break;
             case 8:
-                muFactor = (35-1260*musq+6930*musq*musq-12012*musq*musq*musq+6435*musq*musq*musq*musq)/128.;
+                muFactor = (35+musq*(-1260+musq*(6930+musq*(-12012+6435*musq))))/128.;
                 break;
             }
             for(int rIndex = _rIndexMin; rIndex <= _rIndexMax; rIndex += _rIndexStep) {
