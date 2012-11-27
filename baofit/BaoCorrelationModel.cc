@@ -2,6 +2,7 @@
 
 #include "baofit/BaoCorrelationModel.h"
 #include "baofit/RuntimeError.h"
+#include "baofit/BroadbandModel.h"
 
 #include "cosmo/RsdCorrelationFunction.h"
 #include "cosmo/TransferFunctionPowerSpectrum.h"
@@ -17,10 +18,9 @@ namespace local = baofit;
 
 local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName,
     std::string const &fiducialName, std::string const &nowigglesName,
-    AbsCorrelationModelPtr distortAdd, AbsCorrelationModelPtr distortMul,
+    std::string const &bbandAdd, std::string const &bbandMul, double bbandR0,
     double zref, bool anisotropic, bool decoupled)
-: AbsCorrelationModel("BAO Correlation Model"), _distortAdd(distortAdd), _distortMul(distortMul),
-_anisotropic(anisotropic), _decoupled(decoupled)
+: AbsCorrelationModel("BAO Correlation Model"), _anisotropic(anisotropic), _decoupled(decoupled)
 {
     // Linear bias parameters
     _defineLinearBiasParameters(zref);
@@ -29,7 +29,7 @@ _anisotropic(anisotropic), _decoupled(decoupled)
     defineParameter("BAO alpha-iso",1,0.02);
     defineParameter("BAO alpha-parallel",1,0.1);
     defineParameter("BAO alpha-perp",1,0.1);
-    defineParameter("gamma-scale",0,0.5);    
+    defineParameter("gamma-scale",0,0.5);
     // Load the interpolation data we will use for each multipole of each model.
     std::string root(modelrootName);
     if(0 < root.size() && root[root.size()-1] != '/') root += '/';
@@ -51,6 +51,15 @@ _anisotropic(anisotropic), _decoupled(decoupled)
     }
     catch(likely::RuntimeError const &e) {
         throw RuntimeError("BaoCorrelationModel: error while reading model interpolation data.");
+    }
+    // Define our broadband distortion models, if any.
+    if(bbandAdd.length() > 0) {
+        _distortAdd.reset(new baofit::BroadbandModel("Additive broadband distortion",
+            "bbdist add",bbandAdd,bbandR0,zref,this));
+    }
+    if(bbandMul.length() > 0) {
+        _distortMul.reset(new baofit::BroadbandModel("Multiplicative broadband distortion",
+            "bbdist mul",bbandMul,bbandR0,zref,this));
     }
 }
 
@@ -106,9 +115,13 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
         double L2 = (3*muSq - 1)/2., L4 = (35*muSq*muSq - 30*muSq + 3)/8.;    
         smooth = norm0*(*_nw0)(r) + norm2*L2*(*_nw2)(r) + norm4*L4*(*_nw4)(r);
     }
-    double cosmo = peak + smooth;
+    double xi = peak + smooth;
+    
+    // Add broadband distortions, if any.
+    if(_distortMul) xi *= _distortMul->_evaluate(r,mu,z,anyChanged);
+    if(_distortAdd) xi *= _distortAdd->_evaluate(r,mu,z,anyChanged);
 
-    return cosmo;
+    return xi;
 }
 
 double local::BaoCorrelationModel::_evaluate(double r, cosmo::Multipole multipole, double z,

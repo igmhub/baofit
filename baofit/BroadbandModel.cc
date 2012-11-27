@@ -54,8 +54,8 @@ namespace broadband {
 } // baofit
 
 local::BroadbandModel::BroadbandModel(std::string const &name, std::string const &tag,
-std::string const &paramSpec, double r0, double z0)
-: AbsCorrelationModel(name), _r0(r0), _z0(z0)
+std::string const &paramSpec, double r0, double z0, AbsCorrelationModel *base)
+: AbsCorrelationModel(name), _r0(r0), _z0(z0), _base(base ? *base:*this)
 {
     // Parse the parameter specification string.
     broadband::Grammar grammar;
@@ -91,7 +91,7 @@ std::string const &paramSpec, double r0, double z0)
     for(int rIndex = _rIndexMin; rIndex <= _rIndexMax; rIndex += _rIndexStep) {
         for(int muIndex = _muIndexMin; muIndex <= _muIndexMax; muIndex += _muIndexStep) {
             for(int zIndex = _zIndexMin; zIndex <= _zIndexMax; zIndex += _zIndexStep) {
-                defineParameter(boost::str(pname % tag % rIndex % muIndex % zIndex),0,0.1);
+                _base.defineParameter(boost::str(pname % tag % rIndex % muIndex % zIndex),0,0.1);
             }
         }
     }

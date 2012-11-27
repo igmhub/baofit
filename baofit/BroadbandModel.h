@@ -16,7 +16,7 @@ namespace baofit {
 	    //   n1:n2 => indices n1...n2
 	    //   n1:n2:dn => indices n1...n2 in steps of dn
 		BroadbandModel(std::string const &name, std::string const &tag, std::string const &paramSpec,
-		    double r0, double z0);
+		    double r0, double z0, AbsCorrelationModel *base = 0);
 		virtual ~BroadbandModel();
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
@@ -33,6 +33,7 @@ namespace baofit {
         int _muIndexMin,_muIndexMax,_muIndexStep;
         int _zIndexMin,_zIndexMax,_zIndexStep;
         double _r0, _z0;
+        AbsCorrelationModel &_base;
 	}; // BroadbandModel
 } // baofit
 
