@@ -36,7 +36,6 @@ namespace baofit {
         double _zref;
         bool _anisotropic;
         cosmo::CorrelationFunctionPtr _fid0, _fid2, _fid4, _nw0, _nw2, _nw4;
-        cosmo::RsdCorrelationFunctionPtr _fid, _nw, _bbc, _bb1, _bb2;
         class BBand2;
         typedef boost::shared_ptr<BBand2> BBand2Ptr;
 	}; // BaoCorrelationModel

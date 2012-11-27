@@ -32,11 +32,6 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
     defineParameter("BAO alpha-perp",1,0.1);
     // Redshift evolution parameters
     defineParameter("gamma-scale",0,0.5);    
-    // Broadband Model 1 parameters
-    defineParameter("BBand1 xio",0,0.001);
-    defineParameter("BBand1 a0",0,0.2);
-    defineParameter("BBand1 a1",0,2);
-    defineParameter("BBand1 a2",0,2);
     // Broadband Model 2 parameters
     defineParameter("BBand2 mono const",0,1e-4);
     defineParameter("BBand2 quad const",0,1e-4);
@@ -50,7 +45,7 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
     // Load the interpolation data we will use for each multipole of each model.
     std::string root(modelrootName);
     if(0 < root.size() && root[root.size()-1] != '/') root += '/';
-    boost::format fileName("%s%s.%d.dat"),bbandName("%s%s%c.%d.dat");
+    boost::format fileName("%s%s.%d.dat");
     std::string method("cspline");
     try {
         _fid0 = likely::createFunctionPtr(likely::createInterpolator(
@@ -65,31 +60,6 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
             boost::str(fileName % root % nowigglesName % 2),method));
         _nw4 = likely::createFunctionPtr(likely::createInterpolator(
             boost::str(fileName % root % nowigglesName % 4),method));
-        cosmo::CorrelationFunctionPtr
-            bbc0 = likely::createFunctionPtr(likely::createInterpolator(
-                boost::str(bbandName % root % broadbandName % 'c' % 0),method)),
-            bbc2 = likely::createFunctionPtr(likely::createInterpolator(
-                boost::str(bbandName % root % broadbandName % 'c' % 2),method)),
-            bbc4 = likely::createFunctionPtr(likely::createInterpolator(
-                boost::str(bbandName % root % broadbandName % 'c' % 4),method)),
-            bb10 = likely::createFunctionPtr(likely::createInterpolator(
-                boost::str(bbandName % root % broadbandName % '1' % 0),method)),
-            bb12 = likely::createFunctionPtr(likely::createInterpolator(
-                boost::str(bbandName % root % broadbandName % '1' % 2),method)),
-            bb14 = likely::createFunctionPtr(likely::createInterpolator(
-                boost::str(bbandName % root % broadbandName % '1' % 4),method)),
-            bb20 = likely::createFunctionPtr(likely::createInterpolator(
-                boost::str(bbandName % root % broadbandName % '2' % 0),method)),
-            bb22 = likely::createFunctionPtr(likely::createInterpolator(
-                boost::str(bbandName % root % broadbandName % '2' % 2),method)),
-            bb24 = likely::createFunctionPtr(likely::createInterpolator(
-                boost::str(bbandName % root % broadbandName % '2' % 4),method));
-        // Create redshift-space distorted correlation function models from the multipole interpolators.
-        _fid.reset(new cosmo::RsdCorrelationFunction(_fid0,_fid2,_fid4));
-        _nw.reset(new cosmo::RsdCorrelationFunction(_nw0,_nw2,_nw4));
-        _bbc.reset(new cosmo::RsdCorrelationFunction(bbc0,bbc2,bbc4));
-        _bb1.reset(new cosmo::RsdCorrelationFunction(bb10,bb12,bb14));
-        _bb2.reset(new cosmo::RsdCorrelationFunction(bb20,bb22,bb24));
     }
     catch(likely::RuntimeError const &e) {
         throw RuntimeError("BaoCorrelationModel: error while reading model interpolation data.");
@@ -126,10 +96,6 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     double scale_parallel = getParameterValue("BAO alpha-parallel");
     double scale_perp = getParameterValue("BAO alpha-perp");
     double gamma_scale = getParameterValue("gamma-scale");
-    double xio = getParameterValue("BBand1 xio");
-    double a0 = getParameterValue("BBand1 a0");
-    double a1 = getParameterValue("BBand1 a1");
-    double a2 = getParameterValue("BBand1 a2");
     // Calculate bias(zref) from beta(zref) and bb(zref).
     double bias = bb/(1+beta);
     // Calculate redshift evolution.
@@ -155,11 +121,6 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
             getParameterValue("BBand2 hexa 1/r"),
             getParameterValue("BBand2 hexa 1/(r*r)")))));
     // Apply redshift-space distortion to each model component.
-    _fid->setDistortion(beta);
-    _nw->setDistortion(beta);
-    _bbc->setDistortion(beta);
-    _bb1->setDistortion(beta);
-    _bb2->setDistortion(beta);
     bband2Model.setDistortion(beta);
     // Calculate the peak contribution with scaled radius.
     double cosmo(0);
@@ -199,12 +160,6 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
             cosmo += nw;
         }
     }
-    // Calculate the additional broadband contributions with no radius scaling.
-    double bband1(0);
-    if(xio != 0) bband1 += xio*(*_bbc)(r,mu);
-    if(1+a0 != 0) bband1 += (1+a0)*(*_nw)(r,mu);
-    if(a1 != 0) bband1 += a1*(*_bb1)(r,mu);
-    if(a2 != 0) bband1 += a2*(*_bb2)(r,mu);
     double bband2 = bband2Model(r,mu);
     // Combine the peak and broadband components, with bias and redshift evolution.
     return cosmo + bias*bias*zfactor*bband2;
@@ -221,10 +176,6 @@ bool anyChanged) const {
     double scale_parallel = getParameterValue("BAO alpha-parallel");
     double scale_perp = getParameterValue("BAO alpha-perp");
     double gamma_scale = getParameterValue("gamma-scale");
-    double xio = getParameterValue("BBand1 xio");
-    double a0 = getParameterValue("BBand1 a0");
-    double a1 = getParameterValue("BBand1 a1");
-    double a2 = getParameterValue("BBand1 a2");
     // Calculate bias(zref) from beta(zref) and bb(zref).
     double bias = bb/(1+beta);
     // Calculate redshift evolution.
@@ -253,8 +204,9 @@ bool anyChanged) const {
             + getParameterValue("BBand2 mono 1/(r*r)")/(r*r);
     }
     // Calculate the peak contribution with scaled radius.
-    double peak(0);
+    double cosmo(0);
     if(ampl != 0) {
+        /**
         double fid, nw;
         if(_anisotropic) {
             double fid0 = (*_fid)(r,cosmo::Monopole), fid2 = (*_fid)(r,cosmo::Quadrupole), fid4 = (*_fid)(r,cosmo::Hexadecapole);
@@ -292,15 +244,10 @@ bool anyChanged) const {
             nw = (*_nw)(r*scale,multipole);
         }
         peak = ampl*(fid-nw);
+        **/
     }
-    // Calculate the additional broadband contribution with no radius scaling.
-    double bband1(0);
-    if(xio != 0) bband1 += xio*(*_bbc)(r,multipole);
-    if(1+a0 != 0) bband1 += (1+a0)*(*_nw)(r,multipole);
-    if(a1 != 0) bband1 += a1*(*_bb1)(r,multipole);
-    if(a2 != 0) bband1 += a2*(*_bb2)(r,multipole);
     // Combine the peak and broadband components, with bias and redshift evolution.
-    return bias*bias*zfactor*rsdScale*(peak + bband1 + bband2);
+    return cosmo + bias*bias*zfactor*rsdScale*bband2;
 }
 
 void  local::BaoCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
