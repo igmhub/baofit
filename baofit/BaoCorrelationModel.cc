@@ -117,11 +117,6 @@ template cosmo::CorrelationFunctionPtr likely::createFunctionPtr<local::BaoCorre
     (local::BaoCorrelationModel::BBand2Ptr pimpl);
 
 double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
-    // Calculate the Legendre weights.
-    double muSq(mu*mu);
-    double L0(1), L2 = (3*muSq - 1)/2., L4 = (35*muSq*muSq - 30*muSq + 3)/8.;
-    
-    
     double beta = getParameterValue("beta");
     double bb = getParameterValue("(1+beta)*bias");
     double gamma_bias = getParameterValue("gamma-bias");
@@ -167,7 +162,7 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     _bb2->setDistortion(beta);
     bband2Model.setDistortion(beta);
     // Calculate the peak contribution with scaled radius.
-    double peak(0);
+    double cosmo(0);
     if(ampl != 0) {
         double rPeak, muPeak;
         if(_anisotropic) {
@@ -188,8 +183,21 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
 	        rPeak = r*scale;
             muPeak = mu;
         }
-        double fid((*_fid)(rPeak,muPeak)), nw((*_nw)(rPeak,muPeak));
-        peak = ampl*(fid-nw);
+        double norm0 = _getNormFactor(cosmo::Monopole,z), norm2 = _getNormFactor(cosmo::Quadrupole,z),
+            norm4 = _getNormFactor(cosmo::Hexadecapole,z);
+        {
+            double muSq(muPeak*muPeak);
+            double L2 = (3*muSq - 1)/2., L4 = (35*muSq*muSq - 30*muSq + 3)/8.;
+            double fid = norm0*(*_fid0)(rPeak) + norm2*L2*(*_fid2)(rPeak) + norm4*L4*(*_fid4)(rPeak);
+            double nw = norm0*(*_nw0)(rPeak) + norm2*L2*(*_nw2)(rPeak) + norm4*L4*(*_nw4)(rPeak);
+            cosmo = ampl*(fid-nw);
+        }
+        {
+            double muSq(mu*mu);
+            double L2 = (3*muSq - 1)/2., L4 = (35*muSq*muSq - 30*muSq + 3)/8.;    
+            double nw = norm0*(*_nw0)(r) + norm2*L2*(*_nw2)(r) + norm4*L4*(*_nw4)(r);
+            cosmo += nw;
+        }
     }
     // Calculate the additional broadband contributions with no radius scaling.
     double bband1(0);
@@ -199,7 +207,7 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     if(a2 != 0) bband1 += a2*(*_bb2)(r,mu);
     double bband2 = bband2Model(r,mu);
     // Combine the peak and broadband components, with bias and redshift evolution.
-    return bias*bias*zfactor*(peak + bband1 + bband2);
+    return cosmo + bias*bias*zfactor*bband2;
 }
 
 double local::BaoCorrelationModel::_evaluate(double r, cosmo::Multipole multipole, double z,
