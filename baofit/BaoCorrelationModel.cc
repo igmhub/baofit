@@ -22,9 +22,6 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
 : AbsCorrelationModel("BAO Correlation Model"), _distortAdd(distortAdd), _distortMul(distortMul),
 _anisotropic(anisotropic)
 {
-    if(zref < 0) {
-        throw RuntimeError("BaoCorrelationModel: expected zref >= 0.");
-    }
     // Linear bias parameters
     _defineLinearBiasParameters(zref);
     // BAO peak parameters
@@ -32,19 +29,7 @@ _anisotropic(anisotropic)
     defineParameter("BAO alpha-iso",1,0.02);
     defineParameter("BAO alpha-parallel",1,0.1);
     defineParameter("BAO alpha-perp",1,0.1);
-    // Redshift evolution parameters
     defineParameter("gamma-scale",0,0.5);    
-    // Broadband Model 2 parameters
-    double norm(0.025);
-    defineParameter("BBand2 mono const",0,1e-4*norm);
-    defineParameter("BBand2 quad const",0,1e-4*norm);
-    defineParameter("BBand2 hexa const",0,1e-4)*norm;
-    defineParameter("BBand2 mono 1/r",0,0.01*norm);
-    defineParameter("BBand2 quad 1/r",0,0.02*norm);
-    defineParameter("BBand2 hexa 1/r",0,0.04*norm);
-    defineParameter("BBand2 mono 1/(r*r)",0,0.6*norm);
-    defineParameter("BBand2 quad 1/(r*r)",0,1.2*norm);
-    defineParameter("BBand2 hexa 1/(r*r)",0,2.4*norm);
     // Load the interpolation data we will use for each multipole of each model.
     std::string root(modelrootName);
     if(0 < root.size() && root[root.size()-1] != '/') root += '/';
@@ -71,24 +56,6 @@ _anisotropic(anisotropic)
 
 local::BaoCorrelationModel::~BaoCorrelationModel() { }
 
-namespace baofit {
-    // Define a function object class that simply returns a constant. This could also be done
-    // with boost::lambda using (_1 = value), but I don't know how to create a lambda functor
-    // on the heap so it can be used with the likely::createFunctionPtr machinery.
-    class BaoCorrelationModel::BBand2 {
-    public:
-        BBand2(double c, double r1, double r2) : _c(c), _r1(r1), _r2(r2) { }
-        double operator()(double r) { return _c + _r1/r + _r2/(r*r); }
-    private:
-        double _c,_r1,_r2;
-    };
-}
-
-#include "likely/function_impl.h"
-
-template cosmo::CorrelationFunctionPtr likely::createFunctionPtr<local::BaoCorrelationModel::BBand2>
-    (local::BaoCorrelationModel::BBand2Ptr pimpl);
-
 double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
     double beta = getParameterValue("beta");
     double gamma_bias = getParameterValue("gamma-bias");
@@ -108,22 +75,7 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     scale = _redshiftEvolution(scale,gamma_scale,z);
     scale_parallel = _redshiftEvolution(scale_parallel,gamma_scale,z);
     scale_perp = _redshiftEvolution(scale_perp,gamma_scale,z);
-    // Build a model with xi(ell=0,2,4) = c(ell).
-    cosmo::RsdCorrelationFunction bband2Model(
-        likely::createFunctionPtr(BBand2Ptr(new BBand2(
-            getParameterValue("BBand2 mono const"),
-            getParameterValue("BBand2 mono 1/r"),
-            getParameterValue("BBand2 mono 1/(r*r)")))),
-        likely::createFunctionPtr(BBand2Ptr(new BBand2(
-            getParameterValue("BBand2 quad const"),
-            getParameterValue("BBand2 quad 1/r"),
-            getParameterValue("BBand2 quad 1/(r*r)")))),
-        likely::createFunctionPtr(BBand2Ptr(new BBand2(
-            getParameterValue("BBand2 hexa const"),
-            getParameterValue("BBand2 hexa 1/r"),
-            getParameterValue("BBand2 hexa 1/(r*r)")))));
-    // Apply redshift-space distortion to each model component.
-    bband2Model.setDistortion(beta);
+
     // Calculate the peak contribution with scaled radius.
     double cosmo(0);
     if(ampl != 0) {
@@ -162,9 +114,7 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
             cosmo += nw;
         }
     }
-    double bband2 = bband2Model(r,mu);
-    // Combine the peak and broadband components, with bias and redshift evolution.
-    return cosmo + zfactor*bband2;
+    return cosmo;
 }
 
 double local::BaoCorrelationModel::_evaluate(double r, cosmo::Multipole multipole, double z,
