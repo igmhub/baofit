@@ -118,8 +118,8 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     double xi = peak + smooth;
     
     // Add broadband distortions, if any.
-    if(_distortMul) xi *= _distortMul->_evaluate(r,mu,z,anyChanged);
-    if(_distortAdd) xi *= _distortAdd->_evaluate(r,mu,z,anyChanged);
+    if(_distortMul) xi *= 1 + _distortMul->_evaluate(r,mu,z,anyChanged);
+    if(_distortAdd) xi += _distortAdd->_evaluate(r,mu,z,anyChanged);
 
     return xi;
 }
