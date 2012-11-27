@@ -194,6 +194,7 @@ bool anyChanged) const {
     // Combine the peak and broadband components, with bias and redshift evolution.
     return cosmo + bias*bias*zfactor*rsdScale*bband2;
     **/
+    throw RuntimeError("BaoCorrelationModel: multipole evaluation temporarily disabled.");
     return 0;
 }
 
