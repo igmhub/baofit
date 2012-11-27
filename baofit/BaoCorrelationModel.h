@@ -33,10 +33,9 @@ namespace baofit {
         // r and average pair redshift z.
         virtual double _evaluate(double r, cosmo::Multipole multipole, double z, bool anyChanged) const;
 	private:
-        double _zref;
+        AbsCorrelationModelPtr _distortAdd, _distortMul;
         bool _anisotropic;
         cosmo::CorrelationFunctionPtr _fid0, _fid2, _fid4, _nw0, _nw2, _nw4;
-        AbsCorrelationModelPtr _distortAdd, _distortMul;
         class BBand2;
         typedef boost::shared_ptr<BBand2> BBand2Ptr;
 	}; // BaoCorrelationModel

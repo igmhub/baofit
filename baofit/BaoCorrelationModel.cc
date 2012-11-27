@@ -20,7 +20,7 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
     AbsCorrelationModelPtr distortAdd, AbsCorrelationModelPtr distortMul,
     double zref, bool anisotropic)
 : AbsCorrelationModel("BAO Correlation Model"), _distortAdd(distortAdd), _distortMul(distortMul),
-_zref(zref), _anisotropic(anisotropic)
+_anisotropic(anisotropic)
 {
     if(zref < 0) {
         throw RuntimeError("BaoCorrelationModel: expected zref >= 0.");
@@ -98,16 +98,19 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     double scale_parallel = getParameterValue("BAO alpha-parallel");
     double scale_perp = getParameterValue("BAO alpha-perp");
     double gamma_scale = getParameterValue("gamma-scale");
+
     // Calculate bias(zref) from beta(zref) and bb(zref).
     double bias = bb/(1+beta);
+
     // Calculate redshift evolution.
-    double zratio((1+z)/(1+_zref));
+
+    double zratio((1+z)/(1+2.25));
     double zfactor = std::pow(zratio,gamma_bias);
-    double scaleFactor = std::pow(zratio,gamma_scale);
-    scale *= scaleFactor;
-    scale_parallel *= scaleFactor;
-    scale_perp *= scaleFactor;
     beta *= std::pow(zratio,gamma_beta);
+
+    scale = _redshiftEvolution(scale,gamma_scale,z);
+    scale_parallel = _redshiftEvolution(scale_parallel,gamma_scale,z);
+    scale_perp = _redshiftEvolution(scale_perp,gamma_scale,z);
     // Build a model with xi(ell=0,2,4) = c(ell).
     cosmo::RsdCorrelationFunction bband2Model(
         likely::createFunctionPtr(BBand2Ptr(new BBand2(
@@ -165,10 +168,12 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     double bband2 = bband2Model(r,mu);
     // Combine the peak and broadband components, with bias and redshift evolution.
     return cosmo + bias*bias*zfactor*bband2;
+    //return cosmo + bband2;
 }
 
 double local::BaoCorrelationModel::_evaluate(double r, cosmo::Multipole multipole, double z,
 bool anyChanged) const {
+    /**
     double beta = getParameterValue("beta");
     double bb = getParameterValue("(1+beta)*bias");
     double gamma_bias = getParameterValue("gamma-bias");
@@ -208,7 +213,6 @@ bool anyChanged) const {
     // Calculate the peak contribution with scaled radius.
     double cosmo(0);
     if(ampl != 0) {
-        /**
         double fid, nw;
         if(_anisotropic) {
             double fid0 = (*_fid)(r,cosmo::Monopole), fid2 = (*_fid)(r,cosmo::Quadrupole), fid4 = (*_fid)(r,cosmo::Hexadecapole);
@@ -246,15 +250,15 @@ bool anyChanged) const {
             nw = (*_nw)(r*scale,multipole);
         }
         peak = ampl*(fid-nw);
-        **/
     }
     // Combine the peak and broadband components, with bias and redshift evolution.
     return cosmo + bias*bias*zfactor*rsdScale*bband2;
+    **/
+    return 0;
 }
 
 void  local::BaoCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
     AbsCorrelationModel::printToStream(out,formatSpec);
-    out << std::endl << "Reference redshift = " << _zref << std::endl;
     out << "Using " << (_anisotropic ? "anisotropic":"isotropic") << " BAO scales." << std::endl;
     if(_distortAdd) _distortAdd->printToStream(out,formatSpec);
     if(_distortMul) _distortMul->printToStream(out,formatSpec);
