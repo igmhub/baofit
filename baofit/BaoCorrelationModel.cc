@@ -18,9 +18,9 @@ namespace local = baofit;
 local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName,
     std::string const &fiducialName, std::string const &nowigglesName,
     AbsCorrelationModelPtr distortAdd, AbsCorrelationModelPtr distortMul,
-    double zref, bool anisotropic)
+    double zref, bool anisotropic, bool decoupled)
 : AbsCorrelationModel("BAO Correlation Model"), _distortAdd(distortAdd), _distortMul(distortMul),
-_anisotropic(anisotropic)
+_anisotropic(anisotropic), _decoupled(decoupled)
 {
     // Linear bias parameters
     _defineLinearBiasParameters(zref);
@@ -58,56 +58,56 @@ local::BaoCorrelationModel::~BaoCorrelationModel() { }
 
 double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
 
-    // Lookup parameter values by name
+    // Lookup parameter values by name.
     double ampl = getParameterValue("BAO amplitude");
     double scale = getParameterValue("BAO alpha-iso");
     double scale_parallel = getParameterValue("BAO alpha-parallel");
     double scale_perp = getParameterValue("BAO alpha-perp");
     double gamma_scale = getParameterValue("gamma-scale");
 
-    // Calculate redshift evolution.
+    // Calculate redshift evolution of the scale parameters.
     scale = _redshiftEvolution(scale,gamma_scale,z);
     scale_parallel = _redshiftEvolution(scale_parallel,gamma_scale,z);
     scale_perp = _redshiftEvolution(scale_perp,gamma_scale,z);
 
-    // Calculate the peak contribution with scaled radius.
-    double cosmo(0);
-    if(ampl != 0) {
-        double rPeak, muPeak;
-        if(_anisotropic) {
-            double ap1(scale_parallel);
-            double bp1(scale_perp);
-            double musq(mu*mu);
-            // Exact (r,mu) transformation
-            double rscale = std::sqrt(ap1*ap1*musq + (1-musq)*bp1*bp1);
-            rPeak = r*rscale;
-            muPeak = mu*ap1/rscale;
-            // Linear approximation, equivalent to multipole model below
-            /*
-            rPeak = r*(1 + (ap1-1)*musq + (bp1-1)*(1-musq));
-            muPeak = mu*(1 + (ap1-bp1)*(1-musq));
-            */
-        }
-        else {
-	        rPeak = r*scale;
-            muPeak = mu;
-        }
-        double norm0 = _getNormFactor(cosmo::Monopole,z), norm2 = _getNormFactor(cosmo::Quadrupole,z),
-            norm4 = _getNormFactor(cosmo::Hexadecapole,z);
-        {
-            double muSq(muPeak*muPeak);
-            double L2 = (3*muSq - 1)/2., L4 = (35*muSq*muSq - 30*muSq + 3)/8.;
-            double fid = norm0*(*_fid0)(rPeak) + norm2*L2*(*_fid2)(rPeak) + norm4*L4*(*_fid4)(rPeak);
-            double nw = norm0*(*_nw0)(rPeak) + norm2*L2*(*_nw2)(rPeak) + norm4*L4*(*_nw4)(rPeak);
-            cosmo = ampl*(fid-nw);
-        }
-        {
-            double muSq(mu*mu);
-            double L2 = (3*muSq - 1)/2., L4 = (35*muSq*muSq - 30*muSq + 3)/8.;    
-            double nw = norm0*(*_nw0)(r) + norm2*L2*(*_nw2)(r) + norm4*L4*(*_nw4)(r);
-            cosmo += nw;
-        }
+    // Transform (r,mu) to (rBAO,muBAO) using the scale parameters.
+    double rBAO, muBAO;
+    if(_anisotropic) {
+        double ap1(scale_parallel);
+        double bp1(scale_perp);
+        double musq(mu*mu);
+        // Exact (r,mu) transformation
+        double rscale = std::sqrt(ap1*ap1*musq + (1-musq)*bp1*bp1);
+        rBAO = r*rscale;
+        muBAO = mu*ap1/rscale;
+        // Linear approximation, equivalent to multipole model below
+        /*
+        rBAO = r*(1 + (ap1-1)*musq + (bp1-1)*(1-musq));
+        muBAO = mu*(1 + (ap1-bp1)*(1-musq));
+        */
     }
+    else {
+        rBAO = r*scale;
+        muBAO = mu;
+    }
+
+    // Calculate the cosmological prediction.
+    double norm0 = _getNormFactor(cosmo::Monopole,z), norm2 = _getNormFactor(cosmo::Quadrupole,z),
+        norm4 = _getNormFactor(cosmo::Hexadecapole,z);
+    double muSq(muBAO*muBAO);
+    double L2 = (3*muSq - 1)/2., L4 = (35*muSq*muSq - 30*muSq + 3)/8.;
+    double fid = norm0*(*_fid0)(rBAO) + norm2*L2*(*_fid2)(rBAO) + norm4*L4*(*_fid4)(rBAO);
+    double nw = norm0*(*_nw0)(rBAO) + norm2*L2*(*_nw2)(rBAO) + norm4*L4*(*_nw4)(rBAO);
+    double peak = ampl*(fid-nw);
+    double smooth = nw;
+    if(_decoupled) {
+        // Recalculate the smooth cosmological prediction using (r,mu) instead of (rBAO,muBAO)
+        double muSq(mu*mu);
+        double L2 = (3*muSq - 1)/2., L4 = (35*muSq*muSq - 30*muSq + 3)/8.;    
+        smooth = norm0*(*_nw0)(r) + norm2*L2*(*_nw2)(r) + norm4*L4*(*_nw4)(r);
+    }
+    double cosmo = peak + smooth;
+
     return cosmo;
 }
 
@@ -201,6 +201,7 @@ bool anyChanged) const {
 void  local::BaoCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
     AbsCorrelationModel::printToStream(out,formatSpec);
     out << "Using " << (_anisotropic ? "anisotropic":"isotropic") << " BAO scales." << std::endl;
+    out << "Scales apply to BAO peak " << (_decoupled ? "only." : "and cosmological broadband.") << std::endl;
     if(_distortAdd) _distortAdd->printToStream(out,formatSpec);
     if(_distortMul) _distortMul->printToStream(out,formatSpec);
 }

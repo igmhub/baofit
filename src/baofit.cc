@@ -82,7 +82,8 @@ int main(int argc, char **argv) {
             "Model parameters configuration script (option can appear multiple times).")
         ("alt-config", po::value<std::string>(&altConfig)->default_value(""),
             "Parameter adjustments for dumping alternate best-fit model.")
-        ("anisotropic", "Uses anisotropic a,b parameters instead of isotropic scale.")
+        ("anisotropic", "Uses anisotropic scale parameters instead of an isotropic scale.")
+        ("decoupled", "Only applies scale factors to BAO peak and not cosmological broadband.")
         ;
     dataOptions.add_options()
         ("data", po::value<std::string>(&dataName)->default_value(""),
@@ -260,7 +261,8 @@ int main(int argc, char **argv) {
         saveICov(vm.count("save-icov")), multiSpline(vm.count("multi-spline")),
         fixAlnCov(vm.count("fix-aln-cov")), saveData(vm.count("save-data")),
         scalarWeights(vm.count("scalar-weights")), noInitialFit(vm.count("no-initial-fit")),
-        compareEach(vm.count("compare-each")), compareEachFinal(vm.count("compare-each-final"));
+        compareEach(vm.count("compare-each")), compareEachFinal(vm.count("compare-each-final")),
+        decoupled(vm.count("decoupled"));
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
@@ -313,7 +315,7 @@ int main(int argc, char **argv) {
             }
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
             model.reset(new baofit::BaoCorrelationModel(
-                modelrootName,fiducialName,nowigglesName,distortAdd,distortMul,zref,anisotropic));
+                modelrootName,fiducialName,nowigglesName,distortAdd,distortMul,zref,anisotropic,decoupled));
         }
              
         // Configure our fit model parameters by applying all model-config options in turn,

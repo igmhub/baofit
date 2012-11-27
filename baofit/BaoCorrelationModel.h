@@ -20,7 +20,7 @@ namespace baofit {
 		BaoCorrelationModel(std::string const &modelrootName,
 		    std::string const &fiducialName, std::string const &nowigglesName,
             AbsCorrelationModelPtr distortAdd, AbsCorrelationModelPtr distortMul,
-            double zref, bool anisotropic = false);
+            double zref, bool anisotropic = false, bool decoupled = false);
 		virtual ~BaoCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
@@ -34,7 +34,7 @@ namespace baofit {
         virtual double _evaluate(double r, cosmo::Multipole multipole, double z, bool anyChanged) const;
 	private:
         AbsCorrelationModelPtr _distortAdd, _distortMul;
-        bool _anisotropic;
+        bool _anisotropic, _decoupled;
         cosmo::CorrelationFunctionPtr _fid0, _fid2, _fid4, _nw0, _nw2, _nw4;
         class BBand2;
         typedef boost::shared_ptr<BBand2> BBand2Ptr;
