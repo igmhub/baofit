@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
 
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,
         rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax,kloSpline,khiSpline,toymcScale,saveICovScale,
-        zMin,zMax,llMin,llMax,sepMin,sepMax;
+        zMin,zMax,llMin,llMax,sepMin,sepMax,bbandR0;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
         mcmcSave,mcmcInterval,toymcSamples,xiNr,reuseCov,nSpline,splineOrder,bootstrapCovTrials,
         projectModesNKeep;
@@ -63,6 +63,8 @@ int main(int argc, char **argv) {
             "Parameterization to use for additive broadband distortion.")
         ("bband-mul", po::value<std::string>(&bbandMul)->default_value(""),
             "Parameterization to use for multiplicative broadband distortion.")
+        ("bband-r0", po::value<double>(&bbandR0)->default_value(100),
+            "Comoving separation in Mpc/h used to normalize broadband radial factors.")
         ("n-spline", po::value<int>(&nSpline)->default_value(0),
             "Number of spline knots to use spanning (klo,khi).")
         ("klo-spline", po::value<double>(&kloSpline)->default_value(0.02,"0.02"),
@@ -303,12 +305,12 @@ int main(int argc, char **argv) {
             baofit::AbsCorrelationModelPtr distortAdd,distortMul;
             if(bbandAdd.length() > 0) {
                 distortAdd.reset(new baofit::BroadbandModel("Additive broadband distortion",
-                    "bbdist add",bbandAdd));
+                    "bbdist add",bbandAdd,bbandR0,zref));
                 distortAdd->printToStream(std::cout);
             }
             if(bbandMul.length() > 0) {
                 distortMul.reset(new baofit::BroadbandModel("Multiplicative broadband distortion",
-                    "bbdist mul",bbandMul));
+                    "bbdist mul",bbandMul,bbandR0,zref));
                 distortMul->printToStream(std::cout);
             }
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.

@@ -54,8 +54,8 @@ namespace broadband {
 } // baofit
 
 local::BroadbandModel::BroadbandModel(std::string const &name, std::string const &tag,
-std::string const &paramSpec)
-: AbsCorrelationModel(name)
+std::string const &paramSpec, double r0, double z0)
+: AbsCorrelationModel(name), _r0(r0), _z0(z0)
 {
     // Parse the parameter specification string.
     broadband::Grammar grammar;
@@ -110,7 +110,5 @@ bool anyChanged) const {
 
 void  local::BroadbandModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
     AbsCorrelationModel::printToStream(out,formatSpec);
-    out << "Using parameter specifications r= " << _rIndexMin << ':' << _rIndexMax << ':' << _rIndexStep
-        << ", mu= " << _muIndexMin << ':' << _muIndexMax << ':' << _muIndexStep
-        << ", z= " << _zIndexMin << ':' << _zIndexMax << ':' << _zIndexStep << std::endl;
+    out << "Using reference separation r0 = " << _r0 << " Mpc/h, reference redshift z0 = " << _z0 << std::endl;
 }
