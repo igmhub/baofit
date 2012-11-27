@@ -57,9 +57,8 @@ _anisotropic(anisotropic)
 local::BaoCorrelationModel::~BaoCorrelationModel() { }
 
 double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
-    double beta = getParameterValue("beta");
-    double gamma_bias = getParameterValue("gamma-bias");
-    double gamma_beta = getParameterValue("gamma-beta");
+
+    // Lookup parameter values by name
     double ampl = getParameterValue("BAO amplitude");
     double scale = getParameterValue("BAO alpha-iso");
     double scale_parallel = getParameterValue("BAO alpha-parallel");
@@ -67,11 +66,6 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     double gamma_scale = getParameterValue("gamma-scale");
 
     // Calculate redshift evolution.
-
-    double zratio((1+z)/(1+2.25));
-    double zfactor = std::pow(zratio,gamma_bias);
-    beta *= std::pow(zratio,gamma_beta);
-
     scale = _redshiftEvolution(scale,gamma_scale,z);
     scale_parallel = _redshiftEvolution(scale_parallel,gamma_scale,z);
     scale_perp = _redshiftEvolution(scale_perp,gamma_scale,z);
