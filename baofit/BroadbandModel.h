@@ -29,6 +29,7 @@ namespace baofit {
         // r and average pair redshift z.
         virtual double _evaluate(double r, cosmo::Multipole multipole, double z, bool anyChanged) const;
 	private:
+        int _indexBase;
         int _rIndexMin,_rIndexMax,_rIndexStep;
         int _muIndexMin,_muIndexMax,_muIndexStep;
         int _zIndexMin,_zIndexMax,_zIndexStep;

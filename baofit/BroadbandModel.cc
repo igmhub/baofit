@@ -87,11 +87,16 @@ std::string const &paramSpec, double r0, double z0, AbsCorrelationModel *base)
         throw RuntimeError("BroadbandModel: illegal z-parameter specification.");
     }
     // Define our parameters.
+    bool first(true);
     boost::format pname("%s r%d mu%d z%d");
-    for(int rIndex = _rIndexMin; rIndex <= _rIndexMax; rIndex += _rIndexStep) {
+    for(int zIndex = _zIndexMin; zIndex <= _zIndexMax; zIndex += _zIndexStep) {
         for(int muIndex = _muIndexMin; muIndex <= _muIndexMax; muIndex += _muIndexStep) {
-            for(int zIndex = _zIndexMin; zIndex <= _zIndexMax; zIndex += _zIndexStep) {
-                _base.defineParameter(boost::str(pname % tag % rIndex % muIndex % zIndex),0,0.1);
+            for(int rIndex = _rIndexMin; rIndex <= _rIndexMax; rIndex += _rIndexStep) {
+                int index = _base.defineParameter(boost::str(pname % tag % rIndex % muIndex % zIndex),0,0.1);
+                if(first) {
+                    _indexBase = index;
+                    first = false;
+                }
             }
         }
     }
@@ -100,7 +105,55 @@ std::string const &paramSpec, double r0, double z0, AbsCorrelationModel *base)
 local::BroadbandModel::~BroadbandModel() { }
 
 double local::BroadbandModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
-    return 0;
+    double xi(0);
+    double rr = r/_r0;
+    double zz = (1+z)/(1+_z0) - 1;
+    int indexOffset(0);
+    for(int zIndex = _zIndexMin; zIndex <= _zIndexMax; zIndex += _zIndexStep) {
+        double zFactor = std::pow(zz,zIndex);
+        for(int muIndex = _muIndexMin; muIndex <= _muIndexMax; muIndex += _muIndexStep) {
+            double muFactor, musq(mu*mu);
+            // The mu factor is a Legendre polynomial
+            switch(muIndex) {
+            case 0:
+                muFactor = 1;
+                break;
+            case 1:
+                muFactor = mu;
+                break;
+            case 2:
+                muFactor = (-1+3*musq)/2.;
+                break;
+            case 3:
+                muFactor = mu*(-3+5*musq)/2.;
+                break;
+            case 4:
+                muFactor = (3-30*musq+35*musq*musq)/8.;
+                break;
+            case 5:
+                muFactor = mu*(15-70*musq+63*musq*musq)/8.;
+                break;
+            case 6:
+                muFactor = (-5+105*musq-315*musq*musq+231*musq*musq*musq)/16.;
+                break;
+            case 7:
+                muFactor = mu*(-35+315*musq-693*musq*musq+429*musq*musq*musq)/16.;
+                break;
+            case 8:
+                muFactor = (35-1260*musq+6930*musq*musq-12012*musq*musq*musq+6435*musq*musq*musq*musq)/128.;
+                break;
+            }
+            for(int rIndex = _rIndexMin; rIndex <= _rIndexMax; rIndex += _rIndexStep) {
+                double rFactor = std::pow(rIndex > 0 ? rr-1 : rr, rIndex);
+                // Look up the coefficient for this combination of rIndex,muIndex,zIndex.
+                double coef = _base.getParameterValue(_indexBase + indexOffset);
+                indexOffset++;
+                // Add this term to the result.
+                xi += coef*rFactor*muFactor*zFactor;
+            }
+        }
+    }
+    return xi;
 }
 
 double local::BroadbandModel::_evaluate(double r, cosmo::Multipole multipole, double z,
