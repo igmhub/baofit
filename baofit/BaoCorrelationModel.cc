@@ -35,15 +35,16 @@ _anisotropic(anisotropic)
     // Redshift evolution parameters
     defineParameter("gamma-scale",0,0.5);    
     // Broadband Model 2 parameters
-    defineParameter("BBand2 mono const",0,1e-4);
-    defineParameter("BBand2 quad const",0,1e-4);
-    defineParameter("BBand2 hexa const",0,1e-4);
-    defineParameter("BBand2 mono 1/r",0,0.01);
-    defineParameter("BBand2 quad 1/r",0,0.02);
-    defineParameter("BBand2 hexa 1/r",0,0.04);
-    defineParameter("BBand2 mono 1/(r*r)",0,0.6);
-    defineParameter("BBand2 quad 1/(r*r)",0,1.2);
-    defineParameter("BBand2 hexa 1/(r*r)",0,2.4);
+    double norm(0.025);
+    defineParameter("BBand2 mono const",0,1e-4*norm);
+    defineParameter("BBand2 quad const",0,1e-4*norm);
+    defineParameter("BBand2 hexa const",0,1e-4)*norm;
+    defineParameter("BBand2 mono 1/r",0,0.01*norm);
+    defineParameter("BBand2 quad 1/r",0,0.02*norm);
+    defineParameter("BBand2 hexa 1/r",0,0.04*norm);
+    defineParameter("BBand2 mono 1/(r*r)",0,0.6*norm);
+    defineParameter("BBand2 quad 1/(r*r)",0,1.2*norm);
+    defineParameter("BBand2 hexa 1/(r*r)",0,2.4*norm);
     // Load the interpolation data we will use for each multipole of each model.
     std::string root(modelrootName);
     if(0 < root.size() && root[root.size()-1] != '/') root += '/';
@@ -90,7 +91,6 @@ template cosmo::CorrelationFunctionPtr likely::createFunctionPtr<local::BaoCorre
 
 double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
     double beta = getParameterValue("beta");
-    double bb = getParameterValue("(1+beta)*bias");
     double gamma_bias = getParameterValue("gamma-bias");
     double gamma_beta = getParameterValue("gamma-beta");
     double ampl = getParameterValue("BAO amplitude");
@@ -98,9 +98,6 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     double scale_parallel = getParameterValue("BAO alpha-parallel");
     double scale_perp = getParameterValue("BAO alpha-perp");
     double gamma_scale = getParameterValue("gamma-scale");
-
-    // Calculate bias(zref) from beta(zref) and bb(zref).
-    double bias = bb/(1+beta);
 
     // Calculate redshift evolution.
 
@@ -167,8 +164,7 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     }
     double bband2 = bband2Model(r,mu);
     // Combine the peak and broadband components, with bias and redshift evolution.
-    return cosmo + bias*bias*zfactor*bband2;
-    //return cosmo + bband2;
+    return cosmo + zfactor*bband2;
 }
 
 double local::BaoCorrelationModel::_evaluate(double r, cosmo::Multipole multipole, double z,
