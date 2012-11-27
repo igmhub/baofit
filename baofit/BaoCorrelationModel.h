@@ -16,11 +16,10 @@ namespace baofit {
 	class BaoCorrelationModel : public AbsCorrelationModel {
 	public:
 	    // Creates a new model using the specified tabulated correlation functions at the specified
-	    // reference redshift. Set scalePriorMin < scalePriorMax to enable an optional top-hat prior
-	    // on the BAO scale.
+	    // reference redshift.
 		BaoCorrelationModel(std::string const &modelrootName,
 		    std::string const &fiducialName, std::string const &nowigglesName,
-            std::string const &broadbandName, double zref, bool anisotropic = false);
+            double zref, bool anisotropic = false);
 		virtual ~BaoCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;

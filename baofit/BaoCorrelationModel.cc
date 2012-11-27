@@ -17,7 +17,7 @@ namespace local = baofit;
 
 local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName,
     std::string const &fiducialName, std::string const &nowigglesName,
-    std::string const &broadbandName, double zref, bool anisotropic)
+    double zref, bool anisotropic)
 : AbsCorrelationModel("BAO Correlation Model"), _zref(zref), _anisotropic(anisotropic)
 {
     if(zref < 0) {

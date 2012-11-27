@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
         mcmcSave,mcmcInterval,toymcSamples,xiNr,reuseCov,nSpline,splineOrder,bootstrapCovTrials,
         projectModesNKeep;
-    std::string modelrootName,fiducialName,nowigglesName,broadbandName,dataName,xiPoints,toymcConfig,
+    std::string modelrootName,fiducialName,nowigglesName,dataName,xiPoints,toymcConfig,
         platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig,
         fixModeScales,bbandAdd,bbandMul;
     std::vector<std::string> modelConfig;
@@ -55,8 +55,6 @@ int main(int argc, char **argv) {
             "Fiducial correlation functions will be read from <name>.<ell>.dat with ell=0,2,4.")
         ("nowiggles", po::value<std::string>(&nowigglesName)->default_value(""),
             "No-wiggles correlation functions will be read from <name>.<ell>.dat with ell=0,2,4.")
-        ("broadband", po::value<std::string>(&broadbandName)->default_value(""),
-            "Broadband models will be read from <name>bb<x>.<ell>.dat with x=c,1,2 and ell=0,2,4.")
         ("modelroot", po::value<std::string>(&modelrootName)->default_value(""),
             "Common path to prepend to all model filenames.")
         ("zref", po::value<double>(&zref)->default_value(2.25),
@@ -315,7 +313,7 @@ int main(int argc, char **argv) {
             }
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
             model.reset(new baofit::BaoCorrelationModel(
-                modelrootName,fiducialName,nowigglesName,broadbandName,zref,anisotropic));
+                modelrootName,fiducialName,nowigglesName,zref,anisotropic));
         }
              
         // Configure our fit model parameters by applying all model-config options in turn,
