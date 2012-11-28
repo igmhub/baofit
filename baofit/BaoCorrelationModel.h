@@ -4,11 +4,11 @@
 #define BAOFIT_BAO_CORRELATION_MODEL
 
 #include "baofit/AbsCorrelationModel.h"
+#include "baofit/types.h"
 
 #include "cosmo/types.h"
 
 #include <string>
-#include <vector>
 
 namespace baofit {
 	// Represents a two-point correlation model parameterized in terms of the relative scale and amplitude
@@ -16,11 +16,11 @@ namespace baofit {
 	class BaoCorrelationModel : public AbsCorrelationModel {
 	public:
 	    // Creates a new model using the specified tabulated correlation functions at the specified
-	    // reference redshift. Set scalePriorMin < scalePriorMax to enable an optional top-hat prior
-	    // on the BAO scale.
+	    // reference redshift.
 		BaoCorrelationModel(std::string const &modelrootName,
 		    std::string const &fiducialName, std::string const &nowigglesName,
-            std::string const &broadbandName, double zref, bool anisotropic = false);
+            std::string const &distAdd, std::string const &distMul, double distR0,
+            double zref, bool anisotropic = false, bool decoupled = false);
 		virtual ~BaoCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
@@ -33,11 +33,10 @@ namespace baofit {
         // r and average pair redshift z.
         virtual double _evaluate(double r, cosmo::Multipole multipole, double z, bool anyChanged) const;
 	private:
-        double _zref;
-        bool _anisotropic;
-        cosmo::RsdCorrelationFunctionPtr _fid, _nw, _bbc, _bb1, _bb2;
-        class BBand2;
-        typedef boost::shared_ptr<BBand2> BBand2Ptr;
+        AbsCorrelationModelPtr _distortAdd, _distortMul;
+        bool _anisotropic, _decoupled;
+        int _indexBase;
+        cosmo::CorrelationFunctionPtr _fid0, _fid2, _fid4, _nw0, _nw2, _nw4;
 	}; // BaoCorrelationModel
 } // baofit
 

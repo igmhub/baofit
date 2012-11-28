@@ -27,6 +27,8 @@ namespace baofit {
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
     protected:
+        friend class BaoCorrelationModel;
+        friend class BroadbandModel;
         // The public methods above call these protected methods after making parameter values
         // and changes available via our base class' getParameterValue() and isParameterValueChanged()
         // methods. Any registered changes to parameter values are reset after calling any of these.
@@ -36,7 +38,7 @@ namespace baofit {
         // the index of the last parameter defined.
         int _defineLinearBiasParameters(double zref);
         // Evaluates the redshift evolution p(z) of a parameter for which p(zref)=p0 according to
-        // p(z) = ((1+z)/(1+zref))^gamma.
+        // p(z) = p0*((1+z)/(1+zref))^gamma.
         double _redshiftEvolution(double p0, double gamma, double z) const;
         // Updates the multipole normalization factors b^2(z)*C_ell(beta(z)) returned by getNormFactor(ell).
         double _getNormFactor(cosmo::Multipole multipole, double z) const;

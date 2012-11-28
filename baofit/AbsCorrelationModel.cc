@@ -31,7 +31,7 @@ likely::Parameters const &params) {
 
 int local::AbsCorrelationModel::_defineLinearBiasParameters(double zref) {
     if(_indexBase >= 0) throw RuntimeError("AbsCorrelationModel: linear bias parameters already defined.");
-    if(_zref < 0) throw RuntimeError("AbsCorrelationModel: expected zref >= 0.");
+    if(zref < 0) throw RuntimeError("AbsCorrelationModel: expected zref >= 0.");
     _zref = zref;
     // Linear bias parameters
     _indexBase = defineParameter("beta",1.4,0.1);
