@@ -55,11 +55,11 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
     // Define our broadband distortion models, if any.
     if(bbandAdd.length() > 0) {
         _distortAdd.reset(new baofit::BroadbandModel("Additive broadband distortion",
-            "bbdist add",bbandAdd,bbandR0,zref,this));
+            "dist add",bbandAdd,bbandR0,zref,this));
     }
     if(bbandMul.length() > 0) {
         _distortMul.reset(new baofit::BroadbandModel("Multiplicative broadband distortion",
-            "bbdist mul",bbandMul,bbandR0,zref,this));
+            "dist mul",bbandMul,bbandR0,zref,this));
     }
 }
 

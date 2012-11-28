@@ -89,7 +89,7 @@ std::string const &paramSpec, double r0, double z0, AbsCorrelationModel *base)
     // Define our parameters.
     bool first(true);
     double perr(1e-3);
-    boost::format pname("%s z%d mu%d r%-d");
+    boost::format pname("%s z%d mu%d r%+d");
     for(int zIndex = _zIndexMin; zIndex <= _zIndexMax; zIndex += _zIndexStep) {
         for(int muIndex = _muIndexMin; muIndex <= _muIndexMax; muIndex += _muIndexStep) {
             for(int rIndex = _rIndexMin; rIndex <= _rIndexMax; rIndex += _rIndexStep) {
