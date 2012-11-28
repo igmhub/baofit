@@ -29,13 +29,13 @@ int main(int argc, char **argv) {
 
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,
         rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax,kloSpline,khiSpline,toymcScale,saveICovScale,
-        zMin,zMax,llMin,llMax,sepMin,sepMax,bbandR0;
+        zMin,zMax,llMin,llMax,sepMin,sepMax,distR0;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
         mcmcSave,mcmcInterval,toymcSamples,xiNr,reuseCov,nSpline,splineOrder,bootstrapCovTrials,
         projectModesNKeep;
     std::string modelrootName,fiducialName,nowigglesName,dataName,xiPoints,toymcConfig,
         platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig,
-        fixModeScales,bbandAdd,bbandMul;
+        fixModeScales,distAdd,distMul;
     std::vector<std::string> modelConfig;
 
     // Default values in quotes below are to avoid roundoff errors leading to ugly --help
@@ -59,11 +59,11 @@ int main(int argc, char **argv) {
             "Common path to prepend to all model filenames.")
         ("zref", po::value<double>(&zref)->default_value(2.25),
             "Reference redshift used by model correlation functions.")
-        ("bband-add", po::value<std::string>(&bbandAdd)->default_value(""),
+        ("dist-add", po::value<std::string>(&distAdd)->default_value(""),
             "Parameterization to use for additive broadband distortion.")
-        ("bband-mul", po::value<std::string>(&bbandMul)->default_value(""),
+        ("dist-mul", po::value<std::string>(&distMul)->default_value(""),
             "Parameterization to use for multiplicative broadband distortion.")
-        ("bband-r0", po::value<double>(&bbandR0)->default_value(100),
+        ("dist-r0", po::value<double>(&distR0)->default_value(100),
             "Comoving separation in Mpc/h used to normalize broadband radial factors.")
         ("n-spline", po::value<int>(&nSpline)->default_value(0),
             "Number of spline knots to use spanning (klo,khi).")
@@ -306,7 +306,7 @@ int main(int argc, char **argv) {
         else {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
             model.reset(new baofit::BaoCorrelationModel(
-                modelrootName,fiducialName,nowigglesName,bbandAdd,bbandMul,bbandR0,zref,anisotropic,decoupled));
+                modelrootName,fiducialName,nowigglesName,distAdd,distMul,distR0,zref,anisotropic,decoupled));
         }
              
         // Configure our fit model parameters by applying all model-config options in turn,

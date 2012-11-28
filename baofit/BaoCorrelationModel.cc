@@ -16,7 +16,7 @@ namespace local = baofit;
 
 local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName,
     std::string const &fiducialName, std::string const &nowigglesName,
-    std::string const &bbandAdd, std::string const &bbandMul, double bbandR0,
+    std::string const &distAdd, std::string const &distMul, double distR0,
     double zref, bool anisotropic, bool decoupled)
 : AbsCorrelationModel("BAO Correlation Model"), _anisotropic(anisotropic), _decoupled(decoupled)
 {
@@ -51,13 +51,13 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
         throw RuntimeError("BaoCorrelationModel: error while reading model interpolation data.");
     }
     // Define our broadband distortion models, if any.
-    if(bbandAdd.length() > 0) {
+    if(distAdd.length() > 0) {
         _distortAdd.reset(new baofit::BroadbandModel("Additive broadband distortion",
-            "dist add",bbandAdd,bbandR0,zref,this));
+            "dist add",distAdd,distR0,zref,this));
     }
-    if(bbandMul.length() > 0) {
+    if(distMul.length() > 0) {
         _distortMul.reset(new baofit::BroadbandModel("Multiplicative broadband distortion",
-            "dist mul",bbandMul,bbandR0,zref,this));
+            "dist mul",distMul,distR0,zref,this));
     }
 }
 

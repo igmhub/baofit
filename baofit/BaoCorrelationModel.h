@@ -19,7 +19,7 @@ namespace baofit {
 	    // reference redshift.
 		BaoCorrelationModel(std::string const &modelrootName,
 		    std::string const &fiducialName, std::string const &nowigglesName,
-            std::string const &bbandAdd, std::string const &bbandMul, double bbandR0,
+            std::string const &distAdd, std::string const &distMul, double distR0,
             double zref, bool anisotropic = false, bool decoupled = false);
 		virtual ~BaoCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
