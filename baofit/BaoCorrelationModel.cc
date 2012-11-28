@@ -119,7 +119,12 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     
     // Add broadband distortions, if any.
     if(_distortMul) xi *= 1 + _distortMul->_evaluate(r,mu,z,anyChanged);
-    if(_distortAdd) xi += _distortAdd->_evaluate(r,mu,z,anyChanged);
+    if(_distortAdd) {
+        double distortion = _distortAdd->_evaluate(r,mu,z,anyChanged);
+        // The additive distortion is multiplied by ((1+z)/(1+z0))^gamma_bias
+        double gamma_bias = getParameterValue("gamma-bias");
+        xi += _redshiftEvolution(distortion,gamma_bias,z);
+    }
 
     return xi;
 }
