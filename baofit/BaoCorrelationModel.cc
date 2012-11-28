@@ -4,8 +4,6 @@
 #include "baofit/RuntimeError.h"
 #include "baofit/BroadbandModel.h"
 
-#include "cosmo/RsdCorrelationFunction.h"
-#include "cosmo/TransferFunctionPowerSpectrum.h"
 #include "likely/Interpolator.h"
 #include "likely/function.h"
 #include "likely/RuntimeError.h"
@@ -103,16 +101,16 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     // Calculate the cosmological prediction.
     double norm0 = _getNormFactor(cosmo::Monopole,z), norm2 = _getNormFactor(cosmo::Quadrupole,z),
         norm4 = _getNormFactor(cosmo::Hexadecapole,z);
-    double muSq(muBAO*muBAO);
-    double L2 = (3*muSq - 1)/2., L4 = (35*muSq*muSq - 30*muSq + 3)/8.;
+    double musq(muBAO*muBAO);
+    double L2 = (-1+3*musq)/2., L4 = (3+musq*(-30+35*musq))/8.;
     double fid = norm0*(*_fid0)(rBAO) + norm2*L2*(*_fid2)(rBAO) + norm4*L4*(*_fid4)(rBAO);
     double nw = norm0*(*_nw0)(rBAO) + norm2*L2*(*_nw2)(rBAO) + norm4*L4*(*_nw4)(rBAO);
     double peak = ampl*(fid-nw);
     double smooth = nw;
     if(_decoupled) {
         // Recalculate the smooth cosmological prediction using (r,mu) instead of (rBAO,muBAO)
-        double muSq(mu*mu);
-        double L2 = (3*muSq - 1)/2., L4 = (35*muSq*muSq - 30*muSq + 3)/8.;    
+        double musq(mu*mu);
+        double L2 = (-1+3*musq)/2., L4 = (3+musq*(-30+35*musq))/8.;
         smooth = norm0*(*_nw0)(r) + norm2*L2*(*_nw2)(r) + norm4*L4*(*_nw4)(r);
     }
     double xi = peak + smooth;
