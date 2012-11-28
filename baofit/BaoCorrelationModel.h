@@ -35,9 +35,8 @@ namespace baofit {
 	private:
         AbsCorrelationModelPtr _distortAdd, _distortMul;
         bool _anisotropic, _decoupled;
+        int _indexBase;
         cosmo::CorrelationFunctionPtr _fid0, _fid2, _fid4, _nw0, _nw2, _nw4;
-        class BBand2;
-        typedef boost::shared_ptr<BBand2> BBand2Ptr;
 	}; // BaoCorrelationModel
 } // baofit
 

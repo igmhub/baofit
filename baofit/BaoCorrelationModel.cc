@@ -23,8 +23,8 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
 : AbsCorrelationModel("BAO Correlation Model"), _anisotropic(anisotropic), _decoupled(decoupled)
 {
     // Linear bias parameters
-    _defineLinearBiasParameters(zref);
-    // BAO peak parameters
+    _indexBase = _defineLinearBiasParameters(zref);
+    // BAO peak parameters (values can be retrieved efficiently as offsets from _indexBase)
     defineParameter("BAO amplitude",1,0.15);
     defineParameter("BAO alpha-iso",1,0.02);
     defineParameter("BAO alpha-parallel",1,0.1);
@@ -68,11 +68,11 @@ local::BaoCorrelationModel::~BaoCorrelationModel() { }
 double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
 
     // Lookup parameter values by name.
-    double ampl = getParameterValue("BAO amplitude");
-    double scale = getParameterValue("BAO alpha-iso");
-    double scale_parallel = getParameterValue("BAO alpha-parallel");
-    double scale_perp = getParameterValue("BAO alpha-perp");
-    double gamma_scale = getParameterValue("gamma-scale");
+    double ampl = getParameterValue(_indexBase + 1); //("BAO amplitude");
+    double scale = getParameterValue(_indexBase + 2); //"BAO alpha-iso");
+    double scale_parallel = getParameterValue(_indexBase + 3); //("BAO alpha-parallel");
+    double scale_perp = getParameterValue(_indexBase + 4); //("BAO alpha-perp");
+    double gamma_scale = getParameterValue(_indexBase + 5); //("gamma-scale");
 
     // Calculate redshift evolution of the scale parameters.
     scale = _redshiftEvolution(scale,gamma_scale,z);
@@ -122,7 +122,7 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     if(_distortAdd) {
         double distortion = _distortAdd->_evaluate(r,mu,z,anyChanged);
         // The additive distortion is multiplied by ((1+z)/(1+z0))^gamma_bias
-        double gamma_bias = getParameterValue("gamma-bias");
+        double gamma_bias = getParameterValue(_indexBase - 1); //("gamma-bias");
         xi += _redshiftEvolution(distortion,gamma_bias,z);
     }
 
@@ -220,6 +220,4 @@ void  local::BaoCorrelationModel::printToStream(std::ostream &out, std::string c
     AbsCorrelationModel::printToStream(out,formatSpec);
     out << "Using " << (_anisotropic ? "anisotropic":"isotropic") << " BAO scales." << std::endl;
     out << "Scales apply to BAO peak " << (_decoupled ? "only." : "and cosmological broadband.") << std::endl;
-    if(_distortAdd) _distortAdd->printToStream(out,formatSpec);
-    if(_distortMul) _distortMul->printToStream(out,formatSpec);
 }
