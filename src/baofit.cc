@@ -550,6 +550,13 @@ int main(int argc, char **argv) {
             analyzer.dumpResiduals(out,fmin,combined);
             out.close();
         }
+        if(altConfig.length() > 0) {
+            // Dump the best-fit residuals for each data bin using an alternate model.
+            std::string outName = outputPrefix + "altresiduals.dat";
+            std::ofstream out(outName.c_str());
+            analyzer.dumpResiduals(out,fmin,combined,altConfig);
+            out.close();
+        }
         // Calculate and save a bootstrap estimate of the (unfinalized) combined covariance
         // matrix, if requested.
         if(bootstrapCovTrials > 0) {
