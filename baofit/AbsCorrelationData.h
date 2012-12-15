@@ -42,15 +42,6 @@ namespace baofit {
         void setFinalCuts(double rMin, double rMax, double rVetoMin, double rVetoMax,
             double muMin, double muMax, cosmo::Multipole lMin, cosmo::Multipole lMax,
             double zMin, double zMax);
-        // Saves our data vector to a text file with the specified name, using full
-        // double precision. The format is a list of "index value" lines, where
-        // to value = getData(index,weighted).
-        void saveData(std::string const &filename, bool weighted = false) const;
-        // Saves our inverse covariance matrix to a text file with the specified name,
-        // use full double precision. The formta is a list of "index1 index2 value" lines,
-        // where value = scale*getInverseCovariance(index1,index2). Lines with value==0
-        // or index2 < index1 are not written to the file.
-        void saveInverseCovariance(std::string const &filename, double scale = 1) const;
     protected:
         // Copies our final cuts to the specified object.
         void _cloneFinalCuts(AbsCorrelationData &other) const;
