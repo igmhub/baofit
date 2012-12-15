@@ -439,8 +439,18 @@ int main(int argc, char **argv) {
             if(reuseCovIndex < 0 && modeScales.size() > 0) {
                 if(verbose) std::cout << "Correcting mode scales..." << std::endl;
                 data->rescaleEigenvalues(modeScales);
-                data->saveData(*filename + ".fixed.data");
-                data->saveInverseCovariance(*filename + ".fixed.icov");
+                {
+                    std::string outName = outputPrefix + "fixed.data";
+                    std::ofstream out(outName.c_str());
+                    data->saveData(out);
+                    out.close();
+                }
+                {
+                    std::string outName = outputPrefix + "fixed.icov";
+                    std::ofstream out(outName.c_str());
+                    data->saveInverseCovariance(out);
+                    out.close();
+                }
             }
             analyzer.addData(data,reuseCovIndex);
         }
@@ -465,9 +475,19 @@ int main(int argc, char **argv) {
             return -3;
         }
         // Save the combined (unweighted) data, if requested.
-        if(saveData) combined->saveData(outputPrefix + "save.data");
+        if(saveData) {
+            std::string outName = outputPrefix + "save.data";
+            std::ofstream out(outName.c_str());
+            combined->saveData(out);
+            out.close();
+        }
         // Save the combined inverse covariance, if requested.
-        if(saveICov) combined->saveInverseCovariance(outputPrefix + "save.icov",saveICovScale);
+        if(saveICov) {
+            std::string outName = outputPrefix + "save.icov";
+            std::ofstream out(outName.c_str());
+            combined->saveInverseCovariance(out);
+            out.close();
+        }
     }
     catch(std::runtime_error const &e) {
         std::cerr << "ERROR while reading data:\n  " << e.what() << std::endl;
@@ -500,6 +520,20 @@ int main(int argc, char **argv) {
             std::string outName = outputPrefix + "fit.config";
             std::ofstream out(outName.c_str());
             out << likely::fitParametersToScript(fmin->getFitParameters());
+            out.close();
+        }
+        // Dump the fit parameter values and diagonal errors.
+        {
+            std::string outName = outputPrefix + "save.pars";
+            std::ofstream out(outName.c_str());
+            fmin->saveParameters(out);
+            out.close();
+        }
+        // Dump the fit parameter covariance matrix.
+        if(fmin->hasCovariance()) {
+            std::string outName = outputPrefix + "save.pcov";
+            std::ofstream out(outName.c_str());
+            fmin->saveFloatingParameterCovariance(out);
             out.close();
         }
         // Print out some extra info if this fit has floating "BAO alpha-*"
@@ -567,9 +601,16 @@ int main(int argc, char **argv) {
             baofit::AbsCorrelationDataPtr copy = analyzer.getCombined(verbose,finalized);
             copy->setCovarianceMatrix(
                 analyzer.estimateCombinedCovariance(bootstrapCovTrials, outputPrefix + "bs_cov_work.dat"));
-            // Try to save the inverse covariance. This will fail gracefully with a warning message
-            // in case we don't have enough statistics yet for a positive definite estimate.
-            copy->saveInverseCovariance(outputPrefix + "bs.icov");
+            // Save the inverse covariance if we have enough statistics for a positive definite estimate.
+            if(copy->getCovarianceMatrix()->isPositiveDefinite()) {
+                std::string outName = outputPrefix + "bs.icov";
+                std::ofstream out(outName.c_str());
+                copy->saveInverseCovariance(out);
+                out.close();
+            }
+            else {
+                std::cout << "Bootstrap covariance matrix estimate is not positive definite." << std::endl;
+            }
         }
         // Generate a Markov-chain for marginalization, if requested.
         if(mcmcSave > 0) {
