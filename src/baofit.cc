@@ -515,6 +515,14 @@ int main(int argc, char **argv) {
         else {
             fmin = analyzer.fitSample(combined);
         }
+	// Dump the fit parameters and covariance matrix in machine-readable format
+	{
+	  std::string outName = outputPrefix + ".fit.out";
+	  std::ofstream out(outName.c_str());
+	  fmin->printMachineReadableToStream(out);
+	  out.close();
+	}
+
         // Dump the fit parameters in model-config format.
         {
             std::string outName = outputPrefix + "fit.config";
