@@ -246,7 +246,11 @@ namespace baofit {
                 }
                 // We don't finalize here because the prototype should already be finalized.
                 // Save this file?
-                if(_first && _filename.length() > 0) sample->saveData(_filename);
+                if(_first && _filename.length() > 0) {
+                    std::ofstream out(_filename.c_str());
+                    sample->saveData(out);
+                    out.close();
+                }
                 _first = false;
             }
             return sample;
