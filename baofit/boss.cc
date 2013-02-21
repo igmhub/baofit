@@ -462,8 +462,6 @@ bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology) {
     return prototype;
 }
 
-// Loads a binned correlation function in saved format using the specified prototype
-// and returns a BinnedData object.
 baofit::AbsCorrelationDataPtr local::loadSaved(std::string const &dataName,
 baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov) {
     // Create the new AbsCorrelationData that we will fill.
@@ -533,7 +531,7 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov) {
         if(index1 < 0 || index2 < 0 || index1 >= nbins || index2 >= nbins ||
         !binnedData->hasData(index1) || !binnedData->hasData(index2)) {
             throw RuntimeError("loadSaved: invalid covariance indices on line " +
-                boost::lexical_cast<std::string>(lines) + " of " + paramsName);
+                boost::lexical_cast<std::string>(lines) + " of " + covName);
         }
         // Add this covariance to our dataset.
         if(icov) {
