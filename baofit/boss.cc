@@ -10,11 +10,11 @@
 
 #include "cosmo/AbsHomogeneousUniverse.h"
 
+#include "likely/AbsBinning.h"
 #include "likely/UniformBinning.h"
 #include "likely/UniformSampling.h"
 #include "likely/NonUniformSampling.h"
 #include "likely/CovarianceMatrix.h"
-#include "likely/Interpolator.h"
 #include "likely/RuntimeError.h"
 
 #include "boost/regex.hpp"
@@ -307,45 +307,42 @@ std::string const &axis1Bins, std::string const &axis2Bins, std::string const &a
     // Parse the binning from the strings provided.
     likely::AbsBinningCPtr axis1ptr,axis2ptr,axis3ptr;
     try {
-        std::vector<double> vec = likely::parseVector(axis1Bins,",");
-        axis1ptr.reset(new likely::NonUniformSampling(vec));
+        axis1ptr = likely::createBinning(axis1Bins);
         if(verbose) {
             int nbins = axis1ptr->getNBins();
             std::cout << (cartesian ? "r_par bin centers:":"r bin centers:");
             for(int bin = 0; bin < nbins; ++bin) {
                 std::cout << (bin ? ',':' ') << axis1ptr->getBinCenter(bin);
             }
-            std::cout << " (" << axis1ptr->getNBins() << " bins)" << std::endl;
+            std::cout << " (n = " << axis1ptr->getNBins() << ")" << std::endl;
         }
     }
     catch(likely::RuntimeError const &e) {
         throw RuntimeError("createComovingPrototype: error in axis 1 binning.");
     }
     try {
-        std::vector<double> vec = likely::parseVector(axis2Bins,",");
-        axis2ptr.reset(new likely::NonUniformSampling(vec));
+        axis2ptr = likely::createBinning(axis2Bins);
         if(verbose) {
             int nbins = axis2ptr->getNBins();
             std::cout << (cartesian ? "r_perp bin centers:":"mu bin centers:");
             for(int bin = 0; bin < nbins; ++bin) {
                 std::cout << (bin ? ',':' ') << axis2ptr->getBinCenter(bin);
             }
-            std::cout << " (" << axis2ptr->getNBins() << " bins)" << std::endl;
+            std::cout << " (n = " << axis2ptr->getNBins() << ")" << std::endl;
         }
     }
     catch(likely::RuntimeError const &e) {
         throw RuntimeError("createComovingPrototype: error in axis 2 binning.");
     }
     try {
-        std::vector<double> vec = likely::parseVector(axis3Bins,",");
-        axis3ptr.reset(new likely::NonUniformSampling(vec));
+        axis3ptr = likely::createBinning(axis3Bins);
         if(verbose) {
             int nbins = axis3ptr->getNBins();
             std::cout << "z bin centers:";
             for(int bin = 0; bin < nbins; ++bin) {
                 std::cout << (bin ? ',':' ') << axis3ptr->getBinCenter(bin);
             }
-            std::cout << " (" << axis3ptr->getNBins() << " bins)" << std::endl;
+            std::cout << " (n = " << axis3ptr->getNBins() << ")" << std::endl;
         }
     }
     catch(likely::RuntimeError const &e) {
