@@ -7,12 +7,13 @@ namespace local = baofit;
 
 local::ComovingCorrelationData::ComovingCorrelationData(likely::AbsBinningCPtr rBins,
 likely::AbsBinningCPtr muBins, likely::AbsBinningCPtr zBins) 
-: AbsCorrelationData(rBins,muBins,zBins,Coordinate), _lastIndex(-1)
+: AbsCorrelationData(rBins,muBins,zBins,Coordinate), _coordinateSystem(PolarCoordinates), _lastIndex(-1)
 {
 }
 
-local::ComovingCorrelationData::ComovingCorrelationData(std::vector<likely::AbsBinningCPtr> axes) 
-: AbsCorrelationData(axes,Coordinate), _lastIndex(-1)
+local::ComovingCorrelationData::ComovingCorrelationData(std::vector<likely::AbsBinningCPtr> axes,
+CoordinateSystem coordinateSystem) 
+: AbsCorrelationData(axes,Coordinate), _coordinateSystem(coordinateSystem), _lastIndex(-1)
 {
 }
 
@@ -20,7 +21,7 @@ local::ComovingCorrelationData::~ComovingCorrelationData() { }
 
 local::ComovingCorrelationData *local::ComovingCorrelationData::clone(bool binningOnly) const {
     ComovingCorrelationData *data = binningOnly ?
-        new ComovingCorrelationData(getAxisBinning()) :
+        new ComovingCorrelationData(getAxisBinning(),_coordinateSystem) :
         new ComovingCorrelationData(*this);
     _cloneFinalCuts(*data);
     return data;

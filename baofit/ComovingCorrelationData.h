@@ -9,11 +9,13 @@
 
 namespace baofit {
 	class ComovingCorrelationData : public AbsCorrelationData {
-	// Represents 3D correlation data in comoving coordinates (r,mu,z).
+	// Represents 3D correlation data in comoving coordinates (r,mu,z) or (rperp,rpar,z).
 	public:
 		ComovingCorrelationData(likely::AbsBinningCPtr rBins, likely::AbsBinningCPtr muBins,
 		    likely::AbsBinningCPtr zBins);
-		ComovingCorrelationData(std::vector<likely::AbsBinningCPtr> axes);
+        enum CoordinateSystem { PolarCoordinates, CartesianCoordinates };
+		ComovingCorrelationData(std::vector<likely::AbsBinningCPtr> axes,
+		    CoordinateSystem coordinateSystem = PolarCoordinates);
 		virtual ~ComovingCorrelationData();
 		// Polymorphic shallow copy so this type of data can be used with likely::BinnedDataResampler.
         virtual ComovingCorrelationData *clone(bool binningOnly = false) const;
@@ -29,6 +31,7 @@ namespace baofit {
         // for BinnedData::finalize() for details.
         virtual void finalize();
 	private:
+        CoordinateSystem _coordinateSystem;
         void _setIndex(int index) const;
         mutable int _lastIndex;
         mutable std::vector<double> _binCenter;
