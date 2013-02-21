@@ -3,16 +3,13 @@
 #include "baofit/ComovingCorrelationData.h"
 #include "baofit/RuntimeError.h"
 
+#include <cmath>
+
 namespace local = baofit;
 
-local::ComovingCorrelationData::ComovingCorrelationData(likely::AbsBinningCPtr rBins,
-likely::AbsBinningCPtr muBins, likely::AbsBinningCPtr zBins) 
-: AbsCorrelationData(rBins,muBins,zBins,Coordinate), _lastIndex(-1)
-{
-}
-
-local::ComovingCorrelationData::ComovingCorrelationData(std::vector<likely::AbsBinningCPtr> axes) 
-: AbsCorrelationData(axes,Coordinate), _lastIndex(-1)
+local::ComovingCorrelationData::ComovingCorrelationData(std::vector<likely::AbsBinningCPtr> axes,
+CoordinateSystem coordinateSystem) 
+: AbsCorrelationData(axes,Coordinate), _coordinateSystem(coordinateSystem), _lastIndex(-1)
 {
 }
 
@@ -20,7 +17,7 @@ local::ComovingCorrelationData::~ComovingCorrelationData() { }
 
 local::ComovingCorrelationData *local::ComovingCorrelationData::clone(bool binningOnly) const {
     ComovingCorrelationData *data = binningOnly ?
-        new ComovingCorrelationData(getAxisBinning()) :
+        new ComovingCorrelationData(getAxisBinning(),_coordinateSystem) :
         new ComovingCorrelationData(*this);
     _cloneFinalCuts(*data);
     return data;
@@ -41,12 +38,24 @@ void local::ComovingCorrelationData::_setIndex(int index) const {
 
 double local::ComovingCorrelationData::getRadius(int index) const {
     _setIndex(index);
-    return _binCenter[0];
+    if(_coordinateSystem == PolarCoordinates) {
+        return _binCenter[0];
+    }
+    else {
+        double rpar = _binCenter[0], rperp = _binCenter[1];
+        return std::sqrt(rpar*rpar+rperp*rperp);
+    }
 }
 
 double local::ComovingCorrelationData::getCosAngle(int index) const {
     _setIndex(index);
-    return _binCenter[1];
+    if(_coordinateSystem == PolarCoordinates) {
+        return _binCenter[1];
+    }
+    else {
+        double rpar = _binCenter[0], rperp = _binCenter[1];
+        return rpar/std::sqrt(rpar*rpar+rperp*rperp);
+    }
 }
 
 double local::ComovingCorrelationData::getRedshift(int index) const {

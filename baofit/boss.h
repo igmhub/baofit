@@ -18,6 +18,10 @@ namespace baofit {
             AbsCorrelationDataCPtr prototype, bool verbose,
             bool unweighted = false, bool expanded = false);
             
+        AbsCorrelationDataPtr createComovingPrototype(bool cartesian, bool verbose,
+            std::string const &axis1Bins, std::string const &axis2Bins,
+            std::string const &axis3Bins);
+
         AbsCorrelationDataPtr createSectorsPrototype(double zref);
             
         AbsCorrelationDataPtr loadSectors(std::string const &dataName,
@@ -37,8 +41,10 @@ namespace baofit {
             double llMin, double llMax, double sepMin, double sepMax,
             bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology);
 
-        AbsCorrelationDataPtr loadCosmolibSaved(std::string const &dataName,
-            AbsCorrelationDataCPtr prototype, bool verbose);
+        // Loads a binned correlation function in saved format using the specified prototype
+        // and returns a BinnedData object. Set icov true to read .icov files instead of .cov.
+        AbsCorrelationDataPtr loadSaved(std::string const &dataName,
+            AbsCorrelationDataCPtr prototype, bool verbose, bool icov);
 
         AbsCorrelationDataPtr loadCosmolib(std::string const &dataName,
             AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted,

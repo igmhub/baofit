@@ -10,6 +10,7 @@
 
 #include "cosmo/AbsHomogeneousUniverse.h"
 
+#include "likely/AbsBinning.h"
 #include "likely/UniformBinning.h"
 #include "likely/UniformSampling.h"
 #include "likely/NonUniformSampling.h"
@@ -301,6 +302,64 @@ std::vector<double> local::twoStepSampling(double breakpoint,double llmax,double
     return samplePoints;
 }
 
+baofit::AbsCorrelationDataPtr local::createComovingPrototype(bool cartesian, bool verbose,
+std::string const &axis1Bins, std::string const &axis2Bins, std::string const &axis3Bins) {
+    // Parse the binning from the strings provided.
+    likely::AbsBinningCPtr axis1ptr,axis2ptr,axis3ptr;
+    try {
+        axis1ptr = likely::createBinning(axis1Bins);
+        if(verbose) {
+            int nbins = axis1ptr->getNBins();
+            std::cout << (cartesian ? "r_par bin centers:":"r bin centers:");
+            for(int bin = 0; bin < nbins; ++bin) {
+                std::cout << (bin ? ',':' ') << axis1ptr->getBinCenter(bin);
+            }
+            std::cout << " (n = " << axis1ptr->getNBins() << ")" << std::endl;
+        }
+    }
+    catch(likely::RuntimeError const &e) {
+        throw RuntimeError("createComovingPrototype: error in axis 1 binning.");
+    }
+    try {
+        axis2ptr = likely::createBinning(axis2Bins);
+        if(verbose) {
+            int nbins = axis2ptr->getNBins();
+            std::cout << (cartesian ? "r_perp bin centers:":"mu bin centers:");
+            for(int bin = 0; bin < nbins; ++bin) {
+                std::cout << (bin ? ',':' ') << axis2ptr->getBinCenter(bin);
+            }
+            std::cout << " (n = " << axis2ptr->getNBins() << ")" << std::endl;
+        }
+    }
+    catch(likely::RuntimeError const &e) {
+        throw RuntimeError("createComovingPrototype: error in axis 2 binning.");
+    }
+    try {
+        axis3ptr = likely::createBinning(axis3Bins);
+        if(verbose) {
+            int nbins = axis3ptr->getNBins();
+            std::cout << "z bin centers:";
+            for(int bin = 0; bin < nbins; ++bin) {
+                std::cout << (bin ? ',':' ') << axis3ptr->getBinCenter(bin);
+            }
+            std::cout << " (n = " << axis3ptr->getNBins() << ")" << std::endl;
+        }
+    }
+    catch(likely::RuntimeError const &e) {
+        throw RuntimeError("createComovingPrototype: error in axis 3 binning.");
+    }
+
+    std::vector<likely::AbsBinningCPtr> binning;
+    binning.push_back(axis1ptr);
+    binning.push_back(axis2ptr);
+    binning.push_back(axis3ptr);
+
+    baofit::AbsCorrelationDataPtr
+        prototype(new baofit::ComovingCorrelationData(binning,
+        cartesian ? ComovingCorrelationData::CartesianCoordinates : ComovingCorrelationData::PolarCoordinates));
+    return prototype;    
+}
+
 baofit::AbsCorrelationDataPtr local::createSectorsPrototype(double zref) {
     // Initialize the fixed (r,mu,z) binning for this format.
     likely::AbsBinningCPtr
@@ -308,8 +367,13 @@ baofit::AbsCorrelationDataPtr local::createSectorsPrototype(double zref) {
         muBins(new likely::UniformBinning(0,1,50)),
         zBins(new likely::UniformSampling(zref,zref,1));
 
+    std::vector<likely::AbsBinningCPtr> binning;
+    binning.push_back(rBins);
+    binning.push_back(muBins);
+    binning.push_back(zBins);
+
     baofit::AbsCorrelationDataPtr
-        prototype(new baofit::ComovingCorrelationData(rBins,muBins,zBins));
+        prototype(new baofit::ComovingCorrelationData(binning,ComovingCorrelationData::PolarCoordinates));
 
     return prototype;    
 }
@@ -398,9 +462,8 @@ bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology) {
     return prototype;
 }
 
-// Loads a binned correlation function in cosmolib saved format and returns a BinnedData object.
-baofit::AbsCorrelationDataPtr local::loadCosmolibSaved(std::string const &dataName,
-baofit::AbsCorrelationDataCPtr prototype, bool verbose) {
+baofit::AbsCorrelationDataPtr local::loadSaved(std::string const &dataName,
+baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov) {
     // Create the new AbsCorrelationData that we will fill.
     baofit::AbsCorrelationDataPtr binnedData((baofit::QuasarCorrelationData *)(prototype->clone(true)));
 
@@ -418,7 +481,7 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose) {
     // Loop over lines in the parameter file.
     std::string paramsName(dataName + ".data");
     std::ifstream paramsIn(paramsName.c_str());
-    if(!paramsIn.good()) throw RuntimeError("loadCosmolibSaved: Unable to open " + paramsName);
+    if(!paramsIn.good()) throw RuntimeError("loadSaved: Unable to open " + paramsName);
     lines = 0;
     int index;
     double data;
@@ -432,7 +495,7 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose) {
             ),
             ascii::space);
         if(!ok) {
-            throw RuntimeError("loadCosmolibSaved: error reading line " +
+            throw RuntimeError("loadSaved: error reading line " +
                 boost::lexical_cast<std::string>(lines) + " of " + paramsName);
         }
         binnedData->setData(index,data);
@@ -445,10 +508,10 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose) {
             << binnedData->getNBinsTotal() << " data values from " << paramsName << std::endl;
     }
 
-    // Loop over lines in the covariance file.
-    std::string covName = dataName + ".icov";
+    // Loop over lines in the (inverse) covariance file.
+    std::string covName = dataName + (icov ? ".icov" : ".cov");
     std::ifstream covIn(covName.c_str());
-    if(!covIn.good()) throw RuntimeError("loadCosmolibSaved: Unable to open " + covName);
+    if(!covIn.good()) throw RuntimeError("loadSaved: Unable to open " + covName);
     lines = 0;
     double value;
     int index1,index2;
@@ -461,17 +524,22 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose) {
             ),
             ascii::space);
         if(!ok) {
-            throw RuntimeError("loadCosmolibSaved: error reading line " +
+            throw RuntimeError("loadSaved: error reading line " +
                 boost::lexical_cast<std::string>(lines) + " of " + paramsName);
         }
         // Check for invalid offsets.
         if(index1 < 0 || index2 < 0 || index1 >= nbins || index2 >= nbins ||
         !binnedData->hasData(index1) || !binnedData->hasData(index2)) {
-            throw RuntimeError("loadCosmolibSaved: invalid covariance indices on line " +
-                boost::lexical_cast<std::string>(lines) + " of " + paramsName);
+            throw RuntimeError("loadSaved: invalid covariance indices on line " +
+                boost::lexical_cast<std::string>(lines) + " of " + covName);
         }
         // Add this covariance to our dataset.
-        binnedData->setInverseCovariance(index1,index2,value);
+        if(icov) {
+            binnedData->setInverseCovariance(index1,index2,value);
+        }
+        else {
+            binnedData->setCovariance(index1,index2,value);            
+        }
     }
     covIn.close();
     if(verbose) {

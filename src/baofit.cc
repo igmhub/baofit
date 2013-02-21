@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
         projectModesNKeep;
     std::string modelrootName,fiducialName,nowigglesName,dataName,xiPoints,toymcConfig,
         platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig,
-        fixModeScales,distAdd,distMul;
+        fixModeScales,distAdd,distMul,axis1Bins,axis2Bins,axis3Bins;
     std::vector<std::string> modelConfig;
 
     // Default values in quotes below are to avoid roundoff errors leading to ugly --help
@@ -92,6 +92,15 @@ int main(int argc, char **argv) {
             "3D correlation data will be read from individual plate datafiles listed in this file.")
         ("plateroot", po::value<std::string>(&platerootName)->default_value(""),
             "Common path to prepend to all plate datafiles listed in the platelist.")
+        ("comoving-cartesian", "3D correlation data is in (rpar,rperp,z) format.")
+        ("comoving-polar", "3D correlation data is in (r,mu,z) format.")
+        ("axis1-bins", po::value<std::string>(&axis1Bins)->default_value(""),
+            "Comma separated list of bin centers for axis 1.")
+        ("axis2-bins", po::value<std::string>(&axis2Bins)->default_value(""),
+            "Comma separated list of bin centers for axis 2.")
+        ("axis3-bins", po::value<std::string>(&axis3Bins)->default_value(""),
+            "Comma separated list of bin centers for axis 3.")
+        ("load-icov", "Load inverse covariance (.icov) instead of covariance (.cov)")
         ("dr9lrg", "3D correlation data files are in the BOSS DR9 LRG galaxy format.")
         ("max-plates", po::value<int>(&maxPlates)->default_value(0),
             "Maximum number of plates to load (zero uses all available plates).")
@@ -156,7 +165,7 @@ int main(int argc, char **argv) {
             "Full width (Mpc/h) of co-moving separation window to veto in fit (zero for no veto).")
         ("rveto-center", po::value<double>(&rVetoCenter)->default_value(114),
             "Center (Mpc/h) of co-moving separation window to veto in fit.")
-        ("mu-min", po::value<double>(&muMin)->default_value(0),
+        ("mu-min", po::value<double>(&muMin)->default_value(-1),
             "Final cut on minimum value of mu = rL/r to use in the fit (coordinate data only).")
         ("mu-max", po::value<double>(&muMax)->default_value(1),
             "Final cut on maximum value of mu = rL/r to use in the fit (coordinate data only).")
@@ -262,7 +271,14 @@ int main(int argc, char **argv) {
         fixAlnCov(vm.count("fix-aln-cov")), saveData(vm.count("save-data")),
         scalarWeights(vm.count("scalar-weights")), noInitialFit(vm.count("no-initial-fit")),
         compareEach(vm.count("compare-each")), compareEachFinal(vm.count("compare-each-final")),
-        decoupled(vm.count("decoupled"));
+        decoupled(vm.count("decoupled")),comovingCartesian(vm.count("comoving-cartesian")),
+        comovingPolar(vm.count("comoving-polar")),loadICov(vm.count("load-icov"));
+
+    // Check that at most one data format has been specified.
+    if(french+dr9lrg+comovingCartesian+comovingPolar+sectors+xiFormat > 1) {
+        std::cerr << "Specify at most one data format option." << std::endl;
+        return -1;
+    }
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
@@ -331,7 +347,11 @@ int main(int argc, char **argv) {
         
         // Create a prototype of the binned data we will be loading.
         baofit::AbsCorrelationDataPtr prototype;
-        if(french) {
+        if(comovingCartesian || comovingPolar) {
+            prototype = baofit::boss::createComovingPrototype(comovingCartesian,verbose,
+                axis1Bins,axis2Bins,axis3Bins);
+        }
+        else if(french) {
             zdata = 2.30;
             prototype = baofit::boss::createFrenchPrototype(zdata);
         }
@@ -408,7 +428,10 @@ int main(int argc, char **argv) {
         filename != filelist.end(); ++filename) {
             baofit::AbsCorrelationDataPtr data;
             int reuseCovIndex(-1);
-            if(french) {
+            if(comovingPolar || comovingCartesian) {
+                data = baofit::boss::loadSaved(*filename,prototype,verbose,loadICov);
+            }
+            else if(french) {
                 data = baofit::boss::loadFrench(*filename,prototype,
                     verbose,unweighted,expanded);
             }
@@ -425,7 +448,7 @@ int main(int argc, char **argv) {
             else {
                 // Add a cosmolib dataset, assumed to provided icov instead of cov.
                 if(savedFormat) {
-                    data = baofit::boss::loadCosmolibSaved(*filename,prototype,verbose); 
+                    data = baofit::boss::loadSaved(*filename,prototype,verbose,true); 
                 }
                 else {
                     data = baofit::boss::loadCosmolib(*filename,prototype,
