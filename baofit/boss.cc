@@ -14,6 +14,7 @@
 #include "likely/UniformSampling.h"
 #include "likely/NonUniformSampling.h"
 #include "likely/CovarianceMatrix.h"
+#include "likely/Interpolator.h"
 #include "likely/RuntimeError.h"
 
 #include "boost/regex.hpp"
@@ -301,9 +302,61 @@ std::vector<double> local::twoStepSampling(double breakpoint,double llmax,double
     return samplePoints;
 }
 
-baofit::AbsCorrelationDataPtr local::createComovingPrototype(bool cartesian,
+baofit::AbsCorrelationDataPtr local::createComovingPrototype(bool cartesian, bool verbose,
 std::string const &axis1Bins, std::string const &axis2Bins, std::string const &axis3Bins) {
+    // Parse the binning from the strings provided.
+    likely::AbsBinningCPtr axis1ptr,axis2ptr,axis3ptr;
+    try {
+        std::vector<double> vec = likely::parseVector(axis1Bins,",");
+        axis1ptr.reset(new likely::NonUniformSampling(vec));
+        if(verbose) {
+            int nbins = axis1ptr->getNBins();
+            std::cout << (cartesian ? "r_par bin centers:":"r bin centers:");
+            for(int bin = 0; bin < nbins; ++bin) {
+                std::cout << (bin ? ',':' ') << axis1ptr->getBinCenter(bin);
+            }
+            std::cout << " (" << axis1ptr->getNBins() << " bins)" << std::endl;
+        }
+    }
+    catch(likely::RuntimeError const &e) {
+        throw RuntimeError("createComovingPrototype: error in axis 1 binning.");
+    }
+    try {
+        std::vector<double> vec = likely::parseVector(axis2Bins,",");
+        axis2ptr.reset(new likely::NonUniformSampling(vec));
+        if(verbose) {
+            int nbins = axis2ptr->getNBins();
+            std::cout << (cartesian ? "r_par bin centers:":"r bin centers:");
+            for(int bin = 0; bin < nbins; ++bin) {
+                std::cout << (bin ? ',':' ') << axis2ptr->getBinCenter(bin);
+            }
+            std::cout << " (" << axis2ptr->getNBins() << " bins)" << std::endl;
+        }
+    }
+    catch(likely::RuntimeError const &e) {
+        throw RuntimeError("createComovingPrototype: error in axis 2 binning.");
+    }
+    try {
+        std::vector<double> vec = likely::parseVector(axis3Bins,",");
+        axis3ptr.reset(new likely::NonUniformSampling(vec));
+        if(verbose) {
+            int nbins = axis3ptr->getNBins();
+            std::cout << (cartesian ? "r_par bin centers:":"r bin centers:");
+            for(int bin = 0; bin < nbins; ++bin) {
+                std::cout << (bin ? ',':' ') << axis3ptr->getBinCenter(bin);
+            }
+            std::cout << " (" << axis3ptr->getNBins() << " bins)" << std::endl;
+        }
+    }
+    catch(likely::RuntimeError const &e) {
+        throw RuntimeError("createComovingPrototype: error in axis 3 binning.");
+    }
+
     std::vector<likely::AbsBinningCPtr> binning;
+    binning.push_back(axis1ptr);
+    binning.push_back(axis2ptr);
+    binning.push_back(axis3ptr);
+
     baofit::AbsCorrelationDataPtr
         prototype(new baofit::ComovingCorrelationData(binning,
         cartesian ? ComovingCorrelationData::CartesianCoordinates : ComovingCorrelationData::PolarCoordinates));

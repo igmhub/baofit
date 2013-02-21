@@ -347,7 +347,7 @@ int main(int argc, char **argv) {
         // Create a prototype of the binned data we will be loading.
         baofit::AbsCorrelationDataPtr prototype;
         if(comovingCartesian || comovingPolar) {
-            prototype = baofit::boss::createComovingPrototype(comovingCartesian,
+            prototype = baofit::boss::createComovingPrototype(comovingCartesian,verbose,
                 axis1Bins,axis2Bins,axis3Bins);
         }
         else if(french) {
