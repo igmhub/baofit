@@ -427,7 +427,10 @@ int main(int argc, char **argv) {
         filename != filelist.end(); ++filename) {
             baofit::AbsCorrelationDataPtr data;
             int reuseCovIndex(-1);
-            if(french) {
+            if(comovingPolar || comovingCartesian) {
+                data = baofit::boss::loadComoving(*filename,prototype,verbose);
+            }
+            else if(french) {
                 data = baofit::boss::loadFrench(*filename,prototype,
                     verbose,unweighted,expanded);
             }

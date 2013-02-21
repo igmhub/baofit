@@ -363,6 +363,14 @@ std::string const &axis1Bins, std::string const &axis2Bins, std::string const &a
     return prototype;    
 }
 
+baofit::AbsCorrelationDataPtr local::loadComoving(std::string const &dataName,
+baofit::AbsCorrelationDataCPtr prototype, bool verbose) {
+    // Create the new AbsCorrelationData that we will fill.
+    baofit::AbsCorrelationDataPtr binnedData((baofit::ComovingCorrelationData *)(prototype->clone(true)));
+
+    return binnedData;
+}
+
 baofit::AbsCorrelationDataPtr local::createSectorsPrototype(double zref) {
     // Initialize the fixed (r,mu,z) binning for this format.
     likely::AbsBinningCPtr
