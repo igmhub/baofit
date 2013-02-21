@@ -92,6 +92,8 @@ int main(int argc, char **argv) {
             "3D correlation data will be read from individual plate datafiles listed in this file.")
         ("plateroot", po::value<std::string>(&platerootName)->default_value(""),
             "Common path to prepend to all plate datafiles listed in the platelist.")
+        ("comoving-cartesian", "3D correlation data is in (rpar,rperp,z) format.")
+        ("comoving-polar", "3D correlation data is in (r,mu,z) format.")
         ("dr9lrg", "3D correlation data files are in the BOSS DR9 LRG galaxy format.")
         ("max-plates", po::value<int>(&maxPlates)->default_value(0),
             "Maximum number of plates to load (zero uses all available plates).")
@@ -262,7 +264,8 @@ int main(int argc, char **argv) {
         fixAlnCov(vm.count("fix-aln-cov")), saveData(vm.count("save-data")),
         scalarWeights(vm.count("scalar-weights")), noInitialFit(vm.count("no-initial-fit")),
         compareEach(vm.count("compare-each")), compareEachFinal(vm.count("compare-each-final")),
-        decoupled(vm.count("decoupled"));
+        decoupled(vm.count("decoupled")),comovingCartesian(vm.count("comoving-cartesian")),
+        comovingPolar(vm.count("comoving-polar"));
 
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
