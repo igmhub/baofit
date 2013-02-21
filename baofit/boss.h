@@ -22,9 +22,6 @@ namespace baofit {
             std::string const &axis1Bins, std::string const &axis2Bins,
             std::string const &axis3Bins);
 
-        AbsCorrelationDataPtr loadComoving(std::string const &dataName,
-            baofit::AbsCorrelationDataCPtr prototype, bool verbose);
-            
         AbsCorrelationDataPtr createSectorsPrototype(double zref);
             
         AbsCorrelationDataPtr loadSectors(std::string const &dataName,
@@ -44,8 +41,8 @@ namespace baofit {
             double llMin, double llMax, double sepMin, double sepMax,
             bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology);
 
-        AbsCorrelationDataPtr loadCosmolibSaved(std::string const &dataName,
-            AbsCorrelationDataCPtr prototype, bool verbose);
+        AbsCorrelationDataPtr loadSaved(std::string const &dataName,
+            AbsCorrelationDataCPtr prototype, bool verbose, bool icov);
 
         AbsCorrelationDataPtr loadCosmolib(std::string const &dataName,
             AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted,

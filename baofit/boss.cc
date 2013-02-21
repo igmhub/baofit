@@ -360,14 +360,6 @@ std::string const &axis1Bins, std::string const &axis2Bins, std::string const &a
     return prototype;    
 }
 
-baofit::AbsCorrelationDataPtr local::loadComoving(std::string const &dataName,
-baofit::AbsCorrelationDataCPtr prototype, bool verbose) {
-    // Create the new AbsCorrelationData that we will fill.
-    baofit::AbsCorrelationDataPtr binnedData((baofit::ComovingCorrelationData *)(prototype->clone(true)));
-
-    return binnedData;
-}
-
 baofit::AbsCorrelationDataPtr local::createSectorsPrototype(double zref) {
     // Initialize the fixed (r,mu,z) binning for this format.
     likely::AbsBinningCPtr
@@ -465,9 +457,10 @@ bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology) {
     return prototype;
 }
 
-// Loads a binned correlation function in cosmolib saved format and returns a BinnedData object.
-baofit::AbsCorrelationDataPtr local::loadCosmolibSaved(std::string const &dataName,
-baofit::AbsCorrelationDataCPtr prototype, bool verbose) {
+// Loads a binned correlation function in saved format using the specified prototype
+// and returns a BinnedData object.
+baofit::AbsCorrelationDataPtr local::loadSaved(std::string const &dataName,
+baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov) {
     // Create the new AbsCorrelationData that we will fill.
     baofit::AbsCorrelationDataPtr binnedData((baofit::QuasarCorrelationData *)(prototype->clone(true)));
 
@@ -485,7 +478,7 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose) {
     // Loop over lines in the parameter file.
     std::string paramsName(dataName + ".data");
     std::ifstream paramsIn(paramsName.c_str());
-    if(!paramsIn.good()) throw RuntimeError("loadCosmolibSaved: Unable to open " + paramsName);
+    if(!paramsIn.good()) throw RuntimeError("loadSaved: Unable to open " + paramsName);
     lines = 0;
     int index;
     double data;
@@ -499,7 +492,7 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose) {
             ),
             ascii::space);
         if(!ok) {
-            throw RuntimeError("loadCosmolibSaved: error reading line " +
+            throw RuntimeError("loadSaved: error reading line " +
                 boost::lexical_cast<std::string>(lines) + " of " + paramsName);
         }
         binnedData->setData(index,data);
@@ -512,10 +505,10 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose) {
             << binnedData->getNBinsTotal() << " data values from " << paramsName << std::endl;
     }
 
-    // Loop over lines in the covariance file.
-    std::string covName = dataName + ".icov";
+    // Loop over lines in the (inverse) covariance file.
+    std::string covName = dataName + (icov ? ".icov" : ".cov");
     std::ifstream covIn(covName.c_str());
-    if(!covIn.good()) throw RuntimeError("loadCosmolibSaved: Unable to open " + covName);
+    if(!covIn.good()) throw RuntimeError("loadSaved: Unable to open " + covName);
     lines = 0;
     double value;
     int index1,index2;
@@ -528,17 +521,22 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose) {
             ),
             ascii::space);
         if(!ok) {
-            throw RuntimeError("loadCosmolibSaved: error reading line " +
+            throw RuntimeError("loadSaved: error reading line " +
                 boost::lexical_cast<std::string>(lines) + " of " + paramsName);
         }
         // Check for invalid offsets.
         if(index1 < 0 || index2 < 0 || index1 >= nbins || index2 >= nbins ||
         !binnedData->hasData(index1) || !binnedData->hasData(index2)) {
-            throw RuntimeError("loadCosmolibSaved: invalid covariance indices on line " +
+            throw RuntimeError("loadSaved: invalid covariance indices on line " +
                 boost::lexical_cast<std::string>(lines) + " of " + paramsName);
         }
         // Add this covariance to our dataset.
-        binnedData->setInverseCovariance(index1,index2,value);
+        if(icov) {
+            binnedData->setInverseCovariance(index1,index2,value);
+        }
+        else {
+            binnedData->setCovariance(index1,index2,value);            
+        }
     }
     covIn.close();
     if(verbose) {

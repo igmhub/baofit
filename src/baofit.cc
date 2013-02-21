@@ -428,7 +428,7 @@ int main(int argc, char **argv) {
             baofit::AbsCorrelationDataPtr data;
             int reuseCovIndex(-1);
             if(comovingPolar || comovingCartesian) {
-                data = baofit::boss::loadComoving(*filename,prototype,verbose);
+                data = baofit::boss::loadSaved(*filename,prototype,verbose,false);
             }
             else if(french) {
                 data = baofit::boss::loadFrench(*filename,prototype,
@@ -447,7 +447,7 @@ int main(int argc, char **argv) {
             else {
                 // Add a cosmolib dataset, assumed to provided icov instead of cov.
                 if(savedFormat) {
-                    data = baofit::boss::loadCosmolibSaved(*filename,prototype,verbose); 
+                    data = baofit::boss::loadSaved(*filename,prototype,verbose,true); 
                 }
                 else {
                     data = baofit::boss::loadCosmolib(*filename,prototype,
