@@ -267,6 +267,12 @@ int main(int argc, char **argv) {
         decoupled(vm.count("decoupled")),comovingCartesian(vm.count("comoving-cartesian")),
         comovingPolar(vm.count("comoving-polar"));
 
+    // Check that at most one data format has been specified.
+    if(french+dr9lrg+comovingCartesian+comovingPolar+sectors+xiFormat > 1) {
+        std::cerr << "Specify at most one data format option." << std::endl;
+        return -1;
+    }
+
     // Check for the required filename parameters.
     if(0 == dataName.length() && 0 == platelistName.length()) {
         std::cerr << "Missing required parameter --data or --platelist." << std::endl;
