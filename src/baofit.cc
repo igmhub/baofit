@@ -165,7 +165,7 @@ int main(int argc, char **argv) {
             "Full width (Mpc/h) of co-moving separation window to veto in fit (zero for no veto).")
         ("rveto-center", po::value<double>(&rVetoCenter)->default_value(114),
             "Center (Mpc/h) of co-moving separation window to veto in fit.")
-        ("mu-min", po::value<double>(&muMin)->default_value(0),
+        ("mu-min", po::value<double>(&muMin)->default_value(-1),
             "Final cut on minimum value of mu = rL/r to use in the fit (coordinate data only).")
         ("mu-max", po::value<double>(&muMax)->default_value(1),
             "Final cut on maximum value of mu = rL/r to use in the fit (coordinate data only).")
