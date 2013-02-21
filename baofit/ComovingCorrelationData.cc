@@ -49,7 +49,6 @@ double local::ComovingCorrelationData::getRadius(int index) const {
 
 double local::ComovingCorrelationData::getCosAngle(int index) const {
     _setIndex(index);
-    return _binCenter[1];
     if(_coordinateSystem == PolarCoordinates) {
         return _binCenter[1];
     }
