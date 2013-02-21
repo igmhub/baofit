@@ -4,37 +4,22 @@
 #include "baofit/RuntimeError.h"
 
 #include "likely/Interpolator.h"
+#include "likely/RuntimeError.h"
 
 #include "boost/format.hpp"
-#include "boost/spirit/include/qi.hpp"
-#include "boost/spirit/include/phoenix_core.hpp"
-#include "boost/spirit/include/phoenix_operator.hpp"
-#include "boost/spirit/include/phoenix_stl.hpp"
 
 #include <cmath>
 
 namespace local = baofit;
-namespace qi = boost::spirit::qi;
-namespace ascii = boost::spirit::ascii;
-namespace phoenix = boost::phoenix;
 
 local::XiCorrelationModel::XiCorrelationModel(std::string const &points, double zref, std::string const &method)
 : AbsCorrelationModel("Xi Correlation Model"), _method(method)
 {
-    // import boost spirit parser symbols
-    using qi::double_;
-    using qi::_1;
-    using phoenix::ref;
-    using phoenix::push_back;
-
-    // Parse the points string into a vector of doubles.
-    std::string::const_iterator iter = points.begin();
-    bool ok = qi::phrase_parse(iter,points.end(),
-        (
-            double_[push_back(ref(_rValues),_1)] % ','
-        ),
-        ascii::space);
-    if(!ok || iter != points.end()) {
+    // Parse string of comma-separated points
+    try {
+        _rValues = likely::parseVector(points,",");
+    }
+    catch(likely::RuntimeError const &e) {
         throw RuntimeError("XiCorrelationModel: badly formatted points list.");
     }
 
