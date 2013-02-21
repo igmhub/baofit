@@ -326,7 +326,7 @@ std::string const &axis1Bins, std::string const &axis2Bins, std::string const &a
         axis2ptr.reset(new likely::NonUniformSampling(vec));
         if(verbose) {
             int nbins = axis2ptr->getNBins();
-            std::cout << (cartesian ? "r_par bin centers:":"r bin centers:");
+            std::cout << (cartesian ? "r_perp bin centers:":"mu bin centers:");
             for(int bin = 0; bin < nbins; ++bin) {
                 std::cout << (bin ? ',':' ') << axis2ptr->getBinCenter(bin);
             }
@@ -341,7 +341,7 @@ std::string const &axis1Bins, std::string const &axis2Bins, std::string const &a
         axis3ptr.reset(new likely::NonUniformSampling(vec));
         if(verbose) {
             int nbins = axis3ptr->getNBins();
-            std::cout << (cartesian ? "r_par bin centers:":"r bin centers:");
+            std::cout << "z bin centers:";
             for(int bin = 0; bin < nbins; ++bin) {
                 std::cout << (bin ? ',':' ') << axis3ptr->getBinCenter(bin);
             }
