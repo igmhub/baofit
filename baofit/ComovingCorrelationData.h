@@ -9,7 +9,7 @@
 
 namespace baofit {
 	class ComovingCorrelationData : public AbsCorrelationData {
-	// Represents 3D correlation data in comoving coordinates (r,mu,z) or (rperp,rpar,z).
+	// Represents 3D correlation data in comoving coordinates (r,mu,z) or (rpar,rperp,z).
 	public:
         enum CoordinateSystem { PolarCoordinates, CartesianCoordinates };
 		ComovingCorrelationData(std::vector<likely::AbsBinningCPtr> axes,
