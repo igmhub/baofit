@@ -301,6 +301,15 @@ std::vector<double> local::twoStepSampling(double breakpoint,double llmax,double
     return samplePoints;
 }
 
+baofit::AbsCorrelationDataPtr local::createComovingPrototype(bool cartesian,
+std::string const &axis1Bins, std::string const &axis2Bins, std::string const &axis3Bins) {
+    std::vector<likely::AbsBinningCPtr> binning;
+    baofit::AbsCorrelationDataPtr
+        prototype(new baofit::ComovingCorrelationData(binning,
+        cartesian ? ComovingCorrelationData::CartesianCoordinates : ComovingCorrelationData::PolarCoordinates));
+    return prototype;    
+}
+
 baofit::AbsCorrelationDataPtr local::createSectorsPrototype(double zref) {
     // Initialize the fixed (r,mu,z) binning for this format.
     likely::AbsBinningCPtr

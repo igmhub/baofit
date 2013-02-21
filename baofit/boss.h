@@ -18,6 +18,10 @@ namespace baofit {
             AbsCorrelationDataCPtr prototype, bool verbose,
             bool unweighted = false, bool expanded = false);
             
+        AbsCorrelationDataPtr createComovingPrototype(bool cartesian,
+            std::string const &axis1Bins, std::string const &axis2Bins,
+            std::string const &axis3Bins);
+            
         AbsCorrelationDataPtr createSectorsPrototype(double zref);
             
         AbsCorrelationDataPtr loadSectors(std::string const &dataName,

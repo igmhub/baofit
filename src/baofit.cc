@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
         projectModesNKeep;
     std::string modelrootName,fiducialName,nowigglesName,dataName,xiPoints,toymcConfig,
         platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig,
-        fixModeScales,distAdd,distMul;
+        fixModeScales,distAdd,distMul,axis1Bins,axis2Bins,axis3Bins;
     std::vector<std::string> modelConfig;
 
     // Default values in quotes below are to avoid roundoff errors leading to ugly --help
@@ -94,6 +94,12 @@ int main(int argc, char **argv) {
             "Common path to prepend to all plate datafiles listed in the platelist.")
         ("comoving-cartesian", "3D correlation data is in (rpar,rperp,z) format.")
         ("comoving-polar", "3D correlation data is in (r,mu,z) format.")
+        ("axis1-bins", po::value<std::string>(&axis1Bins)->default_value(""),
+            "Comma separated list of bin centers for axis 1.")
+        ("axis2-bins", po::value<std::string>(&axis2Bins)->default_value(""),
+            "Comma separated list of bin centers for axis 2.")
+        ("axis3-bins", po::value<std::string>(&axis3Bins)->default_value(""),
+            "Comma separated list of bin centers for axis 3.")
         ("dr9lrg", "3D correlation data files are in the BOSS DR9 LRG galaxy format.")
         ("max-plates", po::value<int>(&maxPlates)->default_value(0),
             "Maximum number of plates to load (zero uses all available plates).")
@@ -340,7 +346,11 @@ int main(int argc, char **argv) {
         
         // Create a prototype of the binned data we will be loading.
         baofit::AbsCorrelationDataPtr prototype;
-        if(french) {
+        if(comovingCartesian || comovingPolar) {
+            prototype = baofit::boss::createComovingPrototype(comovingCartesian,
+                axis1Bins,axis2Bins,axis3Bins);
+        }
+        else if(french) {
             zdata = 2.30;
             prototype = baofit::boss::createFrenchPrototype(zdata);
         }
