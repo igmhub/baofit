@@ -367,8 +367,13 @@ baofit::AbsCorrelationDataPtr local::createSectorsPrototype(double zref) {
         muBins(new likely::UniformBinning(0,1,50)),
         zBins(new likely::UniformSampling(zref,zref,1));
 
+    std::vector<likely::AbsBinningCPtr> binning;
+    binning.push_back(rBins);
+    binning.push_back(muBins);
+    binning.push_back(zBins);
+
     baofit::AbsCorrelationDataPtr
-        prototype(new baofit::ComovingCorrelationData(rBins,muBins,zBins));
+        prototype(new baofit::ComovingCorrelationData(binning,ComovingCorrelationData::PolarCoordinates));
 
     return prototype;    
 }
