@@ -100,6 +100,7 @@ int main(int argc, char **argv) {
             "Comma separated list of bin centers for axis 2.")
         ("axis3-bins", po::value<std::string>(&axis3Bins)->default_value(""),
             "Comma separated list of bin centers for axis 3.")
+        ("load-icov", "Load inverse covariance (.icov) instead of covariance (.cov)")
         ("dr9lrg", "3D correlation data files are in the BOSS DR9 LRG galaxy format.")
         ("max-plates", po::value<int>(&maxPlates)->default_value(0),
             "Maximum number of plates to load (zero uses all available plates).")
@@ -271,7 +272,7 @@ int main(int argc, char **argv) {
         scalarWeights(vm.count("scalar-weights")), noInitialFit(vm.count("no-initial-fit")),
         compareEach(vm.count("compare-each")), compareEachFinal(vm.count("compare-each-final")),
         decoupled(vm.count("decoupled")),comovingCartesian(vm.count("comoving-cartesian")),
-        comovingPolar(vm.count("comoving-polar"));
+        comovingPolar(vm.count("comoving-polar")),loadICov(vm.count("load-icov"));
 
     // Check that at most one data format has been specified.
     if(french+dr9lrg+comovingCartesian+comovingPolar+sectors+xiFormat > 1) {
@@ -428,7 +429,7 @@ int main(int argc, char **argv) {
             baofit::AbsCorrelationDataPtr data;
             int reuseCovIndex(-1);
             if(comovingPolar || comovingCartesian) {
-                data = baofit::boss::loadSaved(*filename,prototype,verbose,false);
+                data = baofit::boss::loadSaved(*filename,prototype,verbose,loadICov);
             }
             else if(french) {
                 data = baofit::boss::loadFrench(*filename,prototype,
