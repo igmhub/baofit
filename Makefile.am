@@ -1,13 +1,25 @@
+# add path to boost.m4
+ACLOCAL_AMFLAGS = -I .
+
 # global compile and link options
 AM_CPPFLAGS = $(BOOST_CPPFLAGS)
-AM_LDFLAGS = -llikely
 
 # targets to build and install
 lib_LTLIBRARIES = libbaofit.la
 bin_PROGRAMS = baofit
 
 # extra targets that should not be installed
-## noinst_PROGRAMS =
+#noinst_PROGRAMS =
+
+# targets that contain unit tests
+#check_PROGRAMS = 
+
+# add our pkgconfig file to the install target
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = baofit.pc
+
+# any library dependencies not already added by configure can be added here
+#libbaofit_la_LIBADD = 
 
 # instructions for building the library
 libbaofit_la_SOURCES = \
@@ -48,4 +60,4 @@ nobase_include_HEADERS = \
 
 baofit_SOURCES = src/baofit.cc
 baofit_DEPENDENCIES = $(lib_LIBRARIES)
-baofit_LDADD = -lboost_program_options -L. -lbaofit -lcosmo -lMinuit2 -lblas
+baofit_LDADD = libbaofit.la $(BOOST_PROGRAM_OPTIONS_LDFLAGS) $(BOOST_PROGRAM_OPTIONS_LIBS)
