@@ -12,6 +12,9 @@
 /* Define to 1 if you have <boost/function.hpp> */
 #undef HAVE_BOOST_FUNCTION_HPP
 
+/* Define to 1 if you have <boost/program_options.hpp> */
+#undef HAVE_BOOST_PROGRAM_OPTIONS_HPP
+
 /* Define to 1 if you have <boost/scoped_ptr.hpp> */
 #undef HAVE_BOOST_SCOPED_PTR_HPP
 
@@ -26,6 +29,12 @@
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
+
+/* Define to 1 if you have the `cosmo' library (-lcosmo). */
+#undef HAVE_LIBCOSMO
+
+/* Define to 1 if you have the `likely' library (-llikely). */
+#undef HAVE_LIBLIKELY
 
 /* Define to 1 if you have the `m' library (-lm). */
 #undef HAVE_LIBM

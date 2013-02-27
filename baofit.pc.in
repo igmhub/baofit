@@ -1,0 +1,10 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: baofit
+Description: a C++ library for performing cosmological BAO fits
+Version: @VERSION@
+Libs: -L${libdir} -lbaofit @LIBS@
+Cflags: -I${includedir}
