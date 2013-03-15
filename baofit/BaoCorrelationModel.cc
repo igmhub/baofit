@@ -28,6 +28,12 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
     defineParameter("BAO alpha-parallel",1,0.1);
     defineParameter("BAO alpha-perp",1,0.1);
     defineParameter("gamma-scale",0,0.5);
+    // quasar radiation parameters 
+    defineParameter("Radiation strength",0.,0.1); 
+    defineParameter("Radiation anisotropy",0.,0.1);
+    defineParameter("Mean free path",200.,10.); // in Mpc/h
+    defineParameter("Quasar lifetime",10.,0.1); // in Myr
+
     // Load the interpolation data we will use for each multipole of each model.
     std::string root(modelrootName);
     if(0 < root.size() && root[root.size()-1] != '/') root += '/';
@@ -71,6 +77,12 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     double scale_parallel = getParameterValue(_indexBase + 3); //("BAO alpha-parallel");
     double scale_perp = getParameterValue(_indexBase + 4); //("BAO alpha-perp");
     double gamma_scale = getParameterValue(_indexBase + 5); //("gamma-scale");
+
+    // Lookup radiation parameters, also value by name.
+    double rad_strength = getParameterValue(_indexBase + 6);
+    double rad_aniso = getParameterValue(_indexBase + 7);
+    double mean_free_path = getParameterValue(_indexBase + 8);
+    double quasar_lifetime = getParameterValue(_indexBase + 9);
 
     // Calculate redshift evolution of the scale parameters.
     scale = _redshiftEvolution(scale,gamma_scale,z);
@@ -122,6 +134,21 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
         // The additive distortion is multiplied by ((1+z)/(1+z0))^gamma_bias
         double gamma_bias = getParameterValue(_indexBase - 1); //("gamma-bias");
         xi += _redshiftEvolution(distortion,gamma_bias,z);
+    }
+
+    // add quasar radiation effects (for cross-correlations only)
+    // allways works with decoupled
+    if(rad_strength>0 && r>0.){ 
+        // isotropical radiation
+        double rad = rad_strength * std::pow(r,-2);
+        // attenuation
+        rad *= std::exp(-r/mean_free_path);
+        // anisotropy
+        rad *= (1 - rad_anisotropy*(1-std::pow(mu,2)));
+        // time effects 
+        double ctd = r*(1-mu)/(1+z);
+        rad *= std::exp(-ctd/quasar_lifetime);
+        xi += rad;
     }
 
     return xi;
