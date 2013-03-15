@@ -8,7 +8,7 @@
 namespace local = baofit;
 
 local::AbsCorrelationModel::AbsCorrelationModel(std::string const &name)
-: FitModel(name), _indexBase(-1)
+: FitModel(name), _indexBase(-1), _crossCorrelation(false)
 { }
 
 local::AbsCorrelationModel::~AbsCorrelationModel() { }
@@ -30,7 +30,7 @@ likely::Parameters const &params) {
     return result;
 }
 
-int local::AbsCorrelationModel::_defineLinearBiasParameters(double zref) {
+int local::AbsCorrelationModel::_defineLinearBiasParameters(double zref, bool crossCorrelation) {
     if(_indexBase >= 0) throw RuntimeError("AbsCorrelationModel: linear bias parameters already defined.");
     if(zref < 0) throw RuntimeError("AbsCorrelationModel: expected zref >= 0.");
     _zref = zref;
@@ -42,6 +42,16 @@ int local::AbsCorrelationModel::_defineLinearBiasParameters(double zref) {
     defineParameter("gamma-beta",0,0.1);    
     // Amount to shift each separation's line of sight velocity in km/s
     int last = defineParameter("delta-v",0,10);
+    if(crossCorrelation) {
+        _crossCorrelation = true;
+        defineParameter("beta2",1.4,0.1);
+        last = defineParameter("(1+beta2)*bias2",-0.336,0.03);
+    }
+    else {
+        // not really necessary since the ctor already does this and you cannot call this method
+        // more than once
+        _crossCorrelation = false;
+    }
     return last;
 }
 

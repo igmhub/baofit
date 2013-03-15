@@ -39,9 +39,10 @@ namespace baofit {
         virtual double _evaluate(double r, double mu, double z, bool changed) const = 0;
         virtual double _evaluate(double r, cosmo::Multipole multipole, double z, bool changed) const = 0;
         // Defines the standard set of linear bias parameters used by _getNormFactor below, in
-        // addition to a parameter "delta-v" used by _applyVelocityShift below. Returns the index
+        // addition to a parameter "delta-v" used by _applyVelocityShift below. Adds a second set
+        // of bias and beta parameters if crossCorrelation is true. Returns the index
         // of the last parameter defined.
-        int _defineLinearBiasParameters(double zref);
+        int _defineLinearBiasParameters(double zref, bool crossCorrelation = false);
         // Applies a shift dpi in the parallel direction to the separation (r,mu) using a fiducial
         // cosmology to convert from dv in km/s to dpi in Mpc/h at the specified redshift z. The
         // value of dv is obtained from the "delta-v" parameter defined by _defineLinearBiasParameters.
@@ -53,7 +54,10 @@ namespace baofit {
         double _getNormFactor(cosmo::Multipole multipole, double z) const;
     private:
         int _indexBase;
-        enum IndexOffset { BETA = 0, BB = 1, GAMMA_BIAS = 2, GAMMA_BETA = 3, DELTA_V = 4 };
+        bool _crossCorrelation;
+        enum IndexOffset {
+            BETA = 0, BB = 1, GAMMA_BIAS = 2, GAMMA_BETA = 3, DELTA_V = 4, BETA2 = 5, BB2 = 6
+        };
         double _zref;
 	}; // AbsCorrelationModel
 } // baofit
