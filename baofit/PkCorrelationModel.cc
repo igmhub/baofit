@@ -17,7 +17,8 @@
 namespace local = baofit;
 
 local::PkCorrelationModel::PkCorrelationModel(std::string const &modelrootName, std::string const &nowigglesName,
-double klo, double khi, int nk, int splineOrder, bool independentMultipoles, double zref)
+double klo, double khi, int nk, int splineOrder, bool independentMultipoles, double zref,
+bool crossCorrelation)
 : AbsCorrelationModel("P(ell,k) Correlation Model"), _klo(klo), _nk(nk), _splineOrder(splineOrder),
 _independentMultipoles(independentMultipoles)
 {
@@ -40,7 +41,7 @@ _independentMultipoles(independentMultipoles)
     _sin.resize(nk);
     _cos.resize(nk);
     // Linear bias parameters
-    _indexBase = 1 + _defineLinearBiasParameters(zref);
+    _indexBase = 1 + _defineLinearBiasParameters(zref,crossCorrelation);
     // B-spline coefficients for each multipole.
     boost::format name("Pk b-%d-%d");
     for(int ell = 0; ell <= 4; ell += 2) {

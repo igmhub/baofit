@@ -316,15 +316,16 @@ int main(int argc, char **argv) {
         
         if(nSpline > 0) {
             model.reset(new baofit::PkCorrelationModel(modelrootName,nowigglesName,
-                kloSpline,khiSpline,nSpline,splineOrder,multiSpline,zref));
+                kloSpline,khiSpline,nSpline,splineOrder,multiSpline,zref,crossCorrelation));
         }
         else if(xiPoints.length() > 0) {
-            model.reset(new baofit::XiCorrelationModel(xiPoints,zref,xiMethod));
+            model.reset(new baofit::XiCorrelationModel(xiPoints,zref,xiMethod,crossCorrelation));
         }
         else {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
             model.reset(new baofit::BaoCorrelationModel(
-                modelrootName,fiducialName,nowigglesName,distAdd,distMul,distR0,zref,anisotropic,decoupled));
+                modelrootName,fiducialName,nowigglesName,distAdd,distMul,distR0,zref,anisotropic,
+                decoupled,crossCorrelation));
         }
              
         // Configure our fit model parameters by applying all model-config options in turn,

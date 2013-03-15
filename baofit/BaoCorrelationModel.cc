@@ -17,11 +17,11 @@ namespace local = baofit;
 local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName,
     std::string const &fiducialName, std::string const &nowigglesName,
     std::string const &distAdd, std::string const &distMul, double distR0,
-    double zref, bool anisotropic, bool decoupled)
+    double zref, bool anisotropic, bool decoupled, bool crossCorrelation)
 : AbsCorrelationModel("BAO Correlation Model"), _anisotropic(anisotropic), _decoupled(decoupled)
 {
     // Linear bias parameters
-    _indexBase = _defineLinearBiasParameters(zref);
+    _indexBase = _defineLinearBiasParameters(zref,crossCorrelation);
     // BAO peak parameters (values can be retrieved efficiently as offsets from _indexBase)
     defineParameter("BAO amplitude",1,0.15);
     defineParameter("BAO alpha-iso",1,0.02);
