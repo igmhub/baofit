@@ -37,6 +37,9 @@ namespace baofit {
         // Defines the standard set of linear bias parameters used by _getNormFactor below. Returns
         // the index of the last parameter defined.
         int _defineLinearBiasParameters(double zref);
+        // Applies a shift dpi in the parallel direction to the separation (r,mu) using a fiducial
+        // cosmology to convert from dv in km/s to dpi in Mpc/h at the specified redshift z.
+        void _applyVelocityShift(double &r, double &mu, double z, double dv);
         // Evaluates the redshift evolution p(z) of a parameter for which p(zref)=p0 according to
         // p(z) = p0*((1+z)/(1+zref))^gamma.
         double _redshiftEvolution(double p0, double gamma, double z) const;

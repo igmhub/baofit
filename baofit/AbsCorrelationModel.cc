@@ -44,6 +44,16 @@ int local::AbsCorrelationModel::_defineLinearBiasParameters(double zref) {
     return last;
 }
 
+void local::AbsCorrelationModel::_applyVelocityShift(double &r, double &mu, double z, double dv) {
+    // Convert dv in km/s to dpi in Mpc/h using a flat matter+lambda cosmology with OmegaLambda = 0.73
+    double dpi = dv*(1+z)/100/std::sqrt(0.73+0.27*(1+z));
+    // Calculate the effect of changing pi by dpi in the separation
+    double rnew = std::sqrt(r*r + 2*r*mu*dpi + dpi*dpi);
+    double munew = (r*mu+dpi)/rnew;
+    r = rnew;
+    mu = munew;    
+}
+
 double local::AbsCorrelationModel::_redshiftEvolution(double p0, double gamma, double z) const {
     return p0*std::pow((1+z)/(1+_zref),gamma);
 }
