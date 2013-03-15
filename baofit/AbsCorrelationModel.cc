@@ -16,6 +16,7 @@ local::AbsCorrelationModel::~AbsCorrelationModel() { }
 double local::AbsCorrelationModel::evaluate(double r, double mu, double z,
 likely::Parameters const &params) {
     bool anyChanged = updateParameterValues(params);
+    _applyVelocityShift(r,mu,z);
     double result = _evaluate(r,mu,z,anyChanged);
     resetParameterValuesChanged();
     return result;
@@ -39,14 +40,17 @@ int local::AbsCorrelationModel::_defineLinearBiasParameters(double zref) {
     // Redshift evolution parameters
     defineParameter("gamma-bias",3.8,0.3);
     defineParameter("gamma-beta",0,0.1);    
-    // Amount to shift each separation along r(parallel) in Mpc/h
-    int last = defineParameter("dpi",0,0.25);
+    // Amount to shift each separation's line of sight velocity in km/s
+    int last = defineParameter("delta-v",0,10);
     return last;
 }
 
-void local::AbsCorrelationModel::_applyVelocityShift(double &r, double &mu, double z, double dv) {
+void local::AbsCorrelationModel::_applyVelocityShift(double &r, double &mu, double z) {
+    // Lookup value of delta_v
+    double dv = getParameterValue(_indexBase + DELTA_V);
     // Convert dv in km/s to dpi in Mpc/h using a flat matter+lambda cosmology with OmegaLambda = 0.73
-    double dpi = dv*(1+z)/100/std::sqrt(0.73+0.27*(1+z));
+    double zp1 = 1+z;
+    double dpi = (dv/100.)*(1+z)/std::sqrt(0.73+0.27*zp1*zp1*zp1);
     // Calculate the effect of changing pi by dpi in the separation
     double rnew = std::sqrt(r*r + 2*r*mu*dpi + dpi*dpi);
     double munew = (r*mu+dpi)/rnew;

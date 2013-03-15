@@ -48,13 +48,6 @@ std::vector<double> &prediction) const {
         double predicted;
         if(_type == AbsCorrelationData::Coordinate) {
             double mu = _data->getCosAngle(index);
-            // Correct (r,mu) for a displacement of rperp by dpi
-            double dpi = _model->getParameterValue("dpi");
-            double rnew = std::sqrt(r*r + 2*r*mu*dpi + dpi*dpi);
-            double munew = (r*mu+dpi)/rnew;
-            //std::cout << "(r,mu) = " << r << ',' << mu << " => " << rnew << ',' << munew << std::endl;
-            r = rnew;
-            mu = munew;
             predicted = _model->evaluate(r,mu,z,params);
         }
         else {
