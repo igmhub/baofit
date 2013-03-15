@@ -38,7 +38,10 @@ int local::AbsCorrelationModel::_defineLinearBiasParameters(double zref) {
     defineParameter("(1+beta)*bias",-0.336,0.03);
     // Redshift evolution parameters
     defineParameter("gamma-bias",3.8,0.3);
-    return defineParameter("gamma-beta",0,0.1);
+    defineParameter("gamma-beta",0,0.1);    
+    // Amount to shift each separation along r(parallel) in Mpc/h
+    int last = defineParameter("dpi",0,0.25);
+    return last;
 }
 
 double local::AbsCorrelationModel::_redshiftEvolution(double p0, double gamma, double z) const {
