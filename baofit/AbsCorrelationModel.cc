@@ -86,14 +86,29 @@ double local::AbsCorrelationModel::_getNormFactor(cosmo::Multipole multipole, do
     // Calculate redshift evolution of bias and beta.
     double biasSq = _redshiftEvolution(bias0Sq,getParameterValue(_indexBase + GAMMA_BIAS),z);
     double beta = _redshiftEvolution(beta0,getParameterValue(_indexBase + GAMMA_BETA),z);
+    // Build the combinations needed below.
+    double betaAvg,betaProd;
+    if(_crossCorrelation) {
+        double bias2 = getParameterValue(_indexBase + BIAS2);
+        double bb2 = getParameterValue(_indexBase + BB2);
+        double beta2 = bb2/bias2;
+        betaAvg = (beta + beta2)/2;
+        betaProd = beta*beta2;
+        biasSq = std::sqrt(biasSq)*bias2;
+        // TODO: what about redshift evolution of extra RSD parameters?
+    }
+    else {
+        betaAvg = beta;
+        betaProd = beta*beta;
+    }
     // Return the requested normalization factor.
     switch(multipole) {
     case cosmo::Hexadecapole:
-        return biasSq*beta*beta*(8./35.);
+        return biasSq*betaProd*(8./35.);
     case cosmo::Quadrupole:
-        return biasSq*beta*(4./3. + (4./7.)*beta);
+        return biasSq*((4./3.)*betaAvg + (4./7.)*betaProd);
     default:
-        return biasSq*(1 + beta*(2./3. + (1./5.)*beta));
+        return biasSq*(1 + (2./3.)*betaAvg + (1./5.)*betaProd);
     }
 }
 
