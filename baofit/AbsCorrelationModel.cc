@@ -44,8 +44,11 @@ int local::AbsCorrelationModel::_defineLinearBiasParameters(double zref, bool cr
     int last = defineParameter("delta-v",0,10);
     if(crossCorrelation) {
         _crossCorrelation = true;
-        defineParameter("beta2",1.4,0.1);
-        last = defineParameter("(1+beta2)*bias2",-0.336,0.03);
+        // We use don't use beta2 and (1+beta2)*bias2 here since for galaxies or quasars
+        // so that this parameter corresponds directly to f = dln(G)/dln(a), which is what
+        // we usually want to constrain when the second component is galaxies or quasars.
+        defineParameter("bias2",1.4,0.1);
+        last = defineParameter("beta2*bias2",-0.336,0.03);
     }
     else {
         // not really necessary since the ctor already does this and you cannot call this method

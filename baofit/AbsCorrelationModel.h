@@ -56,7 +56,7 @@ namespace baofit {
         int _indexBase;
         bool _crossCorrelation;
         enum IndexOffset {
-            BETA = 0, BB = 1, GAMMA_BIAS = 2, GAMMA_BETA = 3, DELTA_V = 4, BETA2 = 5, BB2 = 6
+            BETA = 0, BB = 1, GAMMA_BIAS = 2, GAMMA_BETA = 3, DELTA_V = 4, BIAS2 = 5, BB2 = 6
         };
         double _zref;
 	}; // AbsCorrelationModel
