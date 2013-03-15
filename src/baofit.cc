@@ -84,6 +84,7 @@ int main(int argc, char **argv) {
             "Parameter adjustments for dumping alternate best-fit model.")
         ("anisotropic", "Uses anisotropic scale parameters instead of an isotropic scale.")
         ("decoupled", "Only applies scale factors to BAO peak and not cosmological broadband.")
+        ("cross-correlation", "Uses independent linear bias parameters for both components.")
         ;
     dataOptions.add_options()
         ("data", po::value<std::string>(&dataName)->default_value(""),
@@ -272,7 +273,8 @@ int main(int argc, char **argv) {
         scalarWeights(vm.count("scalar-weights")), noInitialFit(vm.count("no-initial-fit")),
         compareEach(vm.count("compare-each")), compareEachFinal(vm.count("compare-each-final")),
         decoupled(vm.count("decoupled")),comovingCartesian(vm.count("comoving-cartesian")),
-        comovingPolar(vm.count("comoving-polar")),loadICov(vm.count("load-icov"));
+        comovingPolar(vm.count("comoving-polar")),loadICov(vm.count("load-icov")),
+        crossCorrelation(vm.count("cross-correlation"));
 
     // Check that at most one data format has been specified.
     if(french+dr9lrg+comovingCartesian+comovingPolar+sectors+xiFormat > 1) {
