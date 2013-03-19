@@ -77,30 +77,33 @@ double local::AbsCorrelationModel::_redshiftEvolution(double p0, double gamma, d
 
 double local::AbsCorrelationModel::_getNormFactor(cosmo::Multipole multipole, double z) const {
     if(_indexBase < 0) throw RuntimeError("AbsCorrelationModel: no linear bias parameters defined.");
-    // Lookup the linear bias parameters.
-    double beta0 = getParameterValue(_indexBase + BETA);
-    double bb0 = getParameterValue(_indexBase + BB);
+    // Lookup the linear bias parameters at the reference redshift.
+    double beta = getParameterValue(_indexBase + BETA);
+    double bb = getParameterValue(_indexBase + BB);
     // Calculate bias from beta and bb.
-    double bias0 = bb0/(1+beta0);
-    double bias0Sq = bias0*bias0;
-    // Calculate redshift evolution of bias and beta.
-    double biasSq = _redshiftEvolution(bias0Sq,getParameterValue(_indexBase + GAMMA_BIAS),z);
-    double beta = _redshiftEvolution(beta0,getParameterValue(_indexBase + GAMMA_BETA),z);
-    // Build the combinations needed below.
-    double betaAvg,betaProd;
+    double bias = bb/(1+beta);
+    // For cross correlations, the linear and quadratic beta terms are independent and
+    // the overall bias could be negative.
+    double betaAvg,betaProd,biasSq;
     if(_crossCorrelation) {
         double bias2 = getParameterValue(_indexBase + BIAS2);
         double bb2 = getParameterValue(_indexBase + BB2);
         double beta2 = bb2/bias2;
         betaAvg = (beta + beta2)/2;
         betaProd = beta*beta2;
-        biasSq = std::sqrt(biasSq)*bias2;
-        // TODO: what about redshift evolution of extra RSD parameters?
+        biasSq = bias*bias2;
     }
     else {
         betaAvg = beta;
         betaProd = beta*beta;
+        biasSq = bias*bias;
     }
+    // Calculate redshift evolution of biasSq, betaAvg and betaProd.
+    double gammaBias = getParameterValue(_indexBase + GAMMA_BIAS);
+    double gammaBeta = getParameterValue(_indexBase + GAMMA_BETA);
+    biasSq = _redshiftEvolution(biasSq,gammaBias,z);
+    betaAvg = _redshiftEvolution(betaAvg,gammaBeta,z);
+    betaProd = _redshiftEvolution(betaProd,2*gammaBeta,z);
     // Return the requested normalization factor.
     switch(multipole) {
     case cosmo::Hexadecapole:
