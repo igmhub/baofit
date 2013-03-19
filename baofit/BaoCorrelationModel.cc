@@ -78,12 +78,6 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     double scale_perp = getParameterValue(_indexBase + 4); //("BAO alpha-perp");
     double gamma_scale = getParameterValue(_indexBase + 5); //("gamma-scale");
 
-    // Lookup radiation parameters, also value by name.
-    double rad_strength = getParameterValue(_indexBase + 6);
-    double rad_aniso = getParameterValue(_indexBase + 7);
-    double mean_free_path = getParameterValue(_indexBase + 8);
-    double quasar_lifetime = getParameterValue(_indexBase + 9);
-
     // Calculate redshift evolution of the scale parameters.
     scale = _redshiftEvolution(scale,gamma_scale,z);
     scale_parallel = _redshiftEvolution(scale_parallel,gamma_scale,z);
@@ -136,15 +130,21 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
         xi += _redshiftEvolution(distortion,gamma_bias,z);
     }
 
+    // Lookup radiation parameters, also value by name.
+    double rad_strength = getParameterValue(_indexBase + 6);
+    double rad_aniso = getParameterValue(_indexBase + 7);
+    double mean_free_path = getParameterValue(_indexBase + 8);
+    double quasar_lifetime = getParameterValue(_indexBase + 9);
+
     // add quasar radiation effects (for cross-correlations only)
     // allways works with decoupled
     if(rad_strength>0 && r>0.){ 
         // isotropical radiation
-        double rad = rad_strength * std::pow(r,-2);
+        double rad = rad_strength/(r*r);
         // attenuation
         rad *= std::exp(-r/mean_free_path);
         // anisotropy
-        rad *= (1 - rad_anisotropy*(1-std::pow(mu,2)));
+        rad *= (1 - rad_aniso*(1-mu*mu));
         // time effects 
         double ctd = r*(1-mu)/(1+z);
         rad *= std::exp(-ctd/quasar_lifetime);
