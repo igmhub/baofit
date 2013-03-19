@@ -8,7 +8,7 @@
 namespace local = baofit;
 
 local::AbsCorrelationModel::AbsCorrelationModel(std::string const &name)
-: FitModel(name), _indexBase(-1)
+: FitModel(name), _indexBase(-1), _crossCorrelation(false)
 { }
 
 local::AbsCorrelationModel::~AbsCorrelationModel() { }
@@ -16,6 +16,7 @@ local::AbsCorrelationModel::~AbsCorrelationModel() { }
 double local::AbsCorrelationModel::evaluate(double r, double mu, double z,
 likely::Parameters const &params) {
     bool anyChanged = updateParameterValues(params);
+    _applyVelocityShift(r,mu,z);
     double result = _evaluate(r,mu,z,anyChanged);
     resetParameterValuesChanged();
     return result;
@@ -29,7 +30,7 @@ likely::Parameters const &params) {
     return result;
 }
 
-int local::AbsCorrelationModel::_defineLinearBiasParameters(double zref) {
+int local::AbsCorrelationModel::_defineLinearBiasParameters(double zref, bool crossCorrelation) {
     if(_indexBase >= 0) throw RuntimeError("AbsCorrelationModel: linear bias parameters already defined.");
     if(zref < 0) throw RuntimeError("AbsCorrelationModel: expected zref >= 0.");
     _zref = zref;
@@ -38,7 +39,36 @@ int local::AbsCorrelationModel::_defineLinearBiasParameters(double zref) {
     defineParameter("(1+beta)*bias",-0.336,0.03);
     // Redshift evolution parameters
     defineParameter("gamma-bias",3.8,0.3);
-    return defineParameter("gamma-beta",0,0.1);
+    int last = defineParameter("gamma-beta",0,0.1);    
+    if(crossCorrelation) {
+        _crossCorrelation = true;
+        // Amount to shift each separation's line of sight velocity in km/s
+        defineParameter("delta-v",0,10);
+        // We use don't use beta2 and (1+beta2)*bias2 here since for galaxies or quasars
+        // so that this parameter corresponds directly to f = dln(G)/dln(a), which is what
+        // we usually want to constrain when the second component is galaxies or quasars.
+        defineParameter("bias2",1.4,0.1);
+        last = defineParameter("beta2*bias2",-0.336,0.03);
+    }
+    else {
+        // not really necessary since the ctor already does this and you cannot call this method
+        // more than once
+        _crossCorrelation = false;
+    }
+    return last;
+}
+
+void local::AbsCorrelationModel::_applyVelocityShift(double &r, double &mu, double z) {
+    // Lookup value of delta_v
+    double dv = getParameterValue(_indexBase + DELTA_V);
+    // Convert dv in km/s to dpi in Mpc/h using a flat matter+lambda cosmology with OmegaLambda = 0.73
+    double zp1 = 1+z;
+    double dpi = (dv/100.)*(1+z)/std::sqrt(0.73+0.27*zp1*zp1*zp1);
+    // Calculate the effect of changing pi by dpi in the separation
+    double rnew = std::sqrt(r*r + 2*r*mu*dpi + dpi*dpi);
+    double munew = (r*mu+dpi)/rnew;
+    r = rnew;
+    mu = munew;    
 }
 
 double local::AbsCorrelationModel::_redshiftEvolution(double p0, double gamma, double z) const {
@@ -47,23 +77,41 @@ double local::AbsCorrelationModel::_redshiftEvolution(double p0, double gamma, d
 
 double local::AbsCorrelationModel::_getNormFactor(cosmo::Multipole multipole, double z) const {
     if(_indexBase < 0) throw RuntimeError("AbsCorrelationModel: no linear bias parameters defined.");
-    // Lookup the linear bias parameters.
-    double beta0 = getParameterValue(_indexBase + BETA);
-    double bb0 = getParameterValue(_indexBase + BB);
+    // Lookup the linear bias parameters at the reference redshift.
+    double beta = getParameterValue(_indexBase + BETA);
+    double bb = getParameterValue(_indexBase + BB);
     // Calculate bias from beta and bb.
-    double bias0 = bb0/(1+beta0);
-    double bias0Sq = bias0*bias0;
-    // Calculate redshift evolution of bias and beta.
-    double biasSq = _redshiftEvolution(bias0Sq,getParameterValue(_indexBase + GAMMA_BIAS),z);
-    double beta = _redshiftEvolution(beta0,getParameterValue(_indexBase + GAMMA_BETA),z);
+    double bias = bb/(1+beta);
+    // For cross correlations, the linear and quadratic beta terms are independent and
+    // the overall bias could be negative.
+    double betaAvg,betaProd,biasSq;
+    if(_crossCorrelation) {
+        double bias2 = getParameterValue(_indexBase + BIAS2);
+        double bb2 = getParameterValue(_indexBase + BB2);
+        double beta2 = bb2/bias2;
+        betaAvg = (beta + beta2)/2;
+        betaProd = beta*beta2;
+        biasSq = bias*bias2;
+    }
+    else {
+        betaAvg = beta;
+        betaProd = beta*beta;
+        biasSq = bias*bias;
+    }
+    // Calculate redshift evolution of biasSq, betaAvg and betaProd.
+    double gammaBias = getParameterValue(_indexBase + GAMMA_BIAS);
+    double gammaBeta = getParameterValue(_indexBase + GAMMA_BETA);
+    biasSq = _redshiftEvolution(biasSq,gammaBias,z);
+    betaAvg = _redshiftEvolution(betaAvg,gammaBeta,z);
+    betaProd = _redshiftEvolution(betaProd,2*gammaBeta,z);
     // Return the requested normalization factor.
     switch(multipole) {
     case cosmo::Hexadecapole:
-        return biasSq*beta*beta*(8./35.);
+        return biasSq*betaProd*(8./35.);
     case cosmo::Quadrupole:
-        return biasSq*beta*(4./3. + (4./7.)*beta);
+        return biasSq*((4./3.)*betaAvg + (4./7.)*betaProd);
     default:
-        return biasSq*(1 + beta*(2./3. + (1./5.)*beta));
+        return biasSq*(1 + (2./3.)*betaAvg + (1./5.)*betaProd);
     }
 }
 

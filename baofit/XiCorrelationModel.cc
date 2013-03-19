@@ -12,7 +12,8 @@
 
 namespace local = baofit;
 
-local::XiCorrelationModel::XiCorrelationModel(std::string const &points, double zref, std::string const &method)
+local::XiCorrelationModel::XiCorrelationModel(std::string const &points, double zref,
+std::string const &method, bool crossCorrelation)
 : AbsCorrelationModel("Xi Correlation Model"), _method(method)
 {
     // Parse string of comma-separated points
@@ -24,7 +25,7 @@ local::XiCorrelationModel::XiCorrelationModel(std::string const &points, double 
     }
 
     // Linear bias parameters
-    _indexBase = 1 + _defineLinearBiasParameters(zref);
+    _indexBase = 1 + _defineLinearBiasParameters(zref,crossCorrelation);
 
     // Create 3 parameters for each point (ell=0,2,4)
     boost::format pname("Xi y-%d-%d");

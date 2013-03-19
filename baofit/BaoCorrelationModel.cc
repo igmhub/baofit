@@ -17,17 +17,25 @@ namespace local = baofit;
 local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName,
     std::string const &fiducialName, std::string const &nowigglesName,
     std::string const &distAdd, std::string const &distMul, double distR0,
-    double zref, bool anisotropic, bool decoupled)
+    double zref, bool anisotropic, bool decoupled, bool crossCorrelation)
 : AbsCorrelationModel("BAO Correlation Model"), _anisotropic(anisotropic), _decoupled(decoupled)
 {
     // Linear bias parameters
-    _indexBase = _defineLinearBiasParameters(zref);
+    _indexBase = _defineLinearBiasParameters(zref,crossCorrelation);
     // BAO peak parameters (values can be retrieved efficiently as offsets from _indexBase)
     defineParameter("BAO amplitude",1,0.15);
     defineParameter("BAO alpha-iso",1,0.02);
     defineParameter("BAO alpha-parallel",1,0.1);
     defineParameter("BAO alpha-perp",1,0.1);
     defineParameter("gamma-scale",0,0.5);
+    // quasar radiation parameters 
+    defineParameter("Rad strength",0.,0.1); 
+    defineParameter("Rad anisotropy",0.,0.1);
+    defineParameter("Rad mean free path",200.,10.); // in Mpc/h
+    defineParameter("Rad quasar lifetime",10.,0.1); // in Myr
+    // by default, the radiation parameters are fixed
+    configureFitParameters("fix[Rad*]=0");
+
     // Load the interpolation data we will use for each multipole of each model.
     std::string root(modelrootName);
     if(0 < root.size() && root[root.size()-1] != '/') root += '/';
@@ -122,6 +130,27 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
         // The additive distortion is multiplied by ((1+z)/(1+z0))^gamma_bias
         double gamma_bias = getParameterValue(_indexBase - 1); //("gamma-bias");
         xi += _redshiftEvolution(distortion,gamma_bias,z);
+    }
+
+    // Lookup radiation parameters, also value by name.
+    double rad_strength = getParameterValue(_indexBase + 6);
+    double rad_aniso = getParameterValue(_indexBase + 7);
+    double mean_free_path = getParameterValue(_indexBase + 8);
+    double quasar_lifetime = getParameterValue(_indexBase + 9);
+
+    // add quasar radiation effects (for cross-correlations only)
+    // allways works with decoupled
+    if(rad_strength>0 && r>0.){ 
+        // isotropical radiation
+        double rad = rad_strength/(r*r);
+        // attenuation
+        rad *= std::exp(-r/mean_free_path);
+        // anisotropy
+        rad *= (1 - rad_aniso*(1-mu*mu));
+        // time effects 
+        double ctd = r*(1-mu)/(1+z);
+        rad *= std::exp(-ctd/quasar_lifetime);
+        xi += rad;
     }
 
     return xi;

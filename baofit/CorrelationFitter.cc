@@ -13,6 +13,7 @@
 #include "boost/ref.hpp"
 
 #include <iostream>
+#include <cmath>
 
 namespace local = baofit;
 

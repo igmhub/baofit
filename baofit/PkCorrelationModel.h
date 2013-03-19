@@ -18,7 +18,8 @@ namespace baofit {
 	    // with a uniform B-spline in k*P(ell,k) added to each k-space multipole, with nk uniformly spaced
 	    // knots spanning the range (klo,khi) in h/Mpc.
 		PkCorrelationModel(std::string const &modelrootName, std::string const &nowigglesName,
-		    double klo, double khi, int nk, int splineOrder, bool independentMultipoles, double zref);
+		    double klo, double khi, int nk, int splineOrder, bool independentMultipoles, double zref,
+            bool crossCorrelation = false);
 		virtual ~PkCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
