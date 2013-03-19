@@ -29,10 +29,12 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
     defineParameter("BAO alpha-perp",1,0.1);
     defineParameter("gamma-scale",0,0.5);
     // quasar radiation parameters 
-    defineParameter("Radiation strength",0.,0.1); 
-    defineParameter("Radiation anisotropy",0.,0.1);
-    defineParameter("Mean free path",200.,10.); // in Mpc/h
-    defineParameter("Quasar lifetime",10.,0.1); // in Myr
+    defineParameter("Rad strength",0.,0.1); 
+    defineParameter("Rad anisotropy",0.,0.1);
+    defineParameter("Rad mean free path",200.,10.); // in Mpc/h
+    defineParameter("Rad quasar lifetime",10.,0.1); // in Myr
+    // by default, the radiation parameters are fixed
+    configureFitParameters("fix[Rad*]=0");
 
     // Load the interpolation data we will use for each multipole of each model.
     std::string root(modelrootName);
