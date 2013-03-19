@@ -39,11 +39,11 @@ int local::AbsCorrelationModel::_defineLinearBiasParameters(double zref, bool cr
     defineParameter("(1+beta)*bias",-0.336,0.03);
     // Redshift evolution parameters
     defineParameter("gamma-bias",3.8,0.3);
-    defineParameter("gamma-beta",0,0.1);    
-    // Amount to shift each separation's line of sight velocity in km/s
-    int last = defineParameter("delta-v",0,10);
+    int last = defineParameter("gamma-beta",0,0.1);    
     if(crossCorrelation) {
         _crossCorrelation = true;
+        // Amount to shift each separation's line of sight velocity in km/s
+        defineParameter("delta-v",0,10);
         // We use don't use beta2 and (1+beta2)*bias2 here since for galaxies or quasars
         // so that this parameter corresponds directly to f = dln(G)/dln(a), which is what
         // we usually want to constrain when the second component is galaxies or quasars.
