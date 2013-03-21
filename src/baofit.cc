@@ -347,10 +347,10 @@ int main(int argc, char **argv) {
     double zdata;
     baofit::AbsCorrelationDataCPtr combined;
     try {
-        
         // Create a prototype of the binned data we will be loading.
         baofit::AbsCorrelationDataPtr prototype;
         if(comovingCartesian || comovingPolar) {
+            zdata = 2.30; // only affects the redshift used to dump multipoles
             prototype = baofit::boss::createComovingPrototype(comovingCartesian,verbose,
                 axis1Bins,axis2Bins,axis3Bins);
         }
@@ -367,11 +367,11 @@ int main(int argc, char **argv) {
             prototype = baofit::boss::createDR9LRGPrototype(zdata,"LRG/Sample4_North.cov",verbose);
         }
         else if(xiFormat) {
-            zdata = 2.25;
+            zdata = 2.25; // only affects the redshift used to dump multipoles
             prototype = baofit::boss::createCosmolibXiPrototype(minz,dz,nz,xiRmin,xiRmax,xiNr,xiHexa);
         }
         else { // default is cosmolib (saved) format
-            zdata = 2.25;
+            zdata = 2.25; // only affects the redshift used to dump multipoles
             prototype = baofit::boss::createCosmolibPrototype(
                 minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,llMin,llMax,sepMin,sepMax,
                 fixAlnCov,cosmology);
