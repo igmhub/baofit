@@ -30,9 +30,6 @@ namespace baofit {
 		// the pair separation and z is their average redshift. The separation r should
 		// be provided in Mpc/h.
         virtual double _evaluate(double r, double mu, double z, bool anyChanged) const;
-        // Returns the correlation function for the specified multipole at co-moving pair separation
-        // r and average pair redshift z.
-        virtual double _evaluate(double r, cosmo::Multipole multipole, double z, bool anyChanged) const;
 	private:
         AbsCorrelationModelPtr _distortAdd, _distortMul;
         bool _anisotropic, _decoupled;

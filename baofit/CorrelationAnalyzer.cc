@@ -16,6 +16,7 @@
 #include "boost/format.hpp"
 #include "boost/foreach.hpp"
 #include "boost/utility.hpp"
+#include "boost/lexical_cast.hpp"
 #include "boost/math/special_functions/gamma.hpp"
 
 #include <iostream>
@@ -601,7 +602,9 @@ int ndump, std::string const &script, bool oneLine) const {
         double hexa = _model->evaluate(rval,cosmo::Hexadecapole,_zdata,parameterValues);
         // Output the model predictions for this radius in the requested format.
         if(!oneLine) out << rval;
-        out << ' ' << mono << ' ' << quad << ' ' << hexa;
+        out << ' ' << boost::lexical_cast<std::string>(mono) << ' '
+            << boost::lexical_cast<std::string>(quad) << ' '
+            << boost::lexical_cast<std::string>(hexa);
         if(!oneLine) out << std::endl;
     }
 }

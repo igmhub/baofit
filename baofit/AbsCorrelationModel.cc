@@ -3,6 +3,10 @@
 #include "baofit/AbsCorrelationModel.h"
 #include "baofit/RuntimeError.h"
 
+#include "cosmo/TransferFunctionPowerSpectrum.h" // for getMultipole(...)
+
+#include "boost/bind.hpp"
+
 #include <cmath>
 
 namespace local = baofit;
@@ -28,6 +32,22 @@ likely::Parameters const &params) {
     double result = _evaluate(r,multipole,z,anyChanged);
     resetParameterValuesChanged();
     return result;
+}
+
+double local::AbsCorrelationModel::_evaluate(double r, cosmo::Multipole multipole, double z,
+bool anyChanged) const {
+    // Get a pointer to our (r,mu,z) evaluator. We need a typedef here to disambiguate the two
+    // overloaded _evaluate methods.
+    typedef double (AbsCorrelationModel::*fOfRMuZ)(double, double, double, bool) const;
+    fOfRMuZ fptr(&AbsCorrelationModel::_evaluate);
+    // Call our (r,mu,z) evaluator once with mu=0 and the input value of anyChanged so it can
+    // do any necessary one-time calculations. Subsequent calls will use anyChanged = false.
+    (this->*fptr)(r,0,z,anyChanged);
+    // Create a smart pointer to a function object of mu with the other args (r,z,anyChanged) bound.
+    likely::GenericFunctionPtr fOfMuPtr(
+        new likely::GenericFunction(boost::bind(fptr,this,r,_1,z,false)));
+    // Finally we have something we can pass to the generic multipole projection integrator.
+    return cosmo::getMultipole(fOfMuPtr,(int)multipole);
 }
 
 int local::AbsCorrelationModel::_defineLinearBiasParameters(double zref, bool crossCorrelation) {
