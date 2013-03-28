@@ -525,7 +525,7 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov) {
             ascii::space);
         if(!ok) {
             throw RuntimeError("loadSaved: error reading line " +
-                boost::lexical_cast<std::string>(lines) + " of " + paramsName);
+                boost::lexical_cast<std::string>(lines) + " of " + covName);
         }
         // Check for invalid offsets.
         if(index1 < 0 || index2 < 0 || index1 >= nbins || index2 >= nbins ||
