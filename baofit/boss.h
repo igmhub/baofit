@@ -43,8 +43,9 @@ namespace baofit {
 
         // Loads a binned correlation function in saved format using the specified prototype
         // and returns a BinnedData object. Set icov true to read .icov files instead of .cov.
+        // Set weighted true to read .wdata files instead of .data.
         AbsCorrelationDataPtr loadSaved(std::string const &dataName,
-            AbsCorrelationDataCPtr prototype, bool verbose, bool icov);
+            AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted);
 
         AbsCorrelationDataPtr loadCosmolib(std::string const &dataName,
             AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted,
