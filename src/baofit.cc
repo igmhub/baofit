@@ -102,6 +102,7 @@ int main(int argc, char **argv) {
         ("axis3-bins", po::value<std::string>(&axis3Bins)->default_value(""),
             "Comma separated list of bin centers for axis 3.")
         ("load-icov", "Load inverse covariance (.icov) instead of covariance (.cov)")
+        ("load-wdata", "Load inverse covariance weighed data (.wdata) instead of unweighted (.data)")
         ("dr9lrg", "3D correlation data files are in the BOSS DR9 LRG galaxy format.")
         ("max-plates", po::value<int>(&maxPlates)->default_value(0),
             "Maximum number of plates to load (zero uses all available plates).")
@@ -274,7 +275,7 @@ int main(int argc, char **argv) {
         compareEach(vm.count("compare-each")), compareEachFinal(vm.count("compare-each-final")),
         decoupled(vm.count("decoupled")),comovingCartesian(vm.count("comoving-cartesian")),
         comovingPolar(vm.count("comoving-polar")),loadICov(vm.count("load-icov")),
-        crossCorrelation(vm.count("cross-correlation"));
+        loadWData(vm.count("load-wdata")),crossCorrelation(vm.count("cross-correlation"));
 
     // Check that at most one data format has been specified.
     if(french+dr9lrg+comovingCartesian+comovingPolar+sectors+xiFormat > 1) {
@@ -432,7 +433,7 @@ int main(int argc, char **argv) {
             baofit::AbsCorrelationDataPtr data;
             int reuseCovIndex(-1);
             if(comovingPolar || comovingCartesian) {
-                data = baofit::boss::loadSaved(*filename,prototype,verbose,loadICov);
+                data = baofit::boss::loadSaved(*filename,prototype,verbose,loadICov,loadWData);
             }
             else if(french) {
                 data = baofit::boss::loadFrench(*filename,prototype,
@@ -451,7 +452,7 @@ int main(int argc, char **argv) {
             else {
                 // Add a cosmolib dataset, assumed to provided icov instead of cov.
                 if(savedFormat) {
-                    data = baofit::boss::loadSaved(*filename,prototype,verbose,true); 
+                    data = baofit::boss::loadSaved(*filename,prototype,verbose,loadICov,loadWData);
                 }
                 else {
                     data = baofit::boss::loadCosmolib(*filename,prototype,

@@ -463,7 +463,7 @@ bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology) {
 }
 
 baofit::AbsCorrelationDataPtr local::loadSaved(std::string const &dataName,
-baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov) {
+baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted) {
     // Create the new AbsCorrelationData that we will fill.
     baofit::AbsCorrelationDataPtr binnedData((baofit::QuasarCorrelationData *)(prototype->clone(true)));
 
@@ -479,7 +479,7 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov) {
     using phoenix::push_back;
 
     // Loop over lines in the parameter file.
-    std::string paramsName(dataName + ".data");
+    std::string paramsName = dataName + (weighted ? ".wdata" : ".data");
     std::ifstream paramsIn(paramsName.c_str());
     if(!paramsIn.good()) throw RuntimeError("loadSaved: Unable to open " + paramsName);
     lines = 0;
@@ -498,7 +498,7 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov) {
             throw RuntimeError("loadSaved: error reading line " +
                 boost::lexical_cast<std::string>(lines) + " of " + paramsName);
         }
-        binnedData->setData(index,data);
+        binnedData->setData(index,data,weighted);
     }
     paramsIn.close();
     int ndata = binnedData->getNBinsWithData();
@@ -525,7 +525,7 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov) {
             ascii::space);
         if(!ok) {
             throw RuntimeError("loadSaved: error reading line " +
-                boost::lexical_cast<std::string>(lines) + " of " + paramsName);
+                boost::lexical_cast<std::string>(lines) + " of " + covName);
         }
         // Check for invalid offsets.
         if(index1 < 0 || index2 < 0 || index1 >= nbins || index2 >= nbins ||
