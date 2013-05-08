@@ -27,7 +27,7 @@ namespace broadband {
             none.push_back(0);
             none.push_back(0);
             none.push_back(1);
-            r = mu = z = none;
+            r = mu = rP = rT = z = none;
 
             using qi::int_;
             using qi::_1;
@@ -35,8 +35,8 @@ namespace broadband {
             using phoenix::ref;
             using phoenix::push_back;
 
-            // Specs for each axis (r,mu,z) are separated by commas. All 3 axes must be present.
-            pspec = ( rmuz | rmu );
+            // We support several syntaxes depending on which axes are used in the polynomial.
+            pspec = ( rmuz | rmu | rPrT | rPrTz | rmurPrTz );
 
             // r,mu,z tag is optional for this parmeterization, for backwards compatibility
             rmuz = -lit("r,mu,z=") >>
@@ -48,15 +48,28 @@ namespace broadband {
             rmu = lit("r,mu=") >>
                 axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(r))] >> ',' >>
                 axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(mu))];
+            rPrT = lit("rP,rT=") >>
+                axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(rP))] >> ',' >>
+                axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(rT))];
+            rPrTz = lit("rP,rT,z=") >>
+                axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(rP))] >> ',' >>
+                axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(rT))] >> ',' >>
+                axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(z))];
+            rmurPrTz = lit("r,mu,rP,rT,z=") >>
+                axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(r))] >> ',' >>
+                axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(mu))] >> ',' >>
+                axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(rP))] >> ',' >>
+                axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(rT))] >> ',' >>
+                axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(z))];
 
             // Spec for one axis is either n, n1:n2, or n1:n2:dn
             axis = ( int_[push_back(ref(specs),_1)] % ':' );
         }
-        qi::rule<std::string::const_iterator> pspec,rmuz,rmu,axis;
+        qi::rule<std::string::const_iterator> pspec,rmuz,rmu,rPrT,rPrTz,rmurPrTz,axis;
         // This vector is filled with the specs for each axis during parsing
         std::vector<int> specs;
         // Specs are copied to these vectors after parsing each axis
-        std::vector<int> r,mu,z;
+        std::vector<int> r,mu,rP,rT,z;
         
         void finalizeAxis(std::vector<int> &target) {
             int added = specs.size() % 3;
