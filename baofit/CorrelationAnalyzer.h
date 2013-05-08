@@ -125,8 +125,10 @@ namespace baofit {
         // calculate the redshift evolution of the scale and its error.
         bool printScaleZEff(likely::FunctionMinimumCPtr fmin, double zref, std::string const &scaleName) const;
         // Returns a bootstrap estimate of the combined data's covariance matrix (before any final cuts)
-        // using the specified number of bootstrap trials. See likely::BinnedDataResampler
-        // for more details.
+        // using the specified number of bootstrap trials. The individual observations are combined
+        // with inverse covariance weights for each resampling, but then each resampling is fed to
+        // an unweighted covariance accumulator (so the total covariance of each resampling is not used).
+        // See likely::BinnedDataResampler for more details.
         likely::CovarianceMatrixPtr
             estimateCombinedCovariance(int nSamples, std::string const &filename) const;
 	private:
