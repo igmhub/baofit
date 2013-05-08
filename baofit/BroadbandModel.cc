@@ -4,6 +4,7 @@
 #include "baofit/RuntimeError.h"
 
 #include "boost/bind.hpp"
+#include "boost/ref.hpp"
 #include "boost/spirit/include/qi.hpp"
 #include "boost/spirit/include/phoenix_core.hpp"
 #include "boost/spirit/include/phoenix_operator.hpp"
@@ -20,23 +21,57 @@ namespace broadband {
     struct Grammar : qi::grammar<std::string::const_iterator> {
 
         Grammar() : base_type(pspec) {
+            
+            // set defaults for all axes
+            std::vector<int> none;
+            none.push_back(0);
+            none.push_back(0);
+            none.push_back(1);
+            r = mu = rP = rT = z = none;
 
             using qi::int_;
             using qi::_1;
+            using qi::lit;
             using phoenix::ref;
             using phoenix::push_back;
 
-            // Specs for each axis (r,mu,z) are separated by commas. All 3 axes must be present.
-            pspec = axis >> ',' >> axis >> ',' >> axis;
+            // We support several syntaxes depending on which axes are used in the polynomial.
+            pspec = ( rmuz | rmu | rPrT | rPrTz | rmurPrTz );
+
+            // r,mu,z tag is optional for this parmeterization, for backwards compatibility
+            rmuz = -lit("r,mu,z=") >>
+                axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(r))] >> ',' >>
+                axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(mu))] >> ',' >>
+                axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(z))];
+
+            // otherwise, one of the following tags is required
+            rmu = lit("r,mu=") >>
+                axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(r))] >> ',' >>
+                axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(mu))];
+            rPrT = lit("rP,rT=") >>
+                axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(rP))] >> ',' >>
+                axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(rT))];
+            rPrTz = lit("rP,rT,z=") >>
+                axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(rP))] >> ',' >>
+                axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(rT))] >> ',' >>
+                axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(z))];
+            rmurPrTz = lit("r,mu,rP,rT,z=") >>
+                axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(r))] >> ',' >>
+                axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(mu))] >> ',' >>
+                axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(rP))] >> ',' >>
+                axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(rT))] >> ',' >>
+                axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(z))];
 
             // Spec for one axis is either n, n1:n2, or n1:n2:dn
-            axis = ( int_[push_back(ref(specs),_1)] % ':' )[boost::bind(&Grammar::finalizeAxis,this)];
+            axis = ( int_[push_back(ref(specs),_1)] % ':' );
         }
-        qi::rule<std::string::const_iterator> pspec,axis;
-        // This vector will contain rmin,rmax,dr,mumin,mumax,dmu,zmin,zmax,dz after parsing
+        qi::rule<std::string::const_iterator> pspec,rmuz,rmu,rPrT,rPrTz,rmurPrTz,axis;
+        // This vector is filled with the specs for each axis during parsing
         std::vector<int> specs;
+        // Specs are copied to these vectors after parsing each axis
+        std::vector<int> r,mu,rP,rT,z;
         
-        void finalizeAxis() {
+        void finalizeAxis(std::vector<int> &target) {
             int added = specs.size() % 3;
             if(1 == added) {
                 // n becomes n:n:1
@@ -47,6 +82,10 @@ namespace broadband {
                 // n1:n2 becomes n1:n2:1
                 specs.push_back(1);
             }
+            // Copy these specs to the target axis
+            target = specs;
+            // Clear the specs before parsing the next axis
+            specs.clear();
         }
     };
 } // broadband
@@ -59,44 +98,60 @@ std::string const &paramSpec, double r0, double z0, AbsCorrelationModel *base)
     // Parse the parameter specification string.
     broadband::Grammar grammar;
     std::string::const_iterator iter = paramSpec.begin();
-    //bool ok = qi::phrase_parse(iter, paramSpec.end(), grammar, ascii::space);
+    // Leave out the optional ascii::space arg below, since spaces are not allowed.
     bool ok = qi::parse(iter, paramSpec.end(), grammar);
-    if(!ok || iter != paramSpec.end() || grammar.specs.size() != 9) {
-        std::cout << "size = " << grammar.specs.size() << std::endl;
+    if(!ok || iter != paramSpec.end()) {
         throw RuntimeError("BroadbandModel: badly formatted parameter specification: " + paramSpec);
     }
-    _rIndexMin = grammar.specs[0];
-    _rIndexMax = grammar.specs[1];
-    _rIndexStep = grammar.specs[2];
+    _rIndexMin = grammar.r[0];
+    _rIndexMax = grammar.r[1];
+    _rIndexStep = grammar.r[2];
     if(_rIndexMax < _rIndexMin || _rIndexStep <= 0) {
         throw RuntimeError("BroadbandModel: illegal r-parameter specification.");
     }
-    _muIndexMin = grammar.specs[3];
-    _muIndexMax = grammar.specs[4];
-    _muIndexStep = grammar.specs[5];
+    _muIndexMin = grammar.mu[0];
+    _muIndexMax = grammar.mu[1];
+    _muIndexStep = grammar.mu[2];
     if(_muIndexMax < _muIndexMin || _muIndexStep <= 0) {
         throw RuntimeError("BroadbandModel: illegal mu-parameter specification.");
     }
     if(_muIndexMin < 0 || _muIndexMax > 8) {
         throw RuntimeError("BroadbandModel: only multipoles 0-8 are allowed in mu-parameter specification.");
     }
-    _zIndexMin = grammar.specs[6];
-    _zIndexMax = grammar.specs[7];
-    _zIndexStep = grammar.specs[8];
+    _rPIndexMin = grammar.rP[0];
+    _rPIndexMax = grammar.rP[1];
+    _rPIndexStep = grammar.rP[2];
+    if(_rPIndexMax < _rPIndexMin || _rPIndexStep <= 0) {
+        throw RuntimeError("BroadbandModel: illegal rP-parameter specification.");
+    }
+    _rTIndexMin = grammar.rT[0];
+    _rTIndexMax = grammar.rT[1];
+    _rTIndexStep = grammar.rT[2];
+    if(_rTIndexMax < _rTIndexMin || _rTIndexStep <= 0) {
+        throw RuntimeError("BroadbandModel: illegal rT-parameter specification.");
+    }
+    _zIndexMin = grammar.z[0];
+    _zIndexMax = grammar.z[1];
+    _zIndexStep = grammar.z[2];
     if(_zIndexMax < _zIndexMin || _zIndexStep <= 0) {
         throw RuntimeError("BroadbandModel: illegal z-parameter specification.");
     }
     // Define our parameters.
     bool first(true);
     double perr(1e-3);
-    boost::format pname("%s z%d mu%d r%+d");
+    boost::format pname("%s z%d mu%d r%+d rP%d rT%d");
     for(int zIndex = _zIndexMin; zIndex <= _zIndexMax; zIndex += _zIndexStep) {
         for(int muIndex = _muIndexMin; muIndex <= _muIndexMax; muIndex += _muIndexStep) {
             for(int rIndex = _rIndexMin; rIndex <= _rIndexMax; rIndex += _rIndexStep) {
-                int index = _base.defineParameter(boost::str(pname % tag % zIndex % muIndex % rIndex),0,perr);
-                if(first) {
-                    _indexBase = index;
-                    first = false;
+                for(int rPIndex = _rPIndexMin; rPIndex <= _rPIndexMax; rPIndex += _rPIndexStep) {
+                    for(int rTIndex = _rTIndexMin; rTIndex <= _rTIndexMax; rTIndex += _rTIndexStep) {
+                        int index = _base.defineParameter(boost::str(
+                            pname % tag % zIndex % muIndex % rIndex % rPIndex % rTIndex),0,perr);
+                        if(first) {
+                            _indexBase = index;
+                            first = false;
+                        }
+                    }
                 }
             }
         }
@@ -134,6 +189,8 @@ double local::legendreP(int ell, double mu) {
 double local::BroadbandModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
     double xi(0);
     double rr = r/_r0;
+    double rrP = r*mu/_r0;
+    double rrT = r*std::sqrt(1-mu*mu)/_r0;
     double zz = (1+z)/(1+_z0);
     int indexOffset(0);
     for(int zIndex = _zIndexMin; zIndex <= _zIndexMax; zIndex += _zIndexStep) {
@@ -142,11 +199,18 @@ double local::BroadbandModel::_evaluate(double r, double mu, double z, bool anyC
             double muFactor = legendreP(muIndex,mu);
             for(int rIndex = _rIndexMin; rIndex <= _rIndexMax; rIndex += _rIndexStep) {
                 double rFactor = std::pow(rIndex > 0 ? rr-1 : rr, rIndex);
-                // Look up the coefficient for this combination of rIndex,muIndex,zIndex.
-                double coef = _base.getParameterValue(_indexBase + indexOffset);
-                indexOffset++;
-                // Add this term to the result.
-                xi += coef*rFactor*muFactor*zFactor;
+                for(int rPIndex = _rPIndexMin; rPIndex <= _rPIndexMax; rPIndex += _rPIndexStep) {
+                    double rPFactor = std::pow(rPIndex > 0 ? rrP-1 : rrP, rPIndex);
+                    for(int rTIndex = _rTIndexMin; rTIndex <= _rTIndexMax; rTIndex += _rTIndexStep) {
+                        double rTFactor = std::pow(rTIndex > 0 ? rrT-1 : rrT, rTIndex);
+                        // Look up the coefficient for this combination of
+                        // zIndex,muIndex,rIndex,rPIndex,rTIndex.
+                        double coef = _base.getParameterValue(_indexBase + indexOffset);
+                        indexOffset++;
+                        // Add this term to the result.
+                        xi += coef*rFactor*muFactor*rPFactor*rTFactor*zFactor;
+                    }
+                }
             }
         }
     }
