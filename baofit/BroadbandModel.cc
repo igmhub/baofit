@@ -118,6 +118,18 @@ std::string const &paramSpec, double r0, double z0, AbsCorrelationModel *base)
     if(_muIndexMin < 0 || _muIndexMax > 8) {
         throw RuntimeError("BroadbandModel: only multipoles 0-8 are allowed in mu-parameter specification.");
     }
+    _rPIndexMin = grammar.rP[0];
+    _rPIndexMax = grammar.rP[1];
+    _rPIndexStep = grammar.rP[2];
+    if(_rPIndexMax < _rPIndexMin || _rPIndexStep <= 0) {
+        throw RuntimeError("BroadbandModel: illegal rP-parameter specification.");
+    }
+    _rTIndexMin = grammar.rT[0];
+    _rTIndexMax = grammar.rT[1];
+    _rTIndexStep = grammar.rT[2];
+    if(_rTIndexMax < _rTIndexMin || _rTIndexStep <= 0) {
+        throw RuntimeError("BroadbandModel: illegal rT-parameter specification.");
+    }
     _zIndexMin = grammar.z[0];
     _zIndexMax = grammar.z[1];
     _zIndexStep = grammar.z[2];
@@ -127,14 +139,19 @@ std::string const &paramSpec, double r0, double z0, AbsCorrelationModel *base)
     // Define our parameters.
     bool first(true);
     double perr(1e-3);
-    boost::format pname("%s z%d mu%d r%+d");
+    boost::format pname("%s z%d mu%d r%+d rP%d rT%d");
     for(int zIndex = _zIndexMin; zIndex <= _zIndexMax; zIndex += _zIndexStep) {
         for(int muIndex = _muIndexMin; muIndex <= _muIndexMax; muIndex += _muIndexStep) {
             for(int rIndex = _rIndexMin; rIndex <= _rIndexMax; rIndex += _rIndexStep) {
-                int index = _base.defineParameter(boost::str(pname % tag % zIndex % muIndex % rIndex),0,perr);
-                if(first) {
-                    _indexBase = index;
-                    first = false;
+                for(int rPIndex = _rPIndexMin; rPIndex <= _rPIndexMax; rPIndex += _rPIndexStep) {
+                    for(int rTIndex = _rTIndexMin; rTIndex <= _rTIndexMax; rTIndex += _rTIndexStep) {
+                        int index = _base.defineParameter(boost::str(
+                            pname % tag % zIndex % muIndex % rIndex % rPIndex % rTIndex),0,perr);
+                        if(first) {
+                            _indexBase = index;
+                            first = false;
+                        }
+                    }
                 }
             }
         }
@@ -172,6 +189,8 @@ double local::legendreP(int ell, double mu) {
 double local::BroadbandModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
     double xi(0);
     double rr = r/_r0;
+    double rrP = r*mu/_r0;
+    double rrT = r*std::sqrt(1-mu*mu)/_r0;
     double zz = (1+z)/(1+_z0);
     int indexOffset(0);
     for(int zIndex = _zIndexMin; zIndex <= _zIndexMax; zIndex += _zIndexStep) {
@@ -180,11 +199,18 @@ double local::BroadbandModel::_evaluate(double r, double mu, double z, bool anyC
             double muFactor = legendreP(muIndex,mu);
             for(int rIndex = _rIndexMin; rIndex <= _rIndexMax; rIndex += _rIndexStep) {
                 double rFactor = std::pow(rIndex > 0 ? rr-1 : rr, rIndex);
-                // Look up the coefficient for this combination of rIndex,muIndex,zIndex.
-                double coef = _base.getParameterValue(_indexBase + indexOffset);
-                indexOffset++;
-                // Add this term to the result.
-                xi += coef*rFactor*muFactor*zFactor;
+                for(int rPIndex = _rPIndexMin; rPIndex <= _rPIndexMax; rPIndex += _rPIndexStep) {
+                    double rPFactor = std::pow(rPIndex > 0 ? rrP-1 : rrP, rPIndex);
+                    for(int rTIndex = _rTIndexMin; rTIndex <= _rTIndexMax; rTIndex += _rTIndexStep) {
+                        double rTFactor = std::pow(rTIndex > 0 ? rrT-1 : rrT, rTIndex);
+                        // Look up the coefficient for this combination of
+                        // zIndex,muIndex,rIndex,rPIndex,rTIndex.
+                        double coef = _base.getParameterValue(_indexBase + indexOffset);
+                        indexOffset++;
+                        // Add this term to the result.
+                        xi += coef*rFactor*muFactor*rPFactor*rTFactor*zFactor;
+                    }
+                }
             }
         }
     }
