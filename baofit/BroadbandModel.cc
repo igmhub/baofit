@@ -21,22 +21,38 @@ namespace broadband {
     struct Grammar : qi::grammar<std::string::const_iterator> {
 
         Grammar() : base_type(pspec) {
+            
+            // set defaults for all axes
+            std::vector<int> none;
+            none.push_back(0);
+            none.push_back(0);
+            none.push_back(1);
+            r = mu = z = none;
 
             using qi::int_;
             using qi::_1;
+            using qi::lit;
             using phoenix::ref;
             using phoenix::push_back;
 
             // Specs for each axis (r,mu,z) are separated by commas. All 3 axes must be present.
-            pspec =
+            pspec = ( rmuz | rmu );
+
+            // r,mu,z tag is optional for this parmeterization, for backwards compatibility
+            rmuz = -lit("r,mu,z=") >>
                 axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(r))] >> ',' >>
                 axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(mu))] >> ',' >>
                 axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(z))];
 
+            // otherwise, one of the following tags is required
+            rmu = lit("r,mu=") >>
+                axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(r))] >> ',' >>
+                axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(mu))];
+
             // Spec for one axis is either n, n1:n2, or n1:n2:dn
             axis = ( int_[push_back(ref(specs),_1)] % ':' );
         }
-        qi::rule<std::string::const_iterator> pspec,axis;
+        qi::rule<std::string::const_iterator> pspec,rmuz,rmu,axis;
         // This vector is filled with the specs for each axis during parsing
         std::vector<int> specs;
         // Specs are copied to these vectors after parsing each axis
@@ -69,7 +85,7 @@ std::string const &paramSpec, double r0, double z0, AbsCorrelationModel *base)
     // Parse the parameter specification string.
     broadband::Grammar grammar;
     std::string::const_iterator iter = paramSpec.begin();
-    //bool ok = qi::phrase_parse(iter, paramSpec.end(), grammar, ascii::space);
+    // Leave out the optional ascii::space arg below, since spaces are not allowed.
     bool ok = qi::parse(iter, paramSpec.end(), grammar);
     if(!ok || iter != paramSpec.end()) {
         throw RuntimeError("BroadbandModel: badly formatted parameter specification: " + paramSpec);
