@@ -199,6 +199,7 @@ int main(int argc, char **argv) {
         ("compare-each", "Compares each observation to the combined data, before final cuts.")
         ("compare-each-final", "Compares each observation to the combined data, after final cuts.")
         ("fit-each", "Fits each observation separately.")
+        ("parameter-scan", "Refits at each point of the parameter binning grid.")
         ("bootstrap-trials", po::value<int>(&bootstrapTrials)->default_value(0),
             "Number of bootstrap trials to run if a platelist was provided.")
         ("bootstrap-size", po::value<int>(&bootstrapSize)->default_value(0),
@@ -275,7 +276,8 @@ int main(int argc, char **argv) {
         compareEach(vm.count("compare-each")), compareEachFinal(vm.count("compare-each-final")),
         decoupled(vm.count("decoupled")),comovingCartesian(vm.count("comoving-cartesian")),
         comovingPolar(vm.count("comoving-polar")),loadICov(vm.count("load-icov")),
-        loadWData(vm.count("load-wdata")),crossCorrelation(vm.count("cross-correlation"));
+        loadWData(vm.count("load-wdata")),crossCorrelation(vm.count("cross-correlation")),
+        parameterScan(vm.count("parameter-scan"));
 
     // Check that at most one data format has been specified.
     if(french+dr9lrg+comovingCartesian+comovingPolar+sectors+xiFormat > 1) {
@@ -684,6 +686,10 @@ int main(int argc, char **argv) {
         if(fitEach) {
             std::string outName = outputPrefix + "each.dat";
             analyzer.fitEach(fmin,fmin2,refitConfig,outName,ndump);
+        }
+        // Refit on the parameter grid specified by each parameter's binning spec.
+        if(parameterScan) {
+            analyzer.parameterScan(outputPrefix + "scan.dat");
         }
     }
     catch(std::runtime_error const &e) {
