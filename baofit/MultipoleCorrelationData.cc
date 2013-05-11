@@ -79,7 +79,7 @@ std::vector<double> const &weights) const {
             bin[2] = zIndex;
             for(int ellIndex = 0; ellIndex < nEllBins; ++ellIndex) {
                 bin[1] = ellIndex;
-                int index = getIndex(bin);
+                int index = grid.getIndex(bin);
                 double data(0),error(0);
                 if(hasData(index)) {
                     data = getData(index);
