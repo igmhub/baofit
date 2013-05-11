@@ -301,7 +301,8 @@ std::string const &refitConfig, std::string const &saveName, int nsave) const {
     return doSamplingAnalysis(sampler, "Individual", fmin, fmin2, refitConfig, saveName, nsave);    
 }
 
-int local::CorrelationAnalyzer::parameterScan(std::string const &saveName) const {
+int local::CorrelationAnalyzer::parameterScan(AbsCorrelationDataCPtr sample,
+std::string const &saveName) const {
     int nfits(0);
     return nfits;
 }

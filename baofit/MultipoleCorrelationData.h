@@ -14,9 +14,7 @@ namespace baofit {
 	public:
 	    //Creates a new multipole correlation dataset with the specified binning and final
 	    // cuts rmin <= r < rmax, ellmin <= ell <= ellmax.
-		MultipoleCorrelationData(likely::AbsBinningCPtr axis1, likely::AbsBinningCPtr axis2,
-		    likely::AbsBinningCPtr axis3);
-        MultipoleCorrelationData(std::vector<likely::AbsBinningCPtr> axes);
+        MultipoleCorrelationData(likely::BinnedGrid grid);
 		virtual ~MultipoleCorrelationData();
 		// Polymorphic shallow copy so this type of data can be used with likely::BinnedDataResampler.
         virtual MultipoleCorrelationData *clone(bool binningOnly = false) const;

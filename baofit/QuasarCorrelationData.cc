@@ -11,21 +11,12 @@
 
 namespace local = baofit;
 
-local::QuasarCorrelationData::QuasarCorrelationData(
-likely::AbsBinningCPtr axis1, likely::AbsBinningCPtr axis2, likely::AbsBinningCPtr axis3,
+local::QuasarCorrelationData::QuasarCorrelationData(likely::BinnedGrid grid,
 double llMin, double llMax, double sepMin, double sepMax,
 bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology)
-: AbsCorrelationData(axis1,axis2,axis3,Coordinate)
+: AbsCorrelationData(grid,Coordinate)
 {
-  _initialize(llMin,llMax,sepMin,sepMax,fixCov,cosmology);
-}
-
-local::QuasarCorrelationData::QuasarCorrelationData(
-std::vector<likely::AbsBinningCPtr> axes, double llMin, double llMax, double sepMin, double sepMax,
-bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology)
-: AbsCorrelationData(axes,Coordinate)
-{
-    if(axes.size() != 3) {
+    if(grid.getNAxes() != 3) {
         throw RuntimeError("QuasarCorrelationData: expected 3 axes.");
     }
     _initialize(llMin,llMax,sepMin,sepMax,fixCov,cosmology);
@@ -49,7 +40,7 @@ local::QuasarCorrelationData::~QuasarCorrelationData() { }
 
 local::QuasarCorrelationData *local::QuasarCorrelationData::clone(bool binningOnly) const {
     QuasarCorrelationData *data = binningOnly ?
-        new QuasarCorrelationData(getAxisBinning(),_llMin,_llMax,_sepMin,_sepMax,_fixCov,_cosmology) :
+        new QuasarCorrelationData(getGrid(),_llMin,_llMax,_sepMin,_sepMax,_fixCov,_cosmology) :
         new QuasarCorrelationData(*this);
     _cloneFinalCuts(*data);
     return data;
@@ -70,7 +61,7 @@ void local::QuasarCorrelationData::fixCovariance(double ll0, double c0, double c
     std::vector<int> bin(3);
     
     // Lookup the binning along the log-lambda axis.
-    likely::AbsBinningCPtr llBins(getAxisBinning()[0]);
+    likely::AbsBinningCPtr llBins(getGrid().getAxisBinning(0));
 
     // Loop over all bins.
     for(IndexIterator iter1 = begin(); iter1 != end(); ++iter1) {

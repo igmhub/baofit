@@ -7,9 +7,9 @@
 
 namespace local = baofit;
 
-local::ComovingCorrelationData::ComovingCorrelationData(std::vector<likely::AbsBinningCPtr> axes,
+local::ComovingCorrelationData::ComovingCorrelationData(likely::BinnedGrid grid,
 CoordinateSystem coordinateSystem) 
-: AbsCorrelationData(axes,Coordinate), _coordinateSystem(coordinateSystem), _lastIndex(-1)
+: AbsCorrelationData(grid,Coordinate), _coordinateSystem(coordinateSystem), _lastIndex(-1)
 {
 }
 
@@ -17,7 +17,7 @@ local::ComovingCorrelationData::~ComovingCorrelationData() { }
 
 local::ComovingCorrelationData *local::ComovingCorrelationData::clone(bool binningOnly) const {
     ComovingCorrelationData *data = binningOnly ?
-        new ComovingCorrelationData(getAxisBinning(),_coordinateSystem) :
+        new ComovingCorrelationData(getGrid(),_coordinateSystem) :
         new ComovingCorrelationData(*this);
     _cloneFinalCuts(*data);
     return data;

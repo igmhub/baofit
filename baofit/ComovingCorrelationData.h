@@ -12,7 +12,7 @@ namespace baofit {
 	// Represents 3D correlation data in comoving coordinates (r,mu,z) or (rpar,rperp,z).
 	public:
         enum CoordinateSystem { PolarCoordinates, CartesianCoordinates };
-		ComovingCorrelationData(std::vector<likely::AbsBinningCPtr> axes,
+		ComovingCorrelationData(likely::BinnedGrid grid,
 		    CoordinateSystem coordinateSystem = PolarCoordinates);
 		virtual ~ComovingCorrelationData();
 		// Polymorphic shallow copy so this type of data can be used with likely::BinnedDataResampler.

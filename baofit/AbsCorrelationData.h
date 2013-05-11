@@ -4,6 +4,7 @@
 #define BAOFIT_ABS_CORRELATION_DATA
 
 #include "likely/BinnedData.h"
+#include "likely/BinnedGrid.h"
 #include "likely/types.h"
 
 #include "cosmo/types.h"
@@ -14,9 +15,7 @@ namespace baofit {
 	// used by an AbsCorrelationModel.
 	public:
         enum TransverseBinningType { Coordinate, Multipole };
-		AbsCorrelationData(likely::AbsBinningCPtr axis1, likely::AbsBinningCPtr axis2,
-		    likely::AbsBinningCPtr axis3, TransverseBinningType type);
-        AbsCorrelationData(std::vector<likely::AbsBinningCPtr> axes, TransverseBinningType type);
+        AbsCorrelationData(likely::BinnedGrid grid, TransverseBinningType type);
 		virtual ~AbsCorrelationData();
 		// Returns the type of transverse binning: Coordinate means that a mu value can
 		// be associated with each bin, and Multipole means that an ell value can be

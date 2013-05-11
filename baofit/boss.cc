@@ -45,8 +45,9 @@ std::string const &covName, bool verbose) {
         rBins(new likely::UniformBinning(2,202,nbins)),
         ellBins(new likely::UniformSampling(0,0,1)), // only monopole for now
         zBins(new likely::UniformSampling(zref,zref,1));
+    likely::BinnedGrid grid(rBins,ellBins,zBins);
     baofit::AbsCorrelationDataPtr
-        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins));
+        prototype(new baofit::MultipoleCorrelationData(grid));
         
     // Pre-fill each bin with zero values.
     for(int index = 0; index < nbins; ++index) prototype->setData(index,0);
@@ -99,7 +100,7 @@ local::loadDR9LRG(std::string const &dataName, baofit::AbsCorrelationDataCPtr pr
     baofit::AbsCorrelationDataPtr binnedData((baofit::MultipoleCorrelationData *)(prototype->clone(false)));
     
     // Lookup our reference redshift.
-    double zref = prototype->getAxisBinning()[2]->getBinCenter(0);
+    double zref = prototype->getGrid().getAxisBinning(2)->getBinCenter(0);
 
     std::string line;
     int lines;
@@ -157,8 +158,9 @@ baofit::AbsCorrelationDataPtr local::createFrenchPrototype(double zref) {
         rBins(new likely::UniformBinning(0,200,50)),
         zBins(new likely::UniformSampling(zref,zref,1)),
         ellBins(new likely::UniformSampling(cosmo::Monopole,cosmo::Quadrupole,2));
+    likely::BinnedGrid grid(rBins,ellBins,zBins);
     baofit::AbsCorrelationDataPtr
-        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins));
+        prototype(new baofit::MultipoleCorrelationData(grid));
     return prototype;
 }
 
@@ -172,10 +174,10 @@ bool verbose, bool unweighted, bool expanded) {
     baofit::AbsCorrelationDataPtr binnedData((baofit::MultipoleCorrelationData *)(prototype->clone(true)));
     
     // Lookup the number of radial bins.
-    int nrbins = prototype->getAxisBinning()[0]->getNBins();
+    int nrbins = prototype->getGrid().getAxisBinning(0)->getNBins();
     
     // Lookup our reference redshift.
-    double zref = prototype->getAxisBinning()[2]->getBinCenter(0);
+    double zref = prototype->getGrid().getAxisBinning(2)->getBinCenter(0);
     
     // General stuff we will need for reading both files.
     std::string line;
@@ -349,13 +351,9 @@ std::string const &axis1Bins, std::string const &axis2Bins, std::string const &a
         throw RuntimeError("createComovingPrototype: error in axis 3 binning.");
     }
 
-    std::vector<likely::AbsBinningCPtr> binning;
-    binning.push_back(axis1ptr);
-    binning.push_back(axis2ptr);
-    binning.push_back(axis3ptr);
-
+    likely::BinnedGrid grid(axis1ptr,axis2ptr,axis3ptr);
     baofit::AbsCorrelationDataPtr
-        prototype(new baofit::ComovingCorrelationData(binning,
+        prototype(new baofit::ComovingCorrelationData(grid,
         cartesian ? ComovingCorrelationData::CartesianCoordinates : ComovingCorrelationData::PolarCoordinates));
     return prototype;    
 }
@@ -366,15 +364,9 @@ baofit::AbsCorrelationDataPtr local::createSectorsPrototype(double zref) {
         rBins(new likely::UniformBinning(0,200,50)),
         muBins(new likely::UniformBinning(0,1,50)),
         zBins(new likely::UniformSampling(zref,zref,1));
-
-    std::vector<likely::AbsBinningCPtr> binning;
-    binning.push_back(rBins);
-    binning.push_back(muBins);
-    binning.push_back(zBins);
-
+    likely::BinnedGrid grid(rBins,muBins,zBins);
     baofit::AbsCorrelationDataPtr
-        prototype(new baofit::ComovingCorrelationData(binning,ComovingCorrelationData::PolarCoordinates));
-
+        prototype(new baofit::ComovingCorrelationData(grid,ComovingCorrelationData::PolarCoordinates));
     return prototype;    
 }
 
@@ -456,9 +448,9 @@ bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology) {
     }
 
     // Create the new BinnedData that we will fill.
+    likely::BinnedGrid grid(llBins,sepBins,zBins);
     baofit::AbsCorrelationDataPtr
-        prototype(new baofit::QuasarCorrelationData(llBins,sepBins,zBins,llMin,llMax,sepMin,sepMax,
-        fixCov,cosmology));
+        prototype(new baofit::QuasarCorrelationData(grid,llMin,llMax,sepMin,sepMax,fixCov,cosmology));
     return prototype;
 }
 
@@ -711,8 +703,8 @@ double minr, double maxr, double nr, bool hasHexadecapole) {
         rBins(new likely::UniformSampling(minr,maxr,nr)),
         ellBins(new likely::NonUniformSampling(ellValues)),
         zBins(new likely::UniformSampling(minz+0.5*dz,minz+(nz-0.5)*dz,nz));
-    baofit::AbsCorrelationDataPtr
-        prototype(new baofit::MultipoleCorrelationData(rBins,ellBins,zBins));
+    likely::BinnedGrid grid(rBins,ellBins,zBins);
+    baofit::AbsCorrelationDataPtr prototype(new baofit::MultipoleCorrelationData(grid));
     return prototype;
 }
 

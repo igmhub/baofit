@@ -10,16 +10,10 @@
 
 namespace local = baofit;
 
-local::MultipoleCorrelationData::MultipoleCorrelationData(likely::AbsBinningCPtr axis1,
-likely::AbsBinningCPtr axis2, likely::AbsBinningCPtr axis3)
-: AbsCorrelationData(axis1,axis2,axis3,Multipole), _lastIndex(-1)
+local::MultipoleCorrelationData::MultipoleCorrelationData(likely::BinnedGrid grid)
+: AbsCorrelationData(grid,Multipole), _lastIndex(-1)
 {
-}
-
-local::MultipoleCorrelationData::MultipoleCorrelationData(std::vector<likely::AbsBinningCPtr> axes)
-: AbsCorrelationData(axes,Multipole), _lastIndex(-1)
-{
-    if(axes.size() != 3) {
+    if(grid.getNAxes() != 3) {
         throw RuntimeError("MultipoleCorrelationData: expected 3 axes.");
     }
 }
@@ -28,7 +22,7 @@ local::MultipoleCorrelationData::~MultipoleCorrelationData() { }
 
 local::MultipoleCorrelationData *local::MultipoleCorrelationData::clone(bool binningOnly) const {
     MultipoleCorrelationData *data = binningOnly ?
-        new MultipoleCorrelationData(getAxisBinning()) : new MultipoleCorrelationData(*this);
+        new MultipoleCorrelationData(getGrid()) : new MultipoleCorrelationData(*this);
     _cloneFinalCuts(*data);
     return data;
 }
@@ -71,11 +65,12 @@ std::vector<double> const &weights) const {
     if(weights.size() > 0 && weights.size() != getNBinsWithData()) {
         throw RuntimeError("MultipoleCorrelationData::dump: unexpected size of weights.");
     }
-    std::vector<likely::AbsBinningCPtr> binning = getAxisBinning();
-    int nRadialBins(binning[0]->getNBins()), nEllBins(binning[1]->getNBins()), nZBins(binning[2]->getNBins());
+    likely::BinnedGrid grid(getGrid());
+    int nRadialBins(grid.getAxisBinning(0)->getNBins()), nEllBins(grid.getAxisBinning(1)->getNBins()),
+        nZBins(grid.getAxisBinning(2)->getNBins());
     std::vector<int> bin(3);
     for(int rIndex = 0; rIndex < nRadialBins; ++rIndex) {
-        double rval(binning[0]->getBinCenter(rIndex));
+        double rval(grid.getAxisBinning(0)->getBinCenter(rIndex));
         if(rval < rmin) continue;
         if(rval > rmax) break;
         out << rval;
