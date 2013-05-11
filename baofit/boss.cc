@@ -494,10 +494,10 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted
     }
     paramsIn.close();
     int ndata = binnedData->getNBinsWithData();
-    int nbins = binnedData->getNBinsTotal();
+    int nbins = binnedData->getGrid().getNBinsTotal();
     if(verbose) {
-        std::cout << "Read " << ndata << " of "
-            << binnedData->getNBinsTotal() << " data values from " << paramsName << std::endl;
+        std::cout << "Read " << ndata << " of " << nbins << " data values from "
+            << paramsName << std::endl;
     }
 
     // Loop over lines in the (inverse) covariance file.
@@ -589,8 +589,8 @@ int &reuseCovIndex, int reuseCov) {
     paramsIn.close();
     int ndata = binnedData->getNBinsWithData();
     if(verbose) {
-        std::cout << "Read " << ndata << " of "
-            << binnedData->getNBinsTotal() << " data values from " << paramsName << std::endl;
+        std::cout << "Read " << ndata << " of " << binnedData->getGrid().getNBinsTotal()
+            << " data values from " << paramsName << std::endl;
     }
 
     // Do we need to reuse the covariance estimated for the first realization of this plate?
@@ -756,8 +756,8 @@ AbsCorrelationDataCPtr prototype, bool verbose, bool weighted, int reuseCov) {
     paramsIn.close();
     int ndata = binnedData->getNBinsWithData();
     if(false) {
-        std::cout << "Read " << ndata << " of "
-            << binnedData->getNBinsTotal() << " data values from " << paramsName << std::endl;
+        std::cout << "Read " << ndata << " of " << binnedData->getGrid().getNBinsTotal()
+            << " data values from " << paramsName << std::endl;
     }
     
 
