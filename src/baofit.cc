@@ -689,7 +689,7 @@ int main(int argc, char **argv) {
         }
         // Refit on the parameter grid specified by each parameter's binning spec.
         if(parameterScan) {
-            analyzer.parameterScan(combined, outputPrefix + "scan.dat");
+            analyzer.parameterScan(fmin,combined,outputPrefix + "scan.dat",ndump);
         }
     }
     catch(std::runtime_error const &e) {

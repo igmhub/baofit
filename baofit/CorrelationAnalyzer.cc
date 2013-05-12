@@ -301,12 +301,6 @@ std::string const &refitConfig, std::string const &saveName, int nsave) const {
     return doSamplingAnalysis(sampler, "Individual", fmin, fmin2, refitConfig, saveName, nsave);    
 }
 
-int local::CorrelationAnalyzer::parameterScan(AbsCorrelationDataCPtr sample,
-std::string const &saveName) const {
-    int nfits(0);
-    return nfits;
-}
-
 int local::CorrelationAnalyzer::doToyMCSampling(int ngen, std::string const &mcConfig,
 std::string const &mcSaveFile, double varianceScale, likely::FunctionMinimumPtr fmin,
 likely::FunctionMinimumPtr fmin2, std::string const &refitConfig,
@@ -519,6 +513,30 @@ std::string const &saveName, int nsave) const {
         paramStats.update(pfloating,fval);
     }
     paramStats.printToStream(std::cout);
+}
+
+int local::CorrelationAnalyzer::parameterScan(likely::FunctionMinimumCPtr fmin,
+AbsCorrelationDataCPtr sample, std::string const &saveName, int nsave) const {
+    int nfits(0);
+    // Initialize the grid we will be sampling.
+    likely::FitParameters params = fmin->getFitParameters();
+    likely::BinnedGrid grid = likely::getFitParametersGrid(params);
+    // Prepare to output samples at each grid point.
+    SamplingOutput output(fmin,likely::FunctionMinimumCPtr(),saveName,nsave,*this);
+    // Loop over grid points.
+    for(likely::BinnedGrid::Iterator iter = grid.begin(); iter != grid.end(); ++iter) {
+        nfits++;
+        std::string config = likely::getFitParametersGridConfig(params,grid,iter);
+        if(_verbose) {
+            std::cout << std::endl << "-- Performing scan step " << nfits << " of " << grid.getNBinsTotal()
+                << " using " << config << std::endl;
+        }
+        // Do the fit.
+        likely::FunctionMinimumCPtr gridMin = fitSample(sample,config);
+        // Add the results to our output file.
+        output.saveSample(gridMin->getFitParameters(),gridMin->getMinValue());
+    }
+    return nfits;
 }
 
 void local::CorrelationAnalyzer::dumpResiduals(std::ostream &out, likely::FunctionMinimumPtr fmin,
