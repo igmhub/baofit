@@ -44,7 +44,7 @@ double local::MultipoleCorrelationData::getRedshift(int index) const {
 
 void local::MultipoleCorrelationData::_setIndex(int index) const {
     if(index == _lastIndex) return;
-    getBinCenters(index,_binCenter);
+    getGrid().getBinCenters(index,_binCenter);
     _rLast = _binCenter[0];
     // We don't check for a valid enum type here on purpose, so that additional modes can be
     // included in the dataset for correct weighting, and then pruned out in the finalize step.

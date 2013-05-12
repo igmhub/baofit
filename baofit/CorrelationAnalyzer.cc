@@ -526,6 +526,7 @@ AbsCorrelationDataCPtr combined, std::string const &script, bool dumpGradients) 
     if(getNData() == 0) {
         throw RuntimeError("CorrelationAnalyzer::dumpResiduals: no observations have been added.");
     }
+    likely::BinnedGrid grid = combined->getGrid();
     AbsCorrelationData::TransverseBinningType type = combined->getTransverseBinningType();
     // Get a copy of the the parameters at this minimum.
     likely::FitParameters parameters(fmin->getFitParameters());
@@ -543,7 +544,7 @@ AbsCorrelationDataCPtr combined, std::string const &script, bool dumpGradients) 
     for(likely::BinnedData::IndexIterator iter = combined->begin(); iter != combined->end(); ++iter) {
         int index(*iter);
         out << index;
-        combined->getBinCenters(index,centers);
+        grid.getBinCenters(index,centers);
         BOOST_FOREACH(double center, centers) {
             out << ' ' << center;
         }

@@ -32,7 +32,7 @@ void local::ComovingCorrelationData::finalize() {
 
 void local::ComovingCorrelationData::_setIndex(int index) const {
     if(index == _lastIndex) return;
-    getBinCenters(index,_binCenter);
+    getGrid().getBinCenters(index,_binCenter);
     _lastIndex = index;
 }
 
