@@ -11,16 +11,8 @@
 
 namespace local = baofit;
 
-local::AbsCorrelationData::AbsCorrelationData(
-likely::AbsBinningCPtr axis1, likely::AbsBinningCPtr axis2, likely::AbsBinningCPtr axis3,
-TransverseBinningType type)
-: likely::BinnedData(axis1,axis2,axis3), _type(type), _haveFinalCuts(false)
-{
-}
-
-local::AbsCorrelationData::AbsCorrelationData(std::vector<likely::AbsBinningCPtr> axes,
-TransverseBinningType type)
-: likely::BinnedData(axes), _type(type), _haveFinalCuts(false)
+local::AbsCorrelationData::AbsCorrelationData(likely::BinnedGrid grid, TransverseBinningType type)
+: likely::BinnedData(grid), _type(type), _haveFinalCuts(false)
 {
 }
 

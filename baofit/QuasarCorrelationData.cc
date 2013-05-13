@@ -11,21 +11,12 @@
 
 namespace local = baofit;
 
-local::QuasarCorrelationData::QuasarCorrelationData(
-likely::AbsBinningCPtr axis1, likely::AbsBinningCPtr axis2, likely::AbsBinningCPtr axis3,
+local::QuasarCorrelationData::QuasarCorrelationData(likely::BinnedGrid grid,
 double llMin, double llMax, double sepMin, double sepMax,
 bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology)
-: AbsCorrelationData(axis1,axis2,axis3,Coordinate)
+: AbsCorrelationData(grid,Coordinate)
 {
-  _initialize(llMin,llMax,sepMin,sepMax,fixCov,cosmology);
-}
-
-local::QuasarCorrelationData::QuasarCorrelationData(
-std::vector<likely::AbsBinningCPtr> axes, double llMin, double llMax, double sepMin, double sepMax,
-bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology)
-: AbsCorrelationData(axes,Coordinate)
-{
-    if(axes.size() != 3) {
+    if(grid.getNAxes() != 3) {
         throw RuntimeError("QuasarCorrelationData: expected 3 axes.");
     }
     _initialize(llMin,llMax,sepMin,sepMax,fixCov,cosmology);
@@ -49,7 +40,7 @@ local::QuasarCorrelationData::~QuasarCorrelationData() { }
 
 local::QuasarCorrelationData *local::QuasarCorrelationData::clone(bool binningOnly) const {
     QuasarCorrelationData *data = binningOnly ?
-        new QuasarCorrelationData(getAxisBinning(),_llMin,_llMax,_sepMin,_sepMax,_fixCov,_cosmology) :
+        new QuasarCorrelationData(getGrid(),_llMin,_llMax,_sepMin,_sepMax,_fixCov,_cosmology) :
         new QuasarCorrelationData(*this);
     _cloneFinalCuts(*data);
     return data;
@@ -70,13 +61,13 @@ void local::QuasarCorrelationData::fixCovariance(double ll0, double c0, double c
     std::vector<int> bin(3);
     
     // Lookup the binning along the log-lambda axis.
-    likely::AbsBinningCPtr llBins(getAxisBinning()[0]);
+    likely::AbsBinningCPtr llBins(getGrid().getAxisBinning(0));
 
     // Loop over all bins.
     for(IndexIterator iter1 = begin(); iter1 != end(); ++iter1) {
         int i1(*iter1);
         // Remember the indices of this 3D bin along our sep,z axes.
-        getBinIndices(i1,bin);
+        getGrid().getBinIndices(i1,bin);
         int sepIndex(bin[1]), zIndex(bin[2]);
         // Calculate and save the value of ll - ll0 at the center of this bin.
         double ll(llBins->getBinCenter(bin[0]));
@@ -86,7 +77,7 @@ void local::QuasarCorrelationData::fixCovariance(double ll0, double c0, double c
         for(IndexIterator iter2 = begin(); iter2 <= iter1; ++iter2) {
             int i2(*iter2);
             // Check that this bin has the same sep,z indices
-            getBinIndices(i2,bin);
+            getGrid().getBinIndices(i2,bin);
             if(bin[1] != sepIndex || bin[2] != zIndex) continue;
             // Calculate (ll1 - ll0)*(ll2 - ll0) using cached values.
             double d = dll[i1]*dll[i2];
@@ -116,7 +107,7 @@ void local::QuasarCorrelationData::finalize() {
         int index(*iter);
         if(0 == keep.count(index)) continue;        
         // Lookup the value of ll at the center of this bin.
-        getBinCenters(index,_binCenter);
+        getGrid().getBinCenters(index,_binCenter);
         double ll(_binCenter[0]),sep(_binCenter[1]);
         // Keep this bin in our pruned dataset?
         if(ll < _llMin || ll > _llMax || sep < _sepMin || sep > _sepMax) {
@@ -150,8 +141,8 @@ double &r, double &mu) const {
 
 void local::QuasarCorrelationData::_setIndex(int index) const {
     if(index == _lastIndex) return;
-    getBinCenters(index,_binCenter);
-    getBinWidths(index,_binWidth);
+    getGrid().getBinCenters(index,_binCenter);
+    getGrid().getBinWidths(index,_binWidth);
     _zLast = _binCenter[2];
     transform(_binCenter[0],_binCenter[1],_binWidth[1],_zLast,_rLast,_muLast);
     _lastIndex = index;
@@ -183,14 +174,14 @@ void local::QuasarCorrelationData::rescaleEigenvalues(std::vector<double> modeSc
     for(IndexIterator iter1 = begin(); iter1 != end(); ++iter1) {
         int i1(*iter1);
         // Remember the separation index of this bin.
-        getBinIndices(i1,bin);
+        getGrid().getBinIndices(i1,bin);
         int sepIndex(bin[1]);
         // Loop over unique pairs (iter1,iter2) with iter2 <= iter1 (which does not
         // necessarily imply that i2 <= i1).
         for(IndexIterator iter2 = begin(); iter2 <= iter1; ++iter2) {
             int i2(*iter2);
             // Does this bin have a different separation index?
-            getBinIndices(i2,bin);
+            getGrid().getBinIndices(i2,bin);
             if(bin[1] != sepIndex) {
                 // Force the covariance between (i1,i2) to zero.
                 setCovariance(i1,i2,0);

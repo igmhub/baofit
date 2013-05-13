@@ -16,10 +16,7 @@ namespace baofit {
 	    // Creates a new object using the specified binning and cosmology to map the observed coordinates
 	    // into co-moving coordinates. The data will be pruned to rmin <= r < rmax (in Mpc/h) and
 	    // log(lambda2/lambda1) > llmin when the finalize() method is called.
-		QuasarCorrelationData(likely::AbsBinningCPtr axis1, likely::AbsBinningCPtr axis2,
-		    likely::AbsBinningCPtr axis3, double llMin, double llMax, double sepMin, double sepMax,
-		    bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology);
-        QuasarCorrelationData(std::vector<likely::AbsBinningCPtr> axes,
+        QuasarCorrelationData(likely::BinnedGrid grid,
             double llMin, double llMax, double sepMin, double sepMax,
             bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology);
 		virtual ~QuasarCorrelationData();

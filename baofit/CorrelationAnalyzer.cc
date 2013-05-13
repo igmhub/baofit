@@ -515,11 +515,36 @@ std::string const &saveName, int nsave) const {
     paramStats.printToStream(std::cout);
 }
 
+int local::CorrelationAnalyzer::parameterScan(likely::FunctionMinimumCPtr fmin,
+AbsCorrelationDataCPtr sample, std::string const &saveName, int nsave) const {
+    int nfits(0);
+    // Initialize the grid we will be sampling.
+    likely::FitParameters params = fmin->getFitParameters();
+    likely::BinnedGrid grid = likely::getFitParametersGrid(params);
+    // Prepare to output samples at each grid point.
+    SamplingOutput output(fmin,likely::FunctionMinimumCPtr(),saveName,nsave,*this);
+    // Loop over grid points.
+    for(likely::BinnedGrid::Iterator iter = grid.begin(); iter != grid.end(); ++iter) {
+        nfits++;
+        std::string config = likely::getFitParametersGridConfig(params,grid,iter);
+        if(_verbose) {
+            std::cout << std::endl << "-- Performing scan step " << nfits << " of " << grid.getNBinsTotal()
+                << " using " << config << std::endl;
+        }
+        // Do the fit.
+        likely::FunctionMinimumCPtr gridMin = fitSample(sample,config);
+        // Add the results to our output file.
+        output.saveSample(gridMin->getFitParameters(),gridMin->getMinValue());
+    }
+    return nfits;
+}
+
 void local::CorrelationAnalyzer::dumpResiduals(std::ostream &out, likely::FunctionMinimumPtr fmin,
 AbsCorrelationDataCPtr combined, std::string const &script, bool dumpGradients) const {
     if(getNData() == 0) {
         throw RuntimeError("CorrelationAnalyzer::dumpResiduals: no observations have been added.");
     }
+    likely::BinnedGrid grid = combined->getGrid();
     AbsCorrelationData::TransverseBinningType type = combined->getTransverseBinningType();
     // Get a copy of the the parameters at this minimum.
     likely::FitParameters parameters(fmin->getFitParameters());
@@ -537,7 +562,7 @@ AbsCorrelationDataCPtr combined, std::string const &script, bool dumpGradients) 
     for(likely::BinnedData::IndexIterator iter = combined->begin(); iter != combined->end(); ++iter) {
         int index(*iter);
         out << index;
-        combined->getBinCenters(index,centers);
+        grid.getBinCenters(index,centers);
         BOOST_FOREACH(double center, centers) {
             out << ' ' << center;
         }
