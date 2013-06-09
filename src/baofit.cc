@@ -286,7 +286,7 @@ int main(int argc, char **argv) {
         std::cerr << "Specify at most one data format option." << std::endl;
         return -1;
     }
-    if(dataFormat != "comoving-cartesian" && dataFormat != "comoving-polar" &&
+    if(dataFormat != "" && dataFormat != "comoving-cartesian" && dataFormat != "comoving-polar" &&
         dataFormat != "comoving-multipole") {
         std::cerr << "The data format must be one of: comoving-cartesian, comoving-polar, comoving-multipole"
             << std::endl;

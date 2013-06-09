@@ -22,6 +22,8 @@ namespace baofit {
         // Returns the cosine of the angle between the separation vector and
         // the line of sight (aka mu) associated with the specified global index.
         virtual double getCosAngle(int index) const;
+        // Returns the multipole (0,2,4) associated with the specified global index.
+        virtual cosmo::Multipole getMultipole(int index) const;
         // Returns the redshift associated with the specified global index.
         virtual double getRedshift(int index) const;
         // Finalize a comoving dataset by pruning to the limits specified in our constructor.
