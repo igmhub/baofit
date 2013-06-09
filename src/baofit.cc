@@ -95,6 +95,7 @@ int main(int argc, char **argv) {
             "Common path to prepend to all plate datafiles listed in the platelist.")
         ("comoving-cartesian", "3D correlation data is in (rpar,rperp,z) format.")
         ("comoving-polar", "3D correlation data is in (r,mu,z) format.")
+        ("comoving-multipole", "3D correlation data is in (r,ell,z) format.")
         ("axis1-bins", po::value<std::string>(&axis1Bins)->default_value(""),
             "Comma separated list of bin centers for axis 1.")
         ("axis2-bins", po::value<std::string>(&axis2Bins)->default_value(""),
@@ -275,9 +276,9 @@ int main(int argc, char **argv) {
         scalarWeights(vm.count("scalar-weights")), noInitialFit(vm.count("no-initial-fit")),
         compareEach(vm.count("compare-each")), compareEachFinal(vm.count("compare-each-final")),
         decoupled(vm.count("decoupled")),comovingCartesian(vm.count("comoving-cartesian")),
-        comovingPolar(vm.count("comoving-polar")),loadICov(vm.count("load-icov")),
-        loadWData(vm.count("load-wdata")),crossCorrelation(vm.count("cross-correlation")),
-        parameterScan(vm.count("parameter-scan"));
+        comovingPolar(vm.count("comoving-polar")),comovingMultipole(vm.count("comoving-multipole")),
+        loadICov(vm.count("load-icov")),loadWData(vm.count("load-wdata")),
+        crossCorrelation(vm.count("cross-correlation")),parameterScan(vm.count("parameter-scan"));
 
     // Check that at most one data format has been specified.
     if(french+dr9lrg+comovingCartesian+comovingPolar+sectors+xiFormat > 1) {
