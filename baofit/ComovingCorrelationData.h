@@ -11,7 +11,7 @@ namespace baofit {
 	class ComovingCorrelationData : public AbsCorrelationData {
 	// Represents 3D correlation data in comoving coordinates (r,mu,z) or (rpar,rperp,z).
 	public:
-        enum CoordinateSystem { PolarCoordinates, CartesianCoordinates };
+        enum CoordinateSystem { PolarCoordinates, CartesianCoordinates, MultipoleCoordinates };
 		ComovingCorrelationData(likely::BinnedGrid grid,
 		    CoordinateSystem coordinateSystem = PolarCoordinates);
 		virtual ~ComovingCorrelationData();

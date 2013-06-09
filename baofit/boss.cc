@@ -306,15 +306,20 @@ std::vector<double> local::twoStepSampling(double breakpoint,double llmax,double
     return samplePoints;
 }
 
-baofit::AbsCorrelationDataPtr local::createComovingPrototype(bool cartesian, bool verbose,
-std::string const &axis1Bins, std::string const &axis2Bins, std::string const &axis3Bins) {
+baofit::AbsCorrelationDataPtr local::createComovingPrototype(ComovingCorrelationData::CoordinateSystem coords,
+bool verbose, std::string const &axis1Bins, std::string const &axis2Bins, std::string const &axis3Bins) {
     // Parse the binning from the strings provided.
     likely::AbsBinningCPtr axis1ptr,axis2ptr,axis3ptr;
     try {
         axis1ptr = likely::createBinning(axis1Bins);
         if(verbose) {
             int nbins = axis1ptr->getNBins();
-            std::cout << (cartesian ? "r_par bin centers:":"r bin centers:");
+            if(coords == ComovingCorrelationData::CartesianCoordinates) {
+                std::cout << "r_par bin centers:";
+            }
+            else {
+                std::cout << "r bins centers:";
+            }
             for(int bin = 0; bin < nbins; ++bin) {
                 std::cout << (bin ? ',':' ') << axis1ptr->getBinCenter(bin);
             }
@@ -328,7 +333,15 @@ std::string const &axis1Bins, std::string const &axis2Bins, std::string const &a
         axis2ptr = likely::createBinning(axis2Bins);
         if(verbose) {
             int nbins = axis2ptr->getNBins();
-            std::cout << (cartesian ? "r_perp bin centers:":"mu bin centers:");
+            if(coords == ComovingCorrelationData::PolarCoordinates) {
+                std::cout << "mu bin centers:";
+            }
+            else if(coords == ComovingCorrelationData::CartesianCoordinates) {
+                std::cout << "r_perp bin centers:";
+            }
+            else {
+                std::cout << "multipoles:";
+            }
             for(int bin = 0; bin < nbins; ++bin) {
                 std::cout << (bin ? ',':' ') << axis2ptr->getBinCenter(bin);
             }
@@ -354,9 +367,7 @@ std::string const &axis1Bins, std::string const &axis2Bins, std::string const &a
     }
 
     likely::BinnedGrid grid(axis1ptr,axis2ptr,axis3ptr);
-    baofit::AbsCorrelationDataPtr
-        prototype(new baofit::ComovingCorrelationData(grid,
-        cartesian ? ComovingCorrelationData::CartesianCoordinates : ComovingCorrelationData::PolarCoordinates));
+    baofit::AbsCorrelationDataPtr prototype(new baofit::ComovingCorrelationData(grid,coords));
     return prototype;    
 }
 

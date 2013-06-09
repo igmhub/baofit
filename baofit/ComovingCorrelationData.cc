@@ -8,8 +8,9 @@
 namespace local = baofit;
 
 local::ComovingCorrelationData::ComovingCorrelationData(likely::BinnedGrid grid,
-CoordinateSystem coordinateSystem) 
-: AbsCorrelationData(grid,Coordinate), _coordinateSystem(coordinateSystem), _lastIndex(-1)
+CoordinateSystem coordinateSystem)
+: AbsCorrelationData(grid,coordinateSystem==MultipoleCoordinates ? Multipole : Coordinate),
+_coordinateSystem(coordinateSystem), _lastIndex(-1)
 {
 }
 
