@@ -123,6 +123,12 @@ void local::XiCorrelationModel::saveMultipolesAsData(std::string const &prefix,
 likely::FunctionMinimumCPtr fmin) {
     // Use the best-fit parameter values.
     updateParameterValues(fmin->getParameters());
+    // Start printing config info for using the saved data
+    std::cout << "Use the following config options to refit this data using the fitted multipoles:"
+        << std::endl << std::endl;
+    std::cout << "data = " << prefix << "multipoles" << std::endl;
+    std::cout << "data-format = comoving-multipole" << std::endl;
+    std::cout << "axis1-bins = {";
     // Open our data vector input file.
     std::string outName = prefix + "mutipoles.data";
     std::ofstream out(outName.c_str());
@@ -133,6 +139,8 @@ likely::FunctionMinimumCPtr fmin) {
         norm4 = _getNormFactor(cosmo::Hexadecapole,zref);
     for(int index = 0; index < npoints; ++index) {
         double r = _rValues[index], rsq = r*r;
+        if(index > 0) std::cout << ',';
+        std::cout << r;
         out << (3*index) << ' ' << boost::lexical_cast<std::string>(
             norm0*getParameterValue(_indexBase + index)/rsq) << std::endl;
         out << (3*index+1) << ' ' << boost::lexical_cast<std::string>(
@@ -141,4 +149,8 @@ likely::FunctionMinimumCPtr fmin) {
             norm4*getParameterValue(_indexBase + 2*npoints + index)/rsq) << std::endl;
     }
     out.close();
+    // Finish printing config info
+    std::cout << "}" << std::endl;
+    std::cout << "axis2-bins = {0,2,4}" << std::endl;
+    std::cout << "axis3-bins = {" << zref << "}" << std::endl << std::endl;
 }
