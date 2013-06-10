@@ -447,9 +447,10 @@ int main(int argc, char **argv) {
         filename != filelist.end(); ++filename) {
             baofit::AbsCorrelationDataPtr data;
             int reuseCovIndex(-1);
-            if(comovingPolar || comovingCartesian) {
+            if(dataFormat != "") {
                 data = baofit::boss::loadSaved(*filename,prototype,verbose,loadICov,loadWData);
             }
+            /**
             else if(french) {
                 data = baofit::boss::loadFrench(*filename,prototype,
                     verbose,unweighted,expanded);
@@ -460,6 +461,7 @@ int main(int argc, char **argv) {
             else if(dr9lrg) {
                 data = baofit::boss::loadDR9LRG(*filename,prototype,verbose);
             }
+            **/
             else if(xiFormat) {
                 data = baofit::boss::loadCosmolibXi(*filename,prototype,
                     verbose,weighted,reuseCov);
