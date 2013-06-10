@@ -140,7 +140,7 @@ likely::FunctionMinimumCPtr fmin) {
     std::cout << "data-format = comoving-multipole" << std::endl;
     std::cout << "axis1-bins = {";
     // Open our data vector input file.
-    std::string outName = prefix + "mutipoles.data";
+    std::string outName = prefix + "multipoles.data";
     std::ofstream out(outName.c_str());
     // Save each floating multipole parameter, appropriately normalized, and build a map of
     // dataset indices to floating parameter indices.
@@ -181,7 +181,7 @@ likely::FunctionMinimumCPtr fmin) {
     std::cout << "axis2-bins = {0,2,4}" << std::endl;
     std::cout << "axis3-bins = {" << zref << "}" << std::endl << std::endl;
     // Open our data vector input file.
-    outName = prefix + "mutipoles.cov";
+    outName = prefix + "multipoles.cov";
     std::ofstream covout(outName.c_str());
     // Save the covariance matrix for the floating best-fit multipole parameters saved above.
     likely::CovarianceMatrixCPtr pcov = fmin->getCovariance();
