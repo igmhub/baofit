@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
 
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,
         rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax,kloSpline,khiSpline,toymcScale,saveICovScale,
-        zMin,zMax,llMin,llMax,sepMin,sepMax,distR0;
+        zMin,zMax,llMin,llMax,sepMin,sepMax,distR0,zdump;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
         mcmcSave,mcmcInterval,toymcSamples,xiNr,reuseCov,nSpline,splineOrder,bootstrapCovTrials,
         projectModesNKeep;
@@ -192,7 +192,9 @@ int main(int argc, char **argv) {
         ("output-prefix", po::value<std::string>(&outputPrefix)->default_value(""),
             "Prefix to use for all analysis output files.")
         ("ndump", po::value<int>(&ndump)->default_value(100),
-            "Number of points spanning [rmin,rmax] to use for dumping models (zero for no dumps).")
+            "Number of points spanning [rmin,rmax] to use for dumping best-fit multipoles (zero for no dumps).")
+        ("zdump", po::value<double>(&zdump)->default_value(-1),
+            "Redshift to use to evaluate dumped best-fit multipoles.")
         ("decorrelated", "Combined data is saved with decorrelated errors.")
         ("no-initial-fit", "Skips initial fit to combined sample.")
         ("scalar-weights", "Combine plates using scalar weights instead of Cinv weights.")
@@ -355,44 +357,37 @@ int main(int argc, char **argv) {
     analyzer.setModel(model);
     
     // Load the data we will fit.
-    double zdata;
     baofit::AbsCorrelationDataCPtr combined;
     try {
         // Create a prototype of the binned data we will be loading.
         baofit::AbsCorrelationDataPtr prototype;
         if(dataFormat == "comoving-polar") {
-            zdata = 2.30; // only affects the redshift used to dump multipoles
             prototype = baofit::boss::createComovingPrototype(baofit::ComovingCorrelationData::PolarCoordinates,
                 verbose,axis1Bins,axis2Bins,axis3Bins);
         }
         else if(dataFormat == "comoving-cartesian") {
-            zdata = 2.30; // only affects the redshift used to dump multipoles
             prototype = baofit::boss::createComovingPrototype(baofit::ComovingCorrelationData::CartesianCoordinates,
                 verbose,axis1Bins,axis2Bins,axis3Bins);
         }
         else if(dataFormat == "comoving-multipole") {
-            zdata = 2.30; // only affects the redshift used to dump multipoles
             prototype = baofit::boss::createComovingPrototype(baofit::ComovingCorrelationData::MultipoleCoordinates,
                 verbose,axis1Bins,axis2Bins,axis3Bins);
         }
+        /*
         else if(french) {
-            zdata = 2.30;
             prototype = baofit::boss::createFrenchPrototype(zdata);
         }
         else if(sectors) {
-            zdata = 2.30;
             prototype = baofit::boss::createSectorsPrototype(zdata);
         }
         else if(dr9lrg) {
-            zdata = 0.57;
             prototype = baofit::boss::createDR9LRGPrototype(zdata,"LRG/Sample4_North.cov",verbose);
         }
+        */
         else if(xiFormat) {
-            zdata = 2.25; // only affects the redshift used to dump multipoles
             prototype = baofit::boss::createCosmolibXiPrototype(minz,dz,nz,xiRmin,xiRmax,xiNr,xiHexa);
         }
         else { // default is cosmolib (saved) format
-            zdata = 2.25; // only affects the redshift used to dump multipoles
             prototype = baofit::boss::createCosmolibPrototype(
                 minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,llMin,llMax,sepMin,sepMax,
                 fixAlnCov,cosmology);
@@ -501,8 +496,6 @@ int main(int argc, char **argv) {
             }
             analyzer.addData(data,reuseCovIndex);
         }
-        // Specify the nominal redshift associated with the data.
-        analyzer.setZData(zdata);
         // Initialize combined as a read-only pointer to the finalized data to fit...
         if(projectModesNKeep != 0) {
             // Project onto eigenmodes before finalizing.
@@ -607,14 +600,14 @@ int main(int argc, char **argv) {
             // Dump the best-fit model.
             std::string outName = outputPrefix + "fit.dat";
             std::ofstream out(outName.c_str());
-            analyzer.dumpModel(out,fmin->getFitParameters(),ndump);
+            analyzer.dumpModel(out,fmin->getFitParameters(),ndump,zdump);
             out.close();
         }
         if(ndump > 0 && altConfig.length() > 0) {
             // Dump an alternate best-fit model with some parameters modified (e.g., no BAO features)
             std::string outName = outputPrefix + "alt.dat";
             std::ofstream out(outName.c_str());
-            analyzer.dumpModel(out,fmin->getFitParameters(),ndump,altConfig);
+            analyzer.dumpModel(out,fmin->getFitParameters(),ndump,zdump,altConfig);
             out.close();
         }
         if(ndump > 0 && nSpline > 0) {
@@ -675,7 +668,7 @@ int main(int argc, char **argv) {
                 // Dump the best-fit model.
                 std::string outName = outputPrefix + "refit.dat";
                 std::ofstream out(outName.c_str());
-                analyzer.dumpModel(out,fmin2->getFitParameters(),ndump);
+                analyzer.dumpModel(out,fmin2->getFitParameters(),ndump,zdump);
                 out.close();
             }
             std::cout << "Delta ChiSquare = "
@@ -687,27 +680,27 @@ int main(int argc, char **argv) {
             std::string toymcSaveName;
             if(toymcSave) toymcSaveName = outputPrefix + "toymcsave.data";
             analyzer.doToyMCSampling(toymcSamples,toymcConfig,toymcSaveName,toymcScale,
-                fmin,fmin2,refitConfig,outName,ndump);
+                fmin,fmin2,refitConfig,outName,ndump,zdump);
         }
         // Perform a bootstrap analysis, if requested.
         if(bootstrapTrials > 0) {
             std::string outName = outputPrefix + "bs.dat";
             analyzer.doBootstrapAnalysis(bootstrapTrials,bootstrapSize,fixCovariance,
-                fmin,fmin2,refitConfig,outName,ndump);
+                fmin,fmin2,refitConfig,outName,ndump,zdump);
         }
         // Perform a jackknife analysis, if requested.
         if(jackknifeDrop > 0) {
             std::string outName = outputPrefix + "jk.dat";
-            analyzer.doJackknifeAnalysis(jackknifeDrop,fmin,fmin2,refitConfig,outName,ndump);
+            analyzer.doJackknifeAnalysis(jackknifeDrop,fmin,fmin2,refitConfig,outName,ndump,zdump);
         }
         // Fit each observation separately, if requested.
         if(fitEach) {
             std::string outName = outputPrefix + "each.dat";
-            analyzer.fitEach(fmin,fmin2,refitConfig,outName,ndump);
+            analyzer.fitEach(fmin,fmin2,refitConfig,outName,ndump,zdump);
         }
         // Refit on the parameter grid specified by each parameter's binning spec.
         if(parameterScan) {
-            analyzer.parameterScan(fmin,combined,outputPrefix + "scan.dat",ndump);
+            analyzer.parameterScan(fmin,combined,outputPrefix + "scan.dat",ndump,zdump);
         }
     }
     catch(std::runtime_error const &e) {
