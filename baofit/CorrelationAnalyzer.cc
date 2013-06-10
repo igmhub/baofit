@@ -156,10 +156,16 @@ AbsCorrelationDataCPtr sample, std::string const &config) const {
         double chisq = 2*fmin->getMinValue();
         int nbins = sample->getNBinsWithData();
         int npar = fmin->getNParameters(true);
-        double prob = 1 - boost::math::gamma_p((nbins-npar)/2.,chisq/2);
-        std::cout << std::endl << "Fit results: chiSquare / dof = " << chisq << " / ("
-            << nbins << '-' << npar << "), prob = " << prob << ", log(det(Covariance)) = "
-            << sample->getCovarianceMatrix()->getLogDeterminant() << std::endl << std::endl;
+        if(chisq > 0 && nbins > npar) {
+            double prob = 1 - boost::math::gamma_p((nbins-npar)/2.,chisq/2);
+            std::cout << std::endl << "Fit results: chiSquare / dof = " << chisq << " / ("
+                << nbins << '-' << npar << "), prob = " << prob << ", log(det(Covariance)) = "
+                << sample->getCovarianceMatrix()->getLogDeterminant() << std::endl << std::endl;
+        }
+        else {
+            std::cout << std::endl << "Fit is ill-conditioned with nbins = " << nbins
+                << ", npar = " << npar << ", chiSquare = " << chisq << std::endl << std::endl;
+        }
         fmin->printToStream(std::cout);
     }
     return fmin;
