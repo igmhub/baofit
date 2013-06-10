@@ -23,7 +23,8 @@ namespace baofit {
         // Saves the multipole parameter values and covariance to files <prefix>multipole.data
         // and <prefix>multipole.cov in a format suitable for input to a multipole fit. Also
         // prints out the config parameters necessary for using these files. Method is non-const
-        // since it calls updateParameterValues.
+        // since it calls updateParameterValues. This should do the right thing even if some
+        // multipole params are fixed or some non-multipole params are floating.
         void saveMultipolesAsData(std::string const &prefix, likely::FunctionMinimumCPtr fmin);
 	protected:
 		// Returns the correlation function evaluated in redshift space where (r,mu) is

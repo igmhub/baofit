@@ -5,6 +5,7 @@
 
 #include "likely/Interpolator.h"
 #include "likely/FunctionMinimum.h"
+#include "likely/CovarianceMatrix.h"
 #include "likely/RuntimeError.h"
 
 #include "boost/format.hpp"
@@ -13,6 +14,7 @@
 #include <cmath>
 #include <iostream>
 #include <fstream>
+#include <map>
 
 namespace local = baofit;
 
@@ -123,6 +125,14 @@ void local::XiCorrelationModel::saveMultipolesAsData(std::string const &prefix,
 likely::FunctionMinimumCPtr fmin) {
     // Use the best-fit parameter values.
     updateParameterValues(fmin->getParameters());
+    // Lookup the parameter error vector so we can identify fixed parameters.
+    likely::Parameters errors = fmin->getErrors();
+    // Save the floating index or -1 for each parameter.
+    int nfloating = 0;
+    std::vector<int> floatingIndex;
+    for(int index = 0; index < errors.size(); ++index) {
+        floatingIndex.push_back(errors[index] > 0 ? nfloating++ : -1);
+    }
     // Start printing config info for using the saved data
     std::cout << "Use the following config options to refit this data using the fitted multipoles:"
         << std::endl << std::endl;
@@ -132,25 +142,56 @@ likely::FunctionMinimumCPtr fmin) {
     // Open our data vector input file.
     std::string outName = prefix + "mutipoles.data";
     std::ofstream out(outName.c_str());
-    // Save each multipole parameters, appropriately normalized
-    int npoints(_rValues.size());
+    // Save each floating multipole parameter, appropriately normalized, and build a map of
+    // dataset indices to floating parameter indices.
+    std::map<int,int> indexMap;
+    int pindex,dindex,npoints(_rValues.size());
     double zref = _getZRef();
     double norm0 = _getNormFactor(cosmo::Monopole,zref), norm2 = _getNormFactor(cosmo::Quadrupole,zref),
         norm4 = _getNormFactor(cosmo::Hexadecapole,zref);
-    for(int index = 0; index < npoints; ++index) {
-        double r = _rValues[index], rsq = r*r;
-        if(index > 0) std::cout << ',';
+    for(int rindex = 0; rindex < npoints; ++rindex) {
+        double r = _rValues[rindex], rsq = r*r;
+        if(rindex > 0) std::cout << ',';
         std::cout << r;
-        out << (3*index) << ' ' << boost::lexical_cast<std::string>(
-            norm0*getParameterValue(_indexBase + index)/rsq) << std::endl;
-        out << (3*index+1) << ' ' << boost::lexical_cast<std::string>(
-            norm2*getParameterValue(_indexBase + npoints + index)/rsq) << std::endl;
-        out << (3*index+2) << ' ' << boost::lexical_cast<std::string>(
-            norm4*getParameterValue(_indexBase + 2*npoints + index)/rsq) << std::endl;
+        pindex = _indexBase + rindex;
+        if(errors[pindex] > 0) {
+            dindex = 3*rindex;
+            out << dindex << ' ' << boost::lexical_cast<std::string>(
+                norm0*getParameterValue(pindex)/rsq) << std::endl;
+            indexMap.insert(std::pair<int,int>(dindex,pindex));
+        }
+        pindex = _indexBase + npoints + rindex;
+        if(errors[pindex] > 0) {
+            dindex = 3*rindex + 1;
+            out << dindex << ' ' << boost::lexical_cast<std::string>(
+                norm2*getParameterValue(pindex)/rsq) << std::endl;
+            indexMap.insert(std::pair<int,int>(dindex,pindex));
+        }
+        pindex = _indexBase + 2*npoints + rindex;
+        if(errors[pindex] > 0) {
+            dindex = 3*rindex + 2;
+            out << dindex << ' ' << boost::lexical_cast<std::string>(
+                norm4*getParameterValue(pindex)/rsq) << std::endl;
+            indexMap.insert(std::pair<int,int>(dindex,pindex));
+        }
     }
     out.close();
     // Finish printing config info
     std::cout << "}" << std::endl;
     std::cout << "axis2-bins = {0,2,4}" << std::endl;
     std::cout << "axis3-bins = {" << zref << "}" << std::endl << std::endl;
+    // Open our data vector input file.
+    outName = prefix + "mutipoles.cov";
+    std::ofstream covout(outName.c_str());
+    // Save the covariance matrix for the floating best-fit multipole parameters saved above.
+    likely::CovarianceMatrixCPtr pcov = fmin->getCovariance();
+    for(std::map<int,int>::const_iterator iter1 = indexMap.begin(); iter1 != indexMap.end(); ++iter1) {
+        int d1 = iter1->first, f1 = floatingIndex[iter1->second];
+        for(std::map<int,int>::const_iterator iter2 = iter1; iter2 != indexMap.end(); ++iter2) {
+            int d2 = iter2->first, f2 = floatingIndex[iter2->second];
+            covout << d1 << ' ' << d2 << ' ' <<
+                boost::lexical_cast<std::string>(pcov->getCovariance(f1,f2)) << std::endl;
+        }
+    }
+    covout.close();
 }
