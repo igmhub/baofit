@@ -4,11 +4,15 @@
 #include "baofit/RuntimeError.h"
 
 #include "likely/Interpolator.h"
+#include "likely/FunctionMinimum.h"
 #include "likely/RuntimeError.h"
 
 #include "boost/format.hpp"
+#include "boost/lexical_cast.hpp"
 
 #include <cmath>
+#include <iostream>
+#include <fstream>
 
 namespace local = baofit;
 
@@ -113,4 +117,28 @@ void  local::XiCorrelationModel::printToStream(std::ostream &out, std::string co
     AbsCorrelationModel::printToStream(out,formatSpec);
     out << "Interpolating with " << _rValues.size() << " points covering " << _rValues[0] << " to "
         << _rValues[_rValues.size()-1] << " Mpc/h" << std::endl;
+}
+
+void local::XiCorrelationModel::saveMultipolesAsData(std::string const &prefix,
+likely::FunctionMinimumCPtr fmin) {
+    // Use the best-fit parameter values.
+    updateParameterValues(fmin->getParameters());
+    // Open our data vector input file.
+    std::string outName = prefix + "mutipoles.data";
+    std::ofstream out(outName.c_str());
+    // Save each multipole parameters, appropriately normalized
+    int npoints(_rValues.size());
+    double zref = _getZRef();
+    double norm0 = _getNormFactor(cosmo::Monopole,zref), norm2 = _getNormFactor(cosmo::Quadrupole,zref),
+        norm4 = _getNormFactor(cosmo::Hexadecapole,zref);
+    for(int index = 0; index < npoints; ++index) {
+        double r = _rValues[index], rsq = r*r;
+        out << (3*index) << ' ' << boost::lexical_cast<std::string>(
+            norm0*getParameterValue(_indexBase + index)/rsq) << std::endl;
+        out << (3*index+1) << ' ' << boost::lexical_cast<std::string>(
+            norm2*getParameterValue(_indexBase + npoints + index)/rsq) << std::endl;
+        out << (3*index+2) << ' ' << boost::lexical_cast<std::string>(
+            norm4*getParameterValue(_indexBase + 2*npoints + index)/rsq) << std::endl;
+    }
+    out.close();
 }

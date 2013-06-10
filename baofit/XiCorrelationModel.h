@@ -20,6 +20,11 @@ namespace baofit {
 		virtual ~XiCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
+        // Saves the multipole parameter values and covariance to files <prefix>multipole.data
+        // and <prefix>multipole.cov in a format suitable for input to a multipole fit. Also
+        // prints out the config parameters necessary for using these files. Method is non-const
+        // since it calls updateParameterValues.
+        void saveMultipolesAsData(std::string const &prefix, likely::FunctionMinimumCPtr fmin);
 	protected:
 		// Returns the correlation function evaluated in redshift space where (r,mu) is
 		// the pair separation and z is their average redshift. The separation r should
