@@ -143,9 +143,10 @@ likely::FunctionMinimumCPtr fmin) {
     std::string outName = prefix + "multipoles.data";
     std::ofstream out(outName.c_str());
     // Save each floating multipole parameter, appropriately normalized, and build a map of
-    // dataset indices to floating parameter indices.
+    // dataset indices to floating parameter indices. Remember normalization for each parameter.
     std::map<int,int> indexMap;
     int pindex,dindex,npoints(_rValues.size());
+    std::vector<double> pnorm(3*npoints,0);
     double zref = _getZRef();
     double norm0 = _getNormFactor(cosmo::Monopole,zref), norm2 = _getNormFactor(cosmo::Quadrupole,zref),
         norm4 = _getNormFactor(cosmo::Hexadecapole,zref);
@@ -156,6 +157,7 @@ likely::FunctionMinimumCPtr fmin) {
         pindex = _indexBase + rindex;
         if(errors[pindex] > 0) {
             dindex = 3*rindex;
+            pnorm[dindex] = norm0/rsq;
             out << dindex << ' ' << boost::lexical_cast<std::string>(
                 norm0*getParameterValue(pindex)/rsq) << std::endl;
             indexMap.insert(std::pair<int,int>(dindex,pindex));
@@ -163,6 +165,7 @@ likely::FunctionMinimumCPtr fmin) {
         pindex = _indexBase + npoints + rindex;
         if(errors[pindex] > 0) {
             dindex = 3*rindex + 1;
+            pnorm[dindex] = norm2/rsq;
             out << dindex << ' ' << boost::lexical_cast<std::string>(
                 norm2*getParameterValue(pindex)/rsq) << std::endl;
             indexMap.insert(std::pair<int,int>(dindex,pindex));
@@ -170,6 +173,7 @@ likely::FunctionMinimumCPtr fmin) {
         pindex = _indexBase + 2*npoints + rindex;
         if(errors[pindex] > 0) {
             dindex = 3*rindex + 2;
+            pnorm[dindex] = norm4/rsq;
             out << dindex << ' ' << boost::lexical_cast<std::string>(
                 norm4*getParameterValue(pindex)/rsq) << std::endl;
             indexMap.insert(std::pair<int,int>(dindex,pindex));
@@ -189,8 +193,8 @@ likely::FunctionMinimumCPtr fmin) {
         int d1 = iter1->first, f1 = floatingIndex[iter1->second];
         for(std::map<int,int>::const_iterator iter2 = iter1; iter2 != indexMap.end(); ++iter2) {
             int d2 = iter2->first, f2 = floatingIndex[iter2->second];
-            covout << d1 << ' ' << d2 << ' ' <<
-                boost::lexical_cast<std::string>(pcov->getCovariance(f1,f2)) << std::endl;
+            double dcov = pnorm[d1]*pnorm[d2]*pcov->getCovariance(f1,f2);
+            covout << d1 << ' ' << d2 << ' ' << boost::lexical_cast<std::string>(dcov) << std::endl;
         }
     }
     covout.close();
