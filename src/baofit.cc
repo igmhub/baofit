@@ -104,7 +104,6 @@ int main(int argc, char **argv) {
             "Comma separated list of bin centers for axis 3.")
         ("load-icov", "Load inverse covariance (.icov) instead of covariance (.cov)")
         ("load-wdata", "Load inverse covariance weighed data (.wdata) instead of unweighted (.data)")
-        ("dr9lrg", "3D correlation data files are in the BOSS DR9 LRG galaxy format.")
         ("max-plates", po::value<int>(&maxPlates)->default_value(0),
             "Maximum number of plates to load (zero uses all available plates).")
         ("check-posdef", "Checks that each covariance is positive-definite (slow).")
@@ -262,7 +261,7 @@ int main(int argc, char **argv) {
     // Extract boolean options.
     bool verbose(0 == vm.count("quiet")), weighted(vm.count("weighted")),
         checkPosDef(vm.count("check-posdef")), fixCovariance(0 == vm.count("naive-covariance")),
-        dr9lrg(vm.count("dr9lrg")), anisotropic(vm.count("anisotropic")),
+        anisotropic(vm.count("anisotropic")),
         fitEach(vm.count("fit-each")), xiHexa(vm.count("xi-hexa")), savedFormat(vm.count("saved-format")),
         xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")),
         toymcSave(vm.count("toymc-save")),
@@ -276,7 +275,7 @@ int main(int argc, char **argv) {
         parameterScan(vm.count("parameter-scan"));
 
     // Check that at most one data format has been specified.
-    if(dr9lrg+comovingCartesian+comovingPolar+xiFormat > 1) {
+    if(comovingCartesian+comovingPolar+xiFormat > 1) {
         std::cerr << "Specify at most one data format option." << std::endl;
         return -1;
     }
@@ -369,9 +368,6 @@ int main(int argc, char **argv) {
         else if(sectors) {
             prototype = baofit::boss::createSectorsPrototype(zdata);
         }
-        else if(dr9lrg) {
-            prototype = baofit::boss::createDR9LRGPrototype(zdata,"LRG/Sample4_North.cov",verbose);
-        }
         */
         else if(xiFormat) {
             prototype = baofit::boss::createCosmolibXiPrototype(minz,dz,nz,xiRmin,xiRmax,xiNr,xiHexa);
@@ -442,9 +438,6 @@ int main(int argc, char **argv) {
             /**
             else if(sectors) {
                 data = baofit::boss::loadSectors(*filename,prototype,verbose);
-            }
-            else if(dr9lrg) {
-                data = baofit::boss::loadDR9LRG(*filename,prototype,verbose);
             }
             **/
             else if(xiFormat) {
@@ -570,7 +563,7 @@ int main(int argc, char **argv) {
         analyzer.printScaleZEff(fmin,zref,"BAO alpha-parallel");
         analyzer.printScaleZEff(fmin,zref,"BAO alpha-perp");
         // Dump the combined multipole data points with decorrelated errors, if possible.
-        if(dr9lrg || xiFormat) {
+        if(xiFormat) {
             std::string outName = outputPrefix + "combined.dat";
             std::ofstream out(outName.c_str());
             boost::shared_ptr<const baofit::MultipoleCorrelationData> combinedMultipoles =

@@ -22,12 +22,6 @@ namespace baofit {
         AbsCorrelationDataPtr loadSectors(std::string const &dataName,
             baofit::AbsCorrelationDataCPtr prototype, bool verbose);
             
-        AbsCorrelationDataPtr createDR9LRGPrototype(double zref,
-            std::string const &covName, bool verbose);
-        
-        AbsCorrelationDataPtr loadDR9LRG(std::string const &dataName,
-            AbsCorrelationDataCPtr prototype, bool verbose);
-
         std::vector<double> twoStepSampling(
             double breakpoint, double llmax, double dlog, double dlin);
 
