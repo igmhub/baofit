@@ -19,6 +19,64 @@
 
 namespace po = boost::program_options;
 
+char buffer[256];
+const char *prefix(std::string const &section, std::string const &name) {
+    strcpy(buffer, section.c_str());
+    if(strlen(buffer) > 0) strcat(buffer,".");
+    strcat(buffer,name.c_str());
+    return buffer;
+}
+
+struct ModelOptions {
+    double OmegaMatter, hubbleConstant, zref, distR0, kloSpline, khiSpline;
+    std::string fiducialName, nowigglesName, modelrootName, distAdd, distMul, xiPoints, xiMethod, altConfig;
+    int nSpline, splineOrder;
+    std::vector<std::string> modelConfig;
+};
+
+void createModelOptions(po::options_description &options, ModelOptions &o, std::string const &section) {
+    options.add_options()
+        (prefix(section,"omega-matter"), po::value<double>(&o.OmegaMatter)->default_value(0.27,"0.27"),
+            "Present-day value of OmegaMatter.")
+        (prefix(section,"hubble-constant"), po::value<double>(&o.hubbleConstant)->default_value(0.7,"0.7"),
+            "Present-day value of the Hubble parameter h = H0/(100 km/s/Mpc).")
+        (prefix(section,"fiducial"), po::value<std::string>(&o.fiducialName)->default_value(""),
+            "Fiducial correlation functions will be read from <name>.<ell>.dat with ell=0,2,4.")
+        (prefix(section,"nowiggles"), po::value<std::string>(&o.nowigglesName)->default_value(""),
+            "No-wiggles correlation functions will be read from <name>.<ell>.dat with ell=0,2,4.")
+        (prefix(section,"modelroot"), po::value<std::string>(&o.modelrootName)->default_value(""),
+            "Common path to prepend to all model filenames.")
+        (prefix(section,"zref"), po::value<double>(&o.zref)->default_value(2.25),
+            "Reference redshift used by model correlation functions.")
+        (prefix(section,"dist-add"), po::value<std::string>(&o.distAdd)->default_value(""),
+            "Parameterization to use for additive broadband distortion.")
+        (prefix(section,"dist-mul"), po::value<std::string>(&o.distMul)->default_value(""),
+            "Parameterization to use for multiplicative broadband distortion.")
+        (prefix(section,"dist-r0"), po::value<double>(&o.distR0)->default_value(100),
+            "Comoving separation in Mpc/h used to normalize broadband radial factors.")
+        (prefix(section,"n-spline"), po::value<int>(&o.nSpline)->default_value(0),
+            "Number of spline knots to use spanning (klo,khi).")
+        (prefix(section,"klo-spline"), po::value<double>(&o.kloSpline)->default_value(0.02,"0.02"),
+            "Minimum k in h/Mpc for k P(k) B-spline.")
+        (prefix(section,"khi-spline"), po::value<double>(&o.khiSpline)->default_value(0.2,"0.2"),
+            "Maximum k in h/Mpc for k P(k) B-spline.")
+        (prefix(section,"order-spline"), po::value<int>(&o.splineOrder)->default_value(3),
+            "Order of B-spline in k P(k).")
+        (prefix(section,"multi-spline"), "Fits independent parameters for each multipole.")
+        (prefix(section,"xi-points"), po::value<std::string>(&o.xiPoints)->default_value(""),
+            "Comma-separated list of r values (Mpc/h) to use for interpolating r^2 xi(r)")
+        (prefix(section,"xi-method"), po::value<std::string>(&o.xiMethod)->default_value("cspline"),
+            "Interpolation method to use in r^2 xi(r), use linear or cspline.")
+        (prefix(section,"model-config"), po::value<std::vector<std::string> >(&o.modelConfig)->composing(),
+            "Model parameters configuration script (option can appear multiple times).")
+        (prefix(section,"alt-config"), po::value<std::string>(&o.altConfig)->default_value(""),
+            "Parameter adjustments for dumping alternate best-fit model.")
+        (prefix(section,"anisotropic"), "Uses anisotropic scale parameters instead of an isotropic scale.")
+        (prefix(section,"decoupled"), "Only applies scale factors to BAO peak and not cosmological broadband.")
+        (prefix(section,"cross-correlation"), "Uses independent linear bias parameters for both components.")
+        ;
+}
+
 int main(int argc, char **argv) {
     
     // Configure option processing
@@ -249,6 +307,14 @@ int main(int argc, char **argv) {
     }
     // Make a copy of any command-line model-config options.
     std::vector<std::string> modelConfigSave = modelConfig;
+
+    po::options_description iniOptions;
+    ModelOptions mopt;
+    po::options_description modelOptionsINI;
+    createModelOptions(modelOptionsINI,mopt,"model");
+    iniOptions.add(modelOptionsINI);
+    std::cout << iniOptions << std::endl;
+
     // If an INI file was specified, load it now.
     if(0 < iniName.length()) {
         try {
