@@ -23,9 +23,8 @@ int main(int argc, char **argv) {
     
     // Configure option processing
     po::options_description allOptions("Fits cosmological data to measure baryon acoustic oscillations"),
-        genericOptions("Generic options"),modelOptions("Model options"), dataOptions("Data options"),
-        frenchOptions("French data options"), cosmolibOptions("Cosmolib data options"),
-        analysisOptions("Analysis options");
+        genericOptions("Generic options"), modelOptions("Model options"), dataOptions("Data options"),
+        cosmolibOptions("Cosmolib data options"), analysisOptions("Analysis options");
 
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,
         rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax,kloSpline,khiSpline,toymcScale,saveICovScale,
@@ -118,13 +117,6 @@ int main(int argc, char **argv) {
             "Fixes covariance matrix using mode scales from the specified file.")
         ("project-modes-keep", po::value<int>(&projectModesNKeep)->default_value(0),
             "Projects combined data onto the largest (nkeep>0) or smallest (nkeep<0) variance modes.")
-        ;
-    frenchOptions.add_options()
-        ("french", "Correlation data files are in the French format (default is cosmolib).")
-        ("unweighted", "Does not read covariance data.")
-        ("expanded", "Data uses the expanded format.")
-        ("use-quad", "Uses quadrupole correlations.")
-        ("sectors", "Correlation data file in r-mu format by angular sector.")
         ;
     cosmolibOptions.add_options()
         ("weighted", "Data vectors are inverse-covariance weighted.")
@@ -230,7 +222,7 @@ int main(int argc, char **argv) {
         ;
 
     allOptions.add(genericOptions).add(modelOptions).add(dataOptions)
-        .add(frenchOptions).add(cosmolibOptions).add(analysisOptions);
+        .add(cosmolibOptions).add(analysisOptions);
     po::variables_map vm;
 
     // Parse command line options first so they override anything in an INI file
@@ -268,12 +260,12 @@ int main(int argc, char **argv) {
     std::copy(modelConfigSave.begin(),modelConfigSave.end(),modelConfig.end()-nSave);
     
     // Extract boolean options.
-    bool verbose(0 == vm.count("quiet")), french(vm.count("french")), weighted(vm.count("weighted")),
+    bool verbose(0 == vm.count("quiet")), weighted(vm.count("weighted")),
         checkPosDef(vm.count("check-posdef")), fixCovariance(0 == vm.count("naive-covariance")),
-        dr9lrg(vm.count("dr9lrg")), unweighted(vm.count("unweighted")), anisotropic(vm.count("anisotropic")),
+        dr9lrg(vm.count("dr9lrg")), anisotropic(vm.count("anisotropic")),
         fitEach(vm.count("fit-each")), xiHexa(vm.count("xi-hexa")), savedFormat(vm.count("saved-format")),
         xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")),
-        toymcSave(vm.count("toymc-save")), expanded(vm.count("expanded")), sectors(vm.count("sectors")),
+        toymcSave(vm.count("toymc-save")),
         saveICov(vm.count("save-icov")), multiSpline(vm.count("multi-spline")),
         fixAlnCov(vm.count("fix-aln-cov")), saveData(vm.count("save-data")),
         scalarWeights(vm.count("scalar-weights")), noInitialFit(vm.count("no-initial-fit")),
@@ -284,7 +276,7 @@ int main(int argc, char **argv) {
         parameterScan(vm.count("parameter-scan"));
 
     // Check that at most one data format has been specified.
-    if(french+dr9lrg+comovingCartesian+comovingPolar+sectors+xiFormat > 1) {
+    if(dr9lrg+comovingCartesian+comovingPolar+xiFormat > 1) {
         std::cerr << "Specify at most one data format option." << std::endl;
         return -1;
     }
@@ -374,9 +366,6 @@ int main(int argc, char **argv) {
                 verbose,axis1Bins,axis2Bins,axis3Bins);
         }
         /*
-        else if(french) {
-            prototype = baofit::boss::createFrenchPrototype(zdata);
-        }
         else if(sectors) {
             prototype = baofit::boss::createSectorsPrototype(zdata);
         }
@@ -451,10 +440,6 @@ int main(int argc, char **argv) {
                 data = baofit::boss::loadSaved(*filename,prototype,verbose,loadICov,loadWData);
             }
             /**
-            else if(french) {
-                data = baofit::boss::loadFrench(*filename,prototype,
-                    verbose,unweighted,expanded);
-            }
             else if(sectors) {
                 data = baofit::boss::loadSectors(*filename,prototype,verbose);
             }
@@ -585,7 +570,7 @@ int main(int argc, char **argv) {
         analyzer.printScaleZEff(fmin,zref,"BAO alpha-parallel");
         analyzer.printScaleZEff(fmin,zref,"BAO alpha-perp");
         // Dump the combined multipole data points with decorrelated errors, if possible.
-        if(french || dr9lrg || xiFormat) {
+        if(dr9lrg || xiFormat) {
             std::string outName = outputPrefix + "combined.dat";
             std::ofstream out(outName.c_str());
             boost::shared_ptr<const baofit::MultipoleCorrelationData> combinedMultipoles =

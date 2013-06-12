@@ -13,12 +13,6 @@
 namespace baofit {
     namespace boss {
 
-        AbsCorrelationDataPtr createFrenchPrototype(double zref);
-
-        AbsCorrelationDataPtr loadFrench(std::string const &dataName,
-            AbsCorrelationDataCPtr prototype, bool verbose,
-            bool unweighted = false, bool expanded = false);
-            
         AbsCorrelationDataPtr createComovingPrototype(ComovingCorrelationData::CoordinateSystem coords,
             bool verbose, std::string const &axis1Bins, std::string const &axis2Bins,
             std::string const &axis3Bins);
