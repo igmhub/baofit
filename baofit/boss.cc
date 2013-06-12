@@ -4,7 +4,6 @@
 #include "baofit/types.h"
 #include "baofit/RuntimeError.h"
 #include "baofit/AbsCorrelationData.h"
-#include "baofit/MultipoleCorrelationData.h"
 #include "baofit/QuasarCorrelationData.h"
 #include "baofit/ComovingCorrelationData.h"
 
