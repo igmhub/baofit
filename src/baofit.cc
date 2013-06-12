@@ -19,12 +19,15 @@
 
 namespace po = boost::program_options;
 
-char buffer[256];
+// Return <section>.<name> if section is not empty, or else <name>. Allocates std::string storage for the
+// result and returns a pointer.
 const char *prefix(std::string const &section, std::string const &name) {
-    strcpy(buffer, section.c_str());
-    if(strlen(buffer) > 0) strcat(buffer,".");
-    strcat(buffer,name.c_str());
-    return buffer;
+    static std::vector<std::string> names;
+    std::string fullname = section;
+    if(section.size() > 0) fullname += ".";
+    fullname += name;
+    names.push_back(fullname);
+    return fullname.c_str();
 }
 
 struct ModelOptions {
@@ -34,7 +37,7 @@ struct ModelOptions {
     std::vector<std::string> modelConfig;
 };
 
-void createModelOptions(po::options_description &options, ModelOptions &o, std::string const &section) {
+void createModelOptions(po::options_description &options, ModelOptions &o, std::string const &section = "") {
     options.add_options()
         (prefix(section,"omega-matter"), po::value<double>(&o.OmegaMatter)->default_value(0.27,"0.27"),
             "Present-day value of OmegaMatter.")
@@ -81,70 +84,33 @@ int main(int argc, char **argv) {
     
     // Configure option processing
     po::options_description allOptions("Fits cosmological data to measure baryon acoustic oscillations"),
-        genericOptions("Generic options"),modelOptions("Model options"), dataOptions("Data options"),
-        frenchOptions("French data options"), cosmolibOptions("Cosmolib data options"),
-        analysisOptions("Analysis options");
+        genericOptionsGroup("Generic options"),modelOptionsGroup("Model options"), dataOptionsGroup("Data options"),
+        frenchOptionsGroup("French data options"), cosmolibOptionsGroup("Cosmolib data options"),
+        analysisOptionsGroup("Analysis options");
 
-    double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,
-        rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax,kloSpline,khiSpline,toymcScale,saveICovScale,
-        zMin,zMax,llMin,llMax,sepMin,sepMax,distR0,zdump;
+    double minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,
+        rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax,toymcScale,saveICovScale,
+        zMin,zMax,llMin,llMax,sepMin,sepMax,zdump;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
-        mcmcSave,mcmcInterval,toymcSamples,xiNr,reuseCov,nSpline,splineOrder,bootstrapCovTrials,
+        mcmcSave,mcmcInterval,toymcSamples,xiNr,reuseCov,bootstrapCovTrials,
         projectModesNKeep;
-    std::string modelrootName,fiducialName,nowigglesName,dataName,xiPoints,toymcConfig,
-        platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig,
+    std::string dataName,toymcConfig,
+        platelistName,platerootName,iniName,refitConfig,minMethod,outputPrefix,
         fixModeScales,distAdd,distMul,dataFormat,axis1Bins,axis2Bins,axis3Bins;
-    std::vector<std::string> modelConfig;
 
     // Default values in quotes below are to avoid roundoff errors leading to ugly --help
     // messages. See http://stackoverflow.com/questions/1734916/
-    genericOptions.add_options()
+    genericOptionsGroup.add_options()
         ("help,h", "Prints this info and exits.")
         ("quiet,q", "Runs silently unless there is a problem.")
         ("ini-file,i", po::value<std::string>(&iniName)->default_value(""),
             "Loads options from specified INI file (command line has priority).")
         ;
-    modelOptions.add_options()
-        ("omega-matter", po::value<double>(&OmegaMatter)->default_value(0.27,"0.27"),
-            "Present-day value of OmegaMatter.")
-        ("hubble-constant", po::value<double>(&hubbleConstant)->default_value(0.7,"0.7"),
-            "Present-day value of the Hubble parameter h = H0/(100 km/s/Mpc).")
-        ("fiducial", po::value<std::string>(&fiducialName)->default_value(""),
-            "Fiducial correlation functions will be read from <name>.<ell>.dat with ell=0,2,4.")
-        ("nowiggles", po::value<std::string>(&nowigglesName)->default_value(""),
-            "No-wiggles correlation functions will be read from <name>.<ell>.dat with ell=0,2,4.")
-        ("modelroot", po::value<std::string>(&modelrootName)->default_value(""),
-            "Common path to prepend to all model filenames.")
-        ("zref", po::value<double>(&zref)->default_value(2.25),
-            "Reference redshift used by model correlation functions.")
-        ("dist-add", po::value<std::string>(&distAdd)->default_value(""),
-            "Parameterization to use for additive broadband distortion.")
-        ("dist-mul", po::value<std::string>(&distMul)->default_value(""),
-            "Parameterization to use for multiplicative broadband distortion.")
-        ("dist-r0", po::value<double>(&distR0)->default_value(100),
-            "Comoving separation in Mpc/h used to normalize broadband radial factors.")
-        ("n-spline", po::value<int>(&nSpline)->default_value(0),
-            "Number of spline knots to use spanning (klo,khi).")
-        ("klo-spline", po::value<double>(&kloSpline)->default_value(0.02,"0.02"),
-            "Minimum k in h/Mpc for k P(k) B-spline.")
-        ("khi-spline", po::value<double>(&khiSpline)->default_value(0.2,"0.2"),
-            "Maximum k in h/Mpc for k P(k) B-spline.")
-        ("order-spline", po::value<int>(&splineOrder)->default_value(3),
-            "Order of B-spline in k P(k).")
-        ("multi-spline", "Fits independent parameters for each multipole.")
-        ("xi-points", po::value<std::string>(&xiPoints)->default_value(""),
-            "Comma-separated list of r values (Mpc/h) to use for interpolating r^2 xi(r)")
-        ("xi-method", po::value<std::string>(&xiMethod)->default_value("cspline"),
-            "Interpolation method to use in r^2 xi(r), use linear or cspline.")
-        ("model-config", po::value<std::vector<std::string> >(&modelConfig)->composing(),
-            "Model parameters configuration script (option can appear multiple times).")
-        ("alt-config", po::value<std::string>(&altConfig)->default_value(""),
-            "Parameter adjustments for dumping alternate best-fit model.")
-        ("anisotropic", "Uses anisotropic scale parameters instead of an isotropic scale.")
-        ("decoupled", "Only applies scale factors to BAO peak and not cosmological broadband.")
-        ("cross-correlation", "Uses independent linear bias parameters for both components.")
-        ;
-    dataOptions.add_options()
+
+    ModelOptions modelOptions;
+    createModelOptions(modelOptionsGroup, modelOptions);
+
+    dataOptionsGroup.add_options()
         ("data", po::value<std::string>(&dataName)->default_value(""),
             "3D correlation data will be read from the specified file.")
         ("platelist", po::value<std::string>(&platelistName)->default_value(""),
@@ -177,14 +143,14 @@ int main(int argc, char **argv) {
         ("project-modes-keep", po::value<int>(&projectModesNKeep)->default_value(0),
             "Projects combined data onto the largest (nkeep>0) or smallest (nkeep<0) variance modes.")
         ;
-    frenchOptions.add_options()
+    frenchOptionsGroup.add_options()
         ("french", "Correlation data files are in the French format (default is cosmolib).")
         ("unweighted", "Does not read covariance data.")
         ("expanded", "Data uses the expanded format.")
         ("use-quad", "Uses quadrupole correlations.")
         ("sectors", "Correlation data file in r-mu format by angular sector.")
         ;
-    cosmolibOptions.add_options()
+    cosmolibOptionsGroup.add_options()
         ("weighted", "Data vectors are inverse-covariance weighted.")
         ("reuse-cov", po::value<int>(&reuseCov)->default_value(-1),
 	        "Reuse covariance estimated for n-th realization of each plate (if >=0).")
@@ -218,7 +184,7 @@ int main(int argc, char **argv) {
             "Number of separation values equally spaced from minr-maxr (Xi format only).")
         ("xi-hexa", "Has hexadecapole (Xi format only).")
         ;
-    analysisOptions.add_options()
+    analysisOptionsGroup.add_options()
         ("rmin", po::value<double>(&rmin)->default_value(0),
             "Final cut on minimum 3D comoving separation (Mpc/h) to use in fit.")
         ("rmax", po::value<double>(&rmax)->default_value(200),
@@ -287,8 +253,8 @@ int main(int argc, char **argv) {
             "Minimization method to use for fitting.")
         ;
 
-    allOptions.add(genericOptions).add(modelOptions).add(dataOptions)
-        .add(frenchOptions).add(cosmolibOptions).add(analysisOptions);
+    allOptions.add(genericOptionsGroup).add(modelOptionsGroup).add(dataOptionsGroup)
+        .add(frenchOptionsGroup).add(cosmolibOptionsGroup).add(analysisOptionsGroup);
     po::variables_map vm;
 
     // Parse command line options first so they override anything in an INI file
@@ -306,7 +272,7 @@ int main(int argc, char **argv) {
         return 1;
     }
     // Make a copy of any command-line model-config options.
-    std::vector<std::string> modelConfigSave = modelConfig;
+    std::vector<std::string> modelConfigSave = modelOptions.modelConfig;
 
     po::options_description iniOptions;
     ModelOptions mopt;
@@ -330,8 +296,8 @@ int main(int argc, char **argv) {
     }
     // Shift any command-line model-config options after any INI file options.
     int nSave = modelConfigSave.size();
-    std::copy(modelConfig.begin()+nSave,modelConfig.end(),modelConfig.begin());
-    std::copy(modelConfigSave.begin(),modelConfigSave.end(),modelConfig.end()-nSave);
+    std::copy(modelOptions.modelConfig.begin()+nSave,modelOptions.modelConfig.end(),modelOptions.modelConfig.begin());
+    std::copy(modelConfigSave.begin(),modelConfigSave.end(),modelOptions.modelConfig.end()-nSave);
     
     // Extract boolean options.
     bool verbose(0 == vm.count("quiet")), french(vm.count("french")), weighted(vm.count("weighted")),
@@ -391,25 +357,29 @@ int main(int argc, char **argv) {
     baofit::AbsCorrelationModelPtr model;
     try {
         // Build the homogeneous cosmology we will use.
-        cosmology.reset(new cosmo::LambdaCdmRadiationUniverse(OmegaMatter,0,hubbleConstant));
+        cosmology.reset(new cosmo::LambdaCdmRadiationUniverse(
+            modelOptions.OmegaMatter,0,modelOptions.hubbleConstant));
         
-        if(nSpline > 0) {
-            model.reset(new baofit::PkCorrelationModel(modelrootName,nowigglesName,
-                kloSpline,khiSpline,nSpline,splineOrder,multiSpline,zref,crossCorrelation));
+        if(modelOptions.nSpline > 0) {
+            model.reset(new baofit::PkCorrelationModel(modelOptions.modelrootName,modelOptions.nowigglesName,
+                modelOptions.kloSpline,modelOptions.khiSpline,modelOptions.nSpline,modelOptions.splineOrder,
+                multiSpline,modelOptions.zref,crossCorrelation));
         }
-        else if(xiPoints.length() > 0) {
-            model.reset(new baofit::XiCorrelationModel(xiPoints,zref,xiMethod,crossCorrelation));
+        else if(modelOptions.xiPoints.length() > 0) {
+            model.reset(new baofit::XiCorrelationModel(modelOptions.xiPoints,modelOptions.zref,
+                modelOptions.xiMethod,crossCorrelation));
         }
         else {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
             model.reset(new baofit::BaoCorrelationModel(
-                modelrootName,fiducialName,nowigglesName,distAdd,distMul,distR0,zref,anisotropic,
+                modelOptions.modelrootName,modelOptions.fiducialName,modelOptions.nowigglesName,
+                modelOptions.distAdd,modelOptions.distMul,modelOptions.distR0,modelOptions.zref,anisotropic,
                 decoupled,crossCorrelation));
         }
              
         // Configure our fit model parameters by applying all model-config options in turn,
         // starting with those in the INI file and ending with any command-line options.
-        BOOST_FOREACH(std::string const &config, modelConfig) {
+        BOOST_FOREACH(std::string const &config, modelOptions.modelConfig) {
             model->configureFitParameters(config);
         }
 
@@ -647,9 +617,9 @@ int main(int argc, char **argv) {
         // Print out some extra info if this fit has floating "BAO alpha-*"
         // and "gamma-alpha" parameters.
         std::cout << std::endl;
-        analyzer.printScaleZEff(fmin,zref,"BAO alpha-iso");
-        analyzer.printScaleZEff(fmin,zref,"BAO alpha-parallel");
-        analyzer.printScaleZEff(fmin,zref,"BAO alpha-perp");
+        analyzer.printScaleZEff(fmin,modelOptions.zref,"BAO alpha-iso");
+        analyzer.printScaleZEff(fmin,modelOptions.zref,"BAO alpha-parallel");
+        analyzer.printScaleZEff(fmin,modelOptions.zref,"BAO alpha-perp");
         // Dump the combined multipole data points with decorrelated errors, if possible.
         if(french || dr9lrg || xiFormat) {
             std::string outName = outputPrefix + "combined.dat";
@@ -666,7 +636,7 @@ int main(int argc, char **argv) {
         }
         // If we just did a multipole fit (and have a valid fit), save the results in a format
         // that can be used as input for a subsequent multipole fit
-        if(xiPoints.length() > 0 && fmin->hasCovariance()) {
+        if(modelOptions.xiPoints.length() > 0 && fmin->hasCovariance()) {
             boost::shared_ptr<baofit::XiCorrelationModel> xiModel =
                 boost::dynamic_pointer_cast<baofit::XiCorrelationModel>(model);
             xiModel->saveMultipolesAsData(outputPrefix,fmin);
@@ -678,19 +648,19 @@ int main(int argc, char **argv) {
             analyzer.dumpModel(out,fmin->getFitParameters(),ndump,zdump);
             out.close();
         }
-        if(ndump > 0 && altConfig.length() > 0) {
+        if(ndump > 0 && modelOptions.altConfig.length() > 0) {
             // Dump an alternate best-fit model with some parameters modified (e.g., no BAO features)
             std::string outName = outputPrefix + "alt.dat";
             std::ofstream out(outName.c_str());
-            analyzer.dumpModel(out,fmin->getFitParameters(),ndump,zdump,altConfig);
+            analyzer.dumpModel(out,fmin->getFitParameters(),ndump,zdump,modelOptions.altConfig);
             out.close();
         }
-        if(ndump > 0 && nSpline > 0) {
+        if(ndump > 0 && modelOptions.nSpline > 0) {
             // Dump the P(k) model corresponding to our best fit xi(r).
             std::string outName = outputPrefix + "pk.dat";
             boost::shared_ptr<baofit::PkCorrelationModel> pkModel =
                 boost::dynamic_pointer_cast<baofit::PkCorrelationModel>(model);
-            pkModel->dump(outName,0.001,0.35,ndump,fmin->getParameters(),zref);
+            pkModel->dump(outName,0.001,0.35,ndump,fmin->getParameters(),modelOptions.zref);
         }
         {
             // Dump the best-fit residuals for each data bin.
@@ -699,11 +669,11 @@ int main(int argc, char **argv) {
             analyzer.dumpResiduals(out,fmin,combined);
             out.close();
         }
-        if(altConfig.length() > 0) {
+        if(modelOptions.altConfig.length() > 0) {
             // Dump the best-fit residuals for each data bin using an alternate model.
             std::string outName = outputPrefix + "altresiduals.dat";
             std::ofstream out(outName.c_str());
-            analyzer.dumpResiduals(out,fmin,combined,altConfig);
+            analyzer.dumpResiduals(out,fmin,combined,modelOptions.altConfig);
             out.close();
         }
         // Calculate and save a bootstrap estimate of the (unfinalized) combined covariance
