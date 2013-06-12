@@ -17,11 +17,6 @@ namespace baofit {
             bool verbose, std::string const &axis1Bins, std::string const &axis2Bins,
             std::string const &axis3Bins);
 
-        AbsCorrelationDataPtr createSectorsPrototype(double zref);
-            
-        AbsCorrelationDataPtr loadSectors(std::string const &dataName,
-            baofit::AbsCorrelationDataCPtr prototype, bool verbose);
-            
         std::vector<double> twoStepSampling(
             double breakpoint, double llmax, double dlog, double dlin);
 
@@ -39,13 +34,6 @@ namespace baofit {
         AbsCorrelationDataPtr loadCosmolib(std::string const &dataName,
             AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted,
             int &reuseCovIndex, int reuseCov = -1);
-
-        AbsCorrelationDataPtr createCosmolibXiPrototype(double minz, double dz, int nz,
-            double minr, double maxr, double nr, bool hasHexadecapole);
-            
-        AbsCorrelationDataPtr loadCosmolibXi(std::string const &dataName,
-            AbsCorrelationDataCPtr prototype, bool verbose, bool weighted,
-            int reuseCov = -1);
 
     } // boss
 } // baofit

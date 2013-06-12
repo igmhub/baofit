@@ -27,10 +27,10 @@ int main(int argc, char **argv) {
         cosmolibOptions("Cosmolib data options"), analysisOptions("Analysis options");
 
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,
-        rVetoWidth,rVetoCenter,xiRmin,xiRmax,muMin,muMax,kloSpline,khiSpline,toymcScale,saveICovScale,
+        rVetoWidth,rVetoCenter,muMin,muMax,kloSpline,khiSpline,toymcScale,saveICovScale,
         zMin,zMax,llMin,llMax,sepMin,sepMax,distR0,zdump;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
-        mcmcSave,mcmcInterval,toymcSamples,xiNr,reuseCov,nSpline,splineOrder,bootstrapCovTrials,
+        mcmcSave,mcmcInterval,toymcSamples,reuseCov,nSpline,splineOrder,bootstrapCovTrials,
         projectModesNKeep;
     std::string modelrootName,fiducialName,nowigglesName,dataName,xiPoints,toymcConfig,
         platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig,
@@ -140,14 +140,6 @@ int main(int argc, char **argv) {
         ("nz", po::value<int>(&nz)->default_value(2),
             "Maximum number of redshift bins.")
         ("saved-format", "Cosmolib data in format written by our save options.")
-        ("xi-format", "Cosmolib data in Xi format.")
-        ("xi-rmin", po::value<double>(&xiRmin)->default_value(0),
-            "Minimum separation in Mpc/h (Xi format only).")
-        ("xi-rmax", po::value<double>(&xiRmax)->default_value(200),
-            "Minimum separation in Mpc/h (Xi format only).")
-        ("xi-nr", po::value<int>(&xiNr)->default_value(41),
-            "Number of separation values equally spaced from minr-maxr (Xi format only).")
-        ("xi-hexa", "Has hexadecapole (Xi format only).")
         ;
     analysisOptions.add_options()
         ("rmin", po::value<double>(&rmin)->default_value(0),
@@ -260,9 +252,8 @@ int main(int argc, char **argv) {
     bool verbose(0 == vm.count("quiet")), weighted(vm.count("weighted")),
         checkPosDef(vm.count("check-posdef")), fixCovariance(0 == vm.count("naive-covariance")),
         anisotropic(vm.count("anisotropic")),
-        fitEach(vm.count("fit-each")), xiHexa(vm.count("xi-hexa")), savedFormat(vm.count("saved-format")),
-        xiFormat(vm.count("xi-format")), decorrelated(vm.count("decorrelated")),
-        toymcSave(vm.count("toymc-save")),
+        fitEach(vm.count("fit-each")), savedFormat(vm.count("saved-format")),
+        decorrelated(vm.count("decorrelated")), toymcSave(vm.count("toymc-save")),
         saveICov(vm.count("save-icov")), multiSpline(vm.count("multi-spline")),
         fixAlnCov(vm.count("fix-aln-cov")), saveData(vm.count("save-data")),
         scalarWeights(vm.count("scalar-weights")), noInitialFit(vm.count("no-initial-fit")),
@@ -272,10 +263,6 @@ int main(int argc, char **argv) {
         parameterScan(vm.count("parameter-scan"));
 
     // Check that at most one data format has been specified.
-    if(xiFormat > 1) {
-        std::cerr << "Specify at most one data format option." << std::endl;
-        return -1;
-    }
     if(dataFormat != "" && dataFormat != "comoving-cartesian" && dataFormat != "comoving-polar" &&
         dataFormat != "comoving-multipole") {
         std::cerr << "The data format must be one of: comoving-cartesian, comoving-polar, comoving-multipole"
@@ -361,14 +348,6 @@ int main(int argc, char **argv) {
             prototype = baofit::boss::createComovingPrototype(baofit::ComovingCorrelationData::MultipoleCoordinates,
                 verbose,axis1Bins,axis2Bins,axis3Bins);
         }
-        /*
-        else if(sectors) {
-            prototype = baofit::boss::createSectorsPrototype(zdata);
-        }
-        */
-        else if(xiFormat) {
-            prototype = baofit::boss::createCosmolibXiPrototype(minz,dz,nz,xiRmin,xiRmax,xiNr,xiHexa);
-        }
         else { // default is cosmolib (saved) format
             prototype = baofit::boss::createCosmolibPrototype(
                 minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,llMin,llMax,sepMin,sepMax,
@@ -431,15 +410,6 @@ int main(int argc, char **argv) {
             int reuseCovIndex(-1);
             if(dataFormat != "") {
                 data = baofit::boss::loadSaved(*filename,prototype,verbose,loadICov,loadWData);
-            }
-            /**
-            else if(sectors) {
-                data = baofit::boss::loadSectors(*filename,prototype,verbose);
-            }
-            **/
-            else if(xiFormat) {
-                data = baofit::boss::loadCosmolibXi(*filename,prototype,
-                    verbose,weighted,reuseCov);
             }
             else {
                 // Add a cosmolib dataset, assumed to provided icov instead of cov.
@@ -559,20 +529,6 @@ int main(int argc, char **argv) {
         analyzer.printScaleZEff(fmin,zref,"BAO alpha-iso");
         analyzer.printScaleZEff(fmin,zref,"BAO alpha-parallel");
         analyzer.printScaleZEff(fmin,zref,"BAO alpha-perp");
-        // Dump the combined multipole data points with decorrelated errors, if possible.
-        if(xiFormat) {
-            std::string outName = outputPrefix + "combined.dat";
-            std::ofstream out(outName.c_str());
-            boost::shared_ptr<const baofit::MultipoleCorrelationData> combinedMultipoles =
-                boost::dynamic_pointer_cast<const baofit::MultipoleCorrelationData>(combined);
-            std::vector<double> dweights;
-            if(decorrelated) {
-                // Calculate the decorrelated weights for the combined fit.
-                analyzer.getDecorrelatedWeights(combined,fmin->getParameters(),dweights);
-            }
-            combinedMultipoles->dump(out,rmin,rmax,dweights);
-            out.close();
-        }
         // If we just did a multipole fit (and have a valid fit), save the results in a format
         // that can be used as input for a subsequent multipole fit
         if(xiPoints.length() > 0 && fmin->hasCovariance()) {
