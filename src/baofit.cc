@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
         ("plateroot", po::value<std::string>(&platerootName)->default_value(""),
             "Common path to prepend to all plate datafiles listed in the platelist.")
         ("data-format", po::value<std::string>(&dataFormat)->default_value(""),
-            "Input data format (comoving-cartesian,comoving-polar,comoving-multipole)")
+            "Input data format (comoving-cartesian,comoving-polar,comoving-multipole,quasar)")
         ("axis1-bins", po::value<std::string>(&axis1Bins)->default_value(""),
             "Comma separated list of bin centers for axis 1.")
         ("axis2-bins", po::value<std::string>(&axis2Bins)->default_value(""),
@@ -262,11 +262,11 @@ int main(int argc, char **argv) {
         loadWData(vm.count("load-wdata")), crossCorrelation(vm.count("cross-correlation")),
         parameterScan(vm.count("parameter-scan"));
 
-    // Check that at most one data format has been specified.
-    if(dataFormat != "" && dataFormat != "comoving-cartesian" && dataFormat != "comoving-polar" &&
-        dataFormat != "comoving-multipole") {
-        std::cerr << "The data format must be one of: comoving-cartesian, comoving-polar, comoving-multipole"
-            << std::endl;
+    // Check that we have a recognized data format.
+    if(dataFormat != "comoving-cartesian" && dataFormat != "comoving-polar" &&
+    dataFormat != "comoving-multipole" && dataFormat != "quasar") {
+        std::cerr << "The data format must be one of: " <<
+            "comoving-cartesian, comoving-polar, comoving-multipole, quasar." << std::endl;
         return -1;
     }
 
@@ -348,10 +348,13 @@ int main(int argc, char **argv) {
             prototype = baofit::boss::createComovingPrototype(baofit::ComovingCorrelationData::MultipoleCoordinates,
                 verbose,axis1Bins,axis2Bins,axis3Bins);
         }
-        else { // default is cosmolib (saved) format
+        else if(dataFormat == "quasar") {
             prototype = baofit::boss::createCosmolibPrototype(
                 minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,llMin,llMax,sepMin,sepMax,
                 fixAlnCov,cosmology);
+        }
+        else {
+            throw baofit::RuntimeError("Internal error: missing data-format handler.");
         }
         // Set the final cuts that have not already been specified in the prototype ctors above.
         prototype->setFinalCuts(rmin,rmax,rVetoMin,rVetoMax,muMin,muMax,ellmin,ellmax,zMin,zMax);
@@ -404,28 +407,16 @@ int main(int argc, char **argv) {
         }
         
         // Load each file into our analyzer.
+        int reuseCovIndex(-1); // each subsample has its own matching (i)cov file
         for(std::vector<std::string>::const_iterator filename = filelist.begin();
         filename != filelist.end(); ++filename) {
-            baofit::AbsCorrelationDataPtr data;
-            int reuseCovIndex(-1);
-            if(dataFormat != "") {
-                data = baofit::boss::loadSaved(*filename,prototype,verbose,loadICov,loadWData);
-            }
-            else {
-                // Add a cosmolib dataset, assumed to provided icov instead of cov.
-                if(savedFormat) {
-                    data = baofit::boss::loadSaved(*filename,prototype,verbose,loadICov,loadWData);
-                }
-                else {
-                    data = baofit::boss::loadCosmolib(*filename,prototype,
-                        verbose,true,weighted,reuseCovIndex,reuseCov);
-                }
-            }
+            baofit::AbsCorrelationDataPtr data =
+                baofit::boss::loadSaved(*filename,prototype,verbose,loadICov,loadWData);
             if(checkPosDef && !data->getCovarianceMatrix()->isPositiveDefinite()) {
                 std::cerr << "!!! Covariance matrix not positive-definite for "
                     << *filename << std::endl;
             }
-            if(reuseCovIndex < 0 && modeScales.size() > 0) {
+            if(modeScales.size() > 0) {
                 if(verbose) std::cout << "Correcting mode scales..." << std::endl;
                 data->rescaleEigenvalues(modeScales);
                 {

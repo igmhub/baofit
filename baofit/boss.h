@@ -31,10 +31,6 @@ namespace baofit {
         AbsCorrelationDataPtr loadSaved(std::string const &dataName,
             AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted);
 
-        AbsCorrelationDataPtr loadCosmolib(std::string const &dataName,
-            AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted,
-            int &reuseCovIndex, int reuseCov = -1);
-
     } // boss
 } // baofit
 
