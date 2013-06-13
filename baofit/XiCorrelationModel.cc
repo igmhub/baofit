@@ -90,7 +90,7 @@ void local::XiCorrelationModel::_initializeInterpolators() const {
         if(index < npoints ||
             isParameterValueChanged(_indexBase + npoints) || isParameterValueChanged(_indexBase + npoints + 1)) {
             // Calculate the higher-ell interpolation points points in terms of the monopole interpolator.
-            double r0 = _rValues[0];
+            double r0 = _rValues[0], r03(r0*r0*r0);
             double xi0r0 = (*_xi0)(r0);
             double xi2r0 = getParameterValue(_indexBase + npoints);
             double xi4r0 = getParameterValue(_indexBase + npoints + 1);
@@ -106,7 +106,7 @@ void local::XiCorrelationModel::_initializeInterpolators() const {
                 // Use eqn (2.14) of http://arxiv.org/abs/1301.3456 but with everything multiplied by r^2
                 double r = _rValues[index];
                 integral += xi2Integrator.integrateSmooth(_rValues[index-1],r);
-                _xiValues.push_back(xi0r0 + std::pow(r0/r,3)*(xi2r0-xi0r0) - (3/r)*integral);
+                _xiValues.push_back((*_xi0)(r) + (r0*(xi2r0-xi0r0) - 3*integral)/r);
                 std::cout << "ell=2 index=" << index << " xi2 = " << _xiValues[index] << std::endl;
             }
             // Build the ell = 2 integrator
@@ -117,9 +117,9 @@ void local::XiCorrelationModel::_initializeInterpolators() const {
             _xiValues.push_back(xi4r0);
             for(index = 1; index < npoints; ++index) {
                 // Use eqn (2.14) of http://arxiv.org/abs/1301.3456 but with everything multiplied by r^2
-                double r = _rValues[index];
+                double r = _rValues[index], rsq(r*r);
                 integral += xi4Integrator.integrateSmooth(_rValues[index-1],r);
-                _xiValues.push_back(xi0r0 + std::pow(r0/r,5)*(xi4r0-xi0r0) - (5/(r*r*r))*integral);
+                _xiValues.push_back((*_xi0)(r) + (r03*(xi4r0-xi0r0) - 5*integral)/(r*rsq));
                 std::cout << "ell=4 index=" << index << " xi4 = " << _xiValues[index] << std::endl;
             }
             // Build the ell = 2 integrator
