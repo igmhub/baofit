@@ -9,7 +9,13 @@
 
 #include "boost/lexical_cast.hpp"
 #include "boost/algorithm/string.hpp"
+#include "boost/spirit/include/qi.hpp"
+#include "boost/spirit/include/phoenix_core.hpp"
+#include "boost/spirit/include/phoenix_operator.hpp"
+#include "boost/spirit/include/phoenix_stl.hpp"
+#include "boost/smart_ptr.hpp"
 
+#include <fstream>
 #include <iostream>
 
 namespace local = baofit;
@@ -77,7 +83,6 @@ void local::AbsCorrelationData::_applyFinalCuts(std::set<int> &keep) const {
     }
 }
 
-
 likely::BinnedGrid local::createCorrelationGrid(std::string const &axis1Bins, std::string const &axis2Bins,
     std::string const &axis3Bins, std::string const &axisLabels, bool verbose) {
     // Extract the comma-separated 3 axis labels
@@ -132,4 +137,98 @@ likely::BinnedGrid local::createCorrelationGrid(std::string const &axis1Bins, st
     }
     // Return a BinnedGrid object for these 3 axes.
     return likely::BinnedGrid(axis1ptr,axis2ptr,axis3ptr);    
+}
+
+namespace qi = boost::spirit::qi;
+namespace ascii = boost::spirit::ascii;
+namespace phoenix = boost::phoenix;
+
+baofit::AbsCorrelationDataPtr local::loadCorrelationData(std::string const &dataName,
+baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted) {
+
+    // Create the new AbsCorrelationData that we will fill.
+    baofit::AbsCorrelationDataPtr binnedData(dynamic_cast<AbsCorrelationData*>(prototype->clone(true)));
+
+    // General stuff we will need for reading both files.
+    std::string line;
+    int lines;
+    
+    // import boost spirit parser symbols
+    using qi::double_;
+    using qi::int_;
+    using qi::_1;
+    using phoenix::ref;
+    using phoenix::push_back;
+
+    // Loop over lines in the parameter file.
+    std::string paramsName = dataName + (weighted ? ".wdata" : ".data");
+    std::ifstream paramsIn(paramsName.c_str());
+    if(!paramsIn.good()) throw RuntimeError("loadCorrelationData: Unable to open " + paramsName);
+    lines = 0;
+    int index;
+    double data;
+    std::vector<double> bin(3);
+    while(std::getline(paramsIn,line)) {
+        lines++;
+        bin.resize(0);
+        bool ok = qi::phrase_parse(line.begin(),line.end(),
+            (
+                int_[ref(index) = _1] >> double_[ref(data) = _1]
+            ),
+            ascii::space);
+        if(!ok) {
+            throw RuntimeError("loadCorrelationData: error reading line " +
+                boost::lexical_cast<std::string>(lines) + " of " + paramsName);
+        }
+        binnedData->setData(index,data,weighted);
+    }
+    paramsIn.close();
+    int ndata = binnedData->getNBinsWithData();
+    int nbins = binnedData->getGrid().getNBinsTotal();
+    if(verbose) {
+        std::cout << "Read " << ndata << " of " << nbins << " data values from "
+            << paramsName << std::endl;
+    }
+
+    // Loop over lines in the (inverse) covariance file.
+    std::string covName = dataName + (icov ? ".icov" : ".cov");
+    std::ifstream covIn(covName.c_str());
+    if(!covIn.good()) throw RuntimeError("loadCorrelationData: Unable to open " + covName);
+    lines = 0;
+    double value;
+    int index1,index2;
+    while(std::getline(covIn,line)) {
+        lines++;
+        bin.resize(0);
+        bool ok = qi::phrase_parse(line.begin(),line.end(),
+            (
+                int_[ref(index1) = _1] >> int_[ref(index2) = _1] >> double_[ref(value) = _1]
+            ),
+            ascii::space);
+        if(!ok) {
+            throw RuntimeError("loadCorrelationData: error reading line " +
+                boost::lexical_cast<std::string>(lines) + " of " + covName);
+        }
+        // Check for invalid offsets.
+        if(index1 < 0 || index2 < 0 || index1 >= nbins || index2 >= nbins ||
+        !binnedData->hasData(index1) || !binnedData->hasData(index2)) {
+            throw RuntimeError("loadCorrelationData: invalid covariance indices on line " +
+                boost::lexical_cast<std::string>(lines) + " of " + covName);
+        }
+        // Add this covariance to our dataset.
+        if(icov) {
+            binnedData->setInverseCovariance(index1,index2,value);
+        }
+        else {
+            binnedData->setCovariance(index1,index2,value);            
+        }
+    }
+    covIn.close();
+    if(verbose) {
+        int ncov = (ndata*(ndata+1))/2;
+        std::cout << "Read " << lines << " of " << ncov
+            << " covariance values from " << covName << std::endl;
+    }
+
+    return binnedData;
 }

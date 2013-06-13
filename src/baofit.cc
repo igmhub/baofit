@@ -414,7 +414,7 @@ int main(int argc, char **argv) {
         for(std::vector<std::string>::const_iterator filename = filelist.begin();
         filename != filelist.end(); ++filename) {
             baofit::AbsCorrelationDataPtr data =
-                baofit::boss::loadSaved(*filename,prototype,verbose,loadICov,loadWData);
+                baofit::loadCorrelationData(*filename,prototype,verbose,loadICov,loadWData);
             if(checkPosDef && !data->getCovarianceMatrix()->isPositiveDefinite()) {
                 std::cerr << "!!! Covariance matrix not positive-definite for "
                     << *filename << std::endl;
