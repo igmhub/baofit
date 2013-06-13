@@ -58,6 +58,10 @@ namespace baofit {
 	inline AbsCorrelationData::TransverseBinningType
 	    AbsCorrelationData::getTransverseBinningType() const { return _type; }
 
+    likely::BinnedGrid createCorrelationGrid(std::string const &axis1Bins,
+        std::string const &axis2Bins, std::string const &axis3Bins,
+        std::string const &axisLabels, bool verbose);
+
 } // baofit
 
 #endif // BAOFIT_ABS_CORRELATION_DATA

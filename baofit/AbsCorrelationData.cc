@@ -4,8 +4,11 @@
 #include "baofit/RuntimeError.h"
 
 #include "likely/CovarianceMatrix.h"
+#include "likely/AbsBinning.h"
+#include "likely/RuntimeError.h"
 
 #include "boost/lexical_cast.hpp"
+#include "boost/algorithm/string.hpp"
 
 #include <iostream>
 
@@ -72,4 +75,61 @@ void local::AbsCorrelationData::_applyFinalCuts(std::set<int> &keep) const {
         // This bin passes all cuts so we keep it.
         keep.insert(index);
     }
+}
+
+
+likely::BinnedGrid local::createCorrelationGrid(std::string const &axis1Bins, std::string const &axis2Bins,
+    std::string const &axis3Bins, std::string const &axisLabels, bool verbose) {
+    // Extract the comma-separated 3 axis labels
+    std::vector<std::string> labels;
+    boost::split(labels,axisLabels,boost::is_any_of(","));
+    if(labels.size() != 3) {
+        throw RuntimeError("createCorrelationGrid: expected 3 axis labels.");
+    }
+    // Parse the binning from the strings provided for each axis
+    likely::AbsBinningCPtr axis1ptr,axis2ptr,axis3ptr;
+    try {
+        axis1ptr = likely::createBinning(axis1Bins);
+        if(verbose) {
+            std::cout << labels[0] << " bin centers:";
+            int nbins = axis1ptr->getNBins();
+            for(int bin = 0; bin < nbins; ++bin) {
+                std::cout << (bin ? ',':' ') << axis1ptr->getBinCenter(bin);
+            }
+            std::cout << " (n = " << nbins << ")" << std::endl;
+        }
+    }
+    catch(likely::RuntimeError const &e) {
+        throw RuntimeError("createCorrelationGrid: error in axis 1 (" + labels[0] + ") binning.");
+    }
+    try {
+        axis2ptr = likely::createBinning(axis2Bins);
+        if(verbose) {
+            std::cout << labels[1] << " bin centers:";
+            int nbins = axis2ptr->getNBins();
+            for(int bin = 0; bin < nbins; ++bin) {
+                std::cout << (bin ? ',':' ') << axis2ptr->getBinCenter(bin);
+            }
+            std::cout << " (n = " << nbins << ")" << std::endl;
+        }
+    }
+    catch(likely::RuntimeError const &e) {
+        throw RuntimeError("createCorrelationGrid: error in axis 2 (" + labels[1] + ") binning.");
+    }
+    try {
+        axis3ptr = likely::createBinning(axis3Bins);
+        if(verbose) {
+            std::cout << labels[2] << " bin centers:";
+            int nbins = axis3ptr->getNBins();
+            for(int bin = 0; bin < nbins; ++bin) {
+                std::cout << (bin ? ',':' ') << axis3ptr->getBinCenter(bin);
+            }
+            std::cout << " (n = " << nbins << ")" << std::endl;
+        }
+    }
+    catch(likely::RuntimeError const &e) {
+        throw RuntimeError("createCorrelationGrid: error in axis 3 (" + labels[2] + ") binning.");
+    }
+    // Return a BinnedGrid object for these 3 axes.
+    return likely::BinnedGrid(axis1ptr,axis2ptr,axis3ptr);    
 }

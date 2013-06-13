@@ -337,16 +337,19 @@ int main(int argc, char **argv) {
         // Create a prototype of the binned data we will be loading.
         baofit::AbsCorrelationDataPtr prototype;
         if(dataFormat == "comoving-polar") {
-            prototype = baofit::boss::createComovingPrototype(baofit::ComovingCorrelationData::PolarCoordinates,
-                verbose,axis1Bins,axis2Bins,axis3Bins);
+            prototype.reset(new baofit::ComovingCorrelationData(
+                baofit::createCorrelationGrid(axis1Bins,axis2Bins,axis3Bins,"r,mu,z",verbose),
+                baofit::ComovingCorrelationData::PolarCoordinates));
         }
         else if(dataFormat == "comoving-cartesian") {
-            prototype = baofit::boss::createComovingPrototype(baofit::ComovingCorrelationData::CartesianCoordinates,
-                verbose,axis1Bins,axis2Bins,axis3Bins);
+            prototype.reset(new baofit::ComovingCorrelationData(
+                baofit::createCorrelationGrid(axis1Bins,axis2Bins,axis3Bins,"r_par,r_perp,z",verbose),
+                baofit::ComovingCorrelationData::CartesianCoordinates));
         }
         else if(dataFormat == "comoving-multipole") {
-            prototype = baofit::boss::createComovingPrototype(baofit::ComovingCorrelationData::MultipoleCoordinates,
-                verbose,axis1Bins,axis2Bins,axis3Bins);
+            prototype.reset(new baofit::ComovingCorrelationData(
+                baofit::createCorrelationGrid(axis1Bins,axis2Bins,axis3Bins,"r,ell,z",verbose),
+                baofit::ComovingCorrelationData::MultipoleCoordinates));
         }
         else if(dataFormat == "quasar") {
             prototype = baofit::boss::createCosmolibPrototype(
