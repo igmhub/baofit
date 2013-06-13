@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
         ("plateroot", po::value<std::string>(&platerootName)->default_value(""),
             "Common path to prepend to all plate datafiles listed in the platelist.")
         ("data-format", po::value<std::string>(&dataFormat)->default_value(""),
-            "Input data format (comoving-cartesian,comoving-polar,comoving-multipole,quasar)")
+            "Input data format (comoving-cartesian,comoving-polar,comoving-multipole,quasar,cosmolib)")
         ("axis1-bins", po::value<std::string>(&axis1Bins)->default_value(""),
             "Comma separated list of bin centers for axis 1.")
         ("axis2-bins", po::value<std::string>(&axis2Bins)->default_value(""),
@@ -264,9 +264,9 @@ int main(int argc, char **argv) {
 
     // Check that we have a recognized data format.
     if(dataFormat != "comoving-cartesian" && dataFormat != "comoving-polar" &&
-    dataFormat != "comoving-multipole" && dataFormat != "quasar") {
+    dataFormat != "comoving-multipole" && dataFormat != "quasar" && dataFormat != "cosmolib") {
         std::cerr << "The data format must be one of: " <<
-            "comoving-cartesian, comoving-polar, comoving-multipole, quasar." << std::endl;
+            "comoving-cartesian, comoving-polar, comoving-multipole, quasar, cosmolib." << std::endl;
         return -1;
     }
 
@@ -352,6 +352,12 @@ int main(int argc, char **argv) {
                 baofit::ComovingCorrelationData::MultipoleCoordinates));
         }
         else if(dataFormat == "quasar") {
+            bool fixCov(false);
+            prototype.reset(new baofit::QuasarCorrelationData(
+                baofit::createCorrelationGrid(axis1Bins,axis2Bins,axis3Bins,"dloglam,dtheta,z",verbose),
+                llMin,llMax,sepMin,sepMax,fixCov,cosmology));
+        }
+        else if(dataFormat == "cosmolib") {
             prototype = baofit::boss::createCosmolibPrototype(
                 minsep,dsep,nsep,minz,dz,nz,minll,maxll,dll,dll2,llMin,llMax,sepMin,sepMax,
                 fixAlnCov,cosmology);
