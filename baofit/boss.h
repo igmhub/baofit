@@ -13,10 +13,6 @@
 namespace baofit {
     namespace boss {
 
-        AbsCorrelationDataPtr createComovingPrototype(ComovingCorrelationData::CoordinateSystem coords,
-            bool verbose, std::string const &axis1Bins, std::string const &axis2Bins,
-            std::string const &axis3Bins);
-
         std::vector<double> twoStepSampling(
             double breakpoint, double llmax, double dlog, double dlin);
 
