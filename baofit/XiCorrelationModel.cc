@@ -20,7 +20,7 @@ namespace local = baofit;
 
 local::XiCorrelationModel::XiCorrelationModel(std::string const &points, std::string const &method,
 bool independentMultipoles, double zref, bool crossCorrelation)
-: AbsCorrelationModel("Xi Correlation Model"), _method(method)
+: AbsCorrelationModel("Xi Correlation Model"), _method(method), _independentMultipoles(independentMultipoles)
 {
     // Parse string of comma-separated points
     try {
@@ -43,6 +43,7 @@ bool independentMultipoles, double zref, bool crossCorrelation)
             double rval(_rValues[index]);
             defineParameter(boost::str(pname % ell % index),0,perr);
         }
+        if(!independentMultipoles) break;
     }
 }
 

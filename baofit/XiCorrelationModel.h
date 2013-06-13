@@ -39,6 +39,7 @@ namespace baofit {
         virtual double _evaluate(double r, cosmo::Multipole multipole, double z, bool anyChanged) const;
 	private:
         std::string _method;
+        bool _independentMultipoles;
         int _indexBase;
         std::vector<double> _rValues;
         mutable std::vector<double> _xiValues;
