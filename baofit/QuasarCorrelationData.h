@@ -10,12 +10,13 @@
 namespace baofit {
 	class QuasarCorrelationData : public AbsCorrelationData {
 	// Represents a quasar transmission-fraction (F) correlation function binned in observed
-	// coordinates log(lambda2/lambda1), angular separation between lines of sight, and
+	// coordinates log(lambda2/lambda1), angular separation between lines of sight in arcmins, and
 	// average absorption redshift.
 	public:
 	    // Creates a new object using the specified binning and cosmology to map the observed coordinates
-	    // into co-moving coordinates. The data will be pruned to rmin <= r < rmax (in Mpc/h) and
-	    // log(lambda2/lambda1) > llmin when the finalize() method is called.
+	    // into co-moving coordinates. The data will be pruned to llMin <= ll <= llMax and
+        // sepMin <= sep <= sepMax when the finalize() method is called. Uses the specified
+        // homogeneous cosmology to embed the absorption physical coordinates into comoving coords.
         QuasarCorrelationData(likely::BinnedGrid grid,
             double llMin, double llMax, double sepMin, double sepMax,
             bool fixCov, cosmo::AbsHomogeneousUniversePtr cosmology);
