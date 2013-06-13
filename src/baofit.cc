@@ -528,7 +528,7 @@ int main(int argc, char **argv) {
         analyzer.printScaleZEff(fmin,zref,"BAO alpha-perp");
         // If we just did a multipole fit (and have a valid fit), save the results in a format
         // that can be used as input for a subsequent multipole fit
-        if(xiPoints.length() > 0 && fmin->hasCovariance()) {
+        if(xiPoints.length() > 0 && fmin->hasCovariance() && multiSpline) {
             boost::shared_ptr<baofit::XiCorrelationModel> xiModel =
                 boost::dynamic_pointer_cast<baofit::XiCorrelationModel>(model);
             xiModel->saveMultipolesAsData(outputPrefix,fmin);

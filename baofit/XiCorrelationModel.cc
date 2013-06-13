@@ -100,24 +100,26 @@ void local::XiCorrelationModel::_initializeInterpolators() const {
             likely::Integrator xi4Integrator(_xi4IntegrandPtr,1e-6,1e-6);
             // Fill _xiValues with the ell = 2 interpolation points to use
             double integral = 0;
-            _xiValues[0] = xi2r0;
+            _xiValues.resize(0);
+            _xiValues.push_back(xi2r0);
             for(index = 1; index < npoints; ++index) {
                 // Use eqn (2.14) of http://arxiv.org/abs/1301.3456 but with everything multiplied by r^2
                 double r = _rValues[index];
                 integral += xi2Integrator.integrateSmooth(_rValues[index-1],r);
-                _xiValues[index] = xi0r0 + std::pow(r0/r,3)*(xi2r0-xi0r0) - (3/r)*integral;
+                _xiValues.push_back(xi0r0 + std::pow(r0/r,3)*(xi2r0-xi0r0) - (3/r)*integral);
                 std::cout << "ell=2 index=" << index << " xi2 = " << _xiValues[index] << std::endl;
             }
             // Build the ell = 2 integrator
             _xi2.reset(new likely::Interpolator(_rValues,_xiValues,_method));
             // Fill _xiValues with the ell = 4 interpolation points to use
             integral = 0;
-            _xiValues[0] = xi4r0;
+            _xiValues.resize(0);
+            _xiValues.push_back(xi4r0);
             for(index = 1; index < npoints; ++index) {
                 // Use eqn (2.14) of http://arxiv.org/abs/1301.3456 but with everything multiplied by r^2
                 double r = _rValues[index];
                 integral += xi4Integrator.integrateSmooth(_rValues[index-1],r);
-                _xiValues[index] = xi0r0 + std::pow(r0/r,5)*(xi4r0-xi0r0) - (5/(r*r*r))*integral;
+                _xiValues.push_back(xi0r0 + std::pow(r0/r,5)*(xi4r0-xi0r0) - (5/(r*r*r))*integral);
                 std::cout << "ell=4 index=" << index << " xi4 = " << _xiValues[index] << std::endl;
             }
             // Build the ell = 2 integrator
