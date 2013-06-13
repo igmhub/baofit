@@ -18,8 +18,8 @@
 
 namespace local = baofit;
 
-local::XiCorrelationModel::XiCorrelationModel(std::string const &points, double zref,
-std::string const &method, bool crossCorrelation)
+local::XiCorrelationModel::XiCorrelationModel(std::string const &points, std::string const &method,
+bool independentMultipoles, double zref, bool crossCorrelation)
 : AbsCorrelationModel("Xi Correlation Model"), _method(method)
 {
     // Parse string of comma-separated points

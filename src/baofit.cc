@@ -304,7 +304,7 @@ int main(int argc, char **argv) {
                 kloSpline,khiSpline,nSpline,splineOrder,multiSpline,zref,crossCorrelation));
         }
         else if(xiPoints.length() > 0) {
-            model.reset(new baofit::XiCorrelationModel(xiPoints,zref,xiMethod,crossCorrelation));
+            model.reset(new baofit::XiCorrelationModel(xiPoints,xiMethod,multiSpline,zref,crossCorrelation));
         }
         else {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.

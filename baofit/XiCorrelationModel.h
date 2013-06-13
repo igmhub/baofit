@@ -14,9 +14,12 @@ namespace baofit {
 	// Represents a two-point correlation model parameterized as an interpolation in each multipole.
 	class XiCorrelationModel : public AbsCorrelationModel {
 	public:
-	    // Creates a new interpolating correlation model.
-		XiCorrelationModel(std::string const &points, double zref, std::string const &method = "linear",
-            bool crossCorrelation = false);
+	    // Creates a new interpolating correlation model. The input points should be a comma-separated
+        // list of r values (in Mpc/h) where spline points will be created. The interpolation method
+        // should either be "linear" or "cspline". Creates independent parameters for each multipole
+        // if requested, or else relative normalizations are fixed by Kaiser theory.
+		XiCorrelationModel(std::string const &points, std::string const &method, bool independentMultipoles,
+            double zref,  bool crossCorrelation = false);
 		virtual ~XiCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
