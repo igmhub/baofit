@@ -8,6 +8,7 @@
 #include "likely/FunctionMinimum.h"
 #include "likely/CovarianceMatrix.h"
 #include "likely/RuntimeError.h"
+#include "likely/function_impl.h"
 
 #include "boost/format.hpp"
 #include "boost/lexical_cast.hpp"
@@ -50,6 +51,11 @@ bool independentMultipoles, double zref, bool crossCorrelation)
             // calculated from ell = 0
             defineParameter("xi2(r0)",0,0.1);
             defineParameter("xi4(r0)",0,0.01);
+            // Create function pointers for our integrands
+            _xi2IntegrandPtr.reset(new likely::Integrator::Integrand(
+                boost::bind(&XiCorrelationModel::_xi2Integrand,this,_1)));
+            _xi4IntegrandPtr.reset(new likely::Integrator::Integrand(
+                boost::bind(&XiCorrelationModel::_xi4Integrand,this,_1)));
             // Do not add any additional parameters for the higher multipoles
             break;
         }
@@ -80,12 +86,42 @@ void local::XiCorrelationModel::_initializeInterpolators() const {
         _xi0.reset(new likely::Interpolator(_rValues,_xiValues,_method));
     }
     if(!_independentMultipoles) {
-        // Recalculate the ell = 2 multipole if any ell = 0 parameter, xi2(r0), or xi4(r0) changed
+        // Recalculate the ell = 2 multipole if any ell = 0 parameter, xi2(r0), or xi4(r0) has changed
         if(index < npoints ||
             isParameterValueChanged(_indexBase + npoints) || isParameterValueChanged(_indexBase + npoints + 1)) {
             // Calculate the higher-ell interpolation points points in terms of the monopole interpolator.
+            double r0 = _rValues[0];
+            double xi0r0 = (*_xi0)(r0);
             double xi2r0 = getParameterValue(_indexBase + npoints);
             double xi4r0 = getParameterValue(_indexBase + npoints + 1);
+            std::cout << "r0 = " << r0 << ", xi0r0 = " << xi0r0 << ", xi2r0 = " << xi2r0 << ", xi4r0 = " << xi4r0 << std::endl;
+            // Create the necessary integrators
+            likely::Integrator xi2Integrator(_xi2IntegrandPtr,1e-6,1e-6);
+            likely::Integrator xi4Integrator(_xi4IntegrandPtr,1e-6,1e-6);
+            // Fill _xiValues with the ell = 2 interpolation points to use
+            double integral = 0;
+            _xiValues[0] = xi2r0;
+            for(index = 1; index < npoints; ++index) {
+                // Use eqn (2.14) of http://arxiv.org/abs/1301.3456 but with everything multiplied by r^2
+                double r = _rValues[index];
+                integral += xi2Integrator.integrateSmooth(_rValues[index-1],r);
+                _xiValues[index] = xi0r0 + std::pow(r0/r,3)*(xi2r0-xi0r0) - (3/r)*integral;
+                std::cout << "ell=2 index=" << index << " xi2 = " << _xiValues[index] << std::endl;
+            }
+            // Build the ell = 2 integrator
+            _xi2.reset(new likely::Interpolator(_rValues,_xiValues,_method));
+            // Fill _xiValues with the ell = 4 interpolation points to use
+            integral = 0;
+            _xiValues[0] = xi4r0;
+            for(index = 1; index < npoints; ++index) {
+                // Use eqn (2.14) of http://arxiv.org/abs/1301.3456 but with everything multiplied by r^2
+                double r = _rValues[index];
+                integral += xi4Integrator.integrateSmooth(_rValues[index-1],r);
+                _xiValues[index] = xi0r0 + std::pow(r0/r,5)*(xi4r0-xi0r0) - (5/(r*r*r))*integral;
+                std::cout << "ell=4 index=" << index << " xi4 = " << _xiValues[index] << std::endl;
+            }
+            // Build the ell = 2 integrator
+            _xi4.reset(new likely::Interpolator(_rValues,_xiValues,_method));
         }
     }
     else {

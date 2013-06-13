@@ -6,6 +6,7 @@
 #include "baofit/AbsCorrelationModel.h"
 
 #include "likely/types.h"
+#include "likely/Integrator.h"
 
 #include <string>
 #include <vector>
@@ -47,6 +48,7 @@ namespace baofit {
         void _initializeInterpolators() const;
         double _xi2Integrand(double r) const;
         double _xi4Integrand(double r) const;
+        likely::Integrator::IntegrandPtr _xi2IntegrandPtr, _xi4IntegrandPtr;
 	}; // XiCorrelationModel
 
 
