@@ -45,7 +45,12 @@ namespace baofit {
         mutable std::vector<double> _xiValues;
         mutable likely::InterpolatorPtr _xi0, _xi2, _xi4;
         void _initializeInterpolators() const;
+        double _xi2Integrand(double r) const;
+        double _xi4Integrand(double r) const;
 	}; // XiCorrelationModel
+
+
+
 } // baofit
 
 #endif // BAOFIT_XI_CORRELATION_MODEL

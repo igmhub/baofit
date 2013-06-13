@@ -4,12 +4,14 @@
 #include "baofit/RuntimeError.h"
 
 #include "likely/Interpolator.h"
+#include "likely/Integrator.h"
 #include "likely/FunctionMinimum.h"
 #include "likely/CovarianceMatrix.h"
 #include "likely/RuntimeError.h"
 
 #include "boost/format.hpp"
 #include "boost/lexical_cast.hpp"
+#include "boost/bind.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -43,11 +45,26 @@ bool independentMultipoles, double zref, bool crossCorrelation)
             double rval(_rValues[index]);
             defineParameter(boost::str(pname % ell % index),0,perr);
         }
-        if(!independentMultipoles) break;
+        if(!independentMultipoles) {
+            // Add two additional parameters to fix the ell = 2,4 multipoles
+            // calculated from ell = 0
+            defineParameter("xi2(r0)",0,0.1);
+            defineParameter("xi4(r0)",0,0.01);
+            // Do not add any additional parameters for the higher multipoles
+            break;
+        }
     }
 }
 
 local::XiCorrelationModel::~XiCorrelationModel() { }
+
+double local::XiCorrelationModel::_xi2Integrand(double r) const {
+    return (*_xi0)(r);
+}
+
+double local::XiCorrelationModel::_xi4Integrand(double r) const {
+    return ((*_xi0)(r) + (*_xi2)(r))*r*r;
+}
 
 void local::XiCorrelationModel::_initializeInterpolators() const {
     int index, npoints(_rValues.size());
@@ -62,27 +79,38 @@ void local::XiCorrelationModel::_initializeInterpolators() const {
         }
         _xi0.reset(new likely::Interpolator(_rValues,_xiValues,_method));
     }
-    // Do we need to (re)initialize our xi2 interpolator?
-    for(index = npoints; index < 2*npoints; ++index) {
-        if(isParameterValueChanged(_indexBase + index)) break;
+    if(!_independentMultipoles) {
+        // Recalculate the ell = 2 multipole if any ell = 0 parameter, xi2(r0), or xi4(r0) changed
+        if(index < npoints ||
+            isParameterValueChanged(_indexBase + npoints) || isParameterValueChanged(_indexBase + npoints + 1)) {
+            // Calculate the higher-ell interpolation points points in terms of the monopole interpolator.
+            double xi2r0 = getParameterValue(_indexBase + npoints);
+            double xi4r0 = getParameterValue(_indexBase + npoints + 1);
+        }
     }
-    if(index < 2*npoints) {
-        _xiValues.resize(0);
+    else {
+        // Do we need to (re)initialize our xi2 interpolator?
         for(index = npoints; index < 2*npoints; ++index) {
-            _xiValues.push_back(getParameterValue(_indexBase + index));
+            if(isParameterValueChanged(_indexBase + index)) break;
         }
-        _xi2.reset(new likely::Interpolator(_rValues,_xiValues,_method));
-    }
-    // Do we need to (re)initialize our xi4 interpolator?
-    for(index = 2*npoints; index < 3*npoints; ++index) {
-        if(isParameterValueChanged(_indexBase + index)) break;
-    }
-    if(index < 3*npoints) {
-        _xiValues.resize(0);
+        if(index < 2*npoints) {
+            _xiValues.resize(0);
+            for(index = npoints; index < 2*npoints; ++index) {
+                _xiValues.push_back(getParameterValue(_indexBase + index));
+            }
+            _xi2.reset(new likely::Interpolator(_rValues,_xiValues,_method));
+        }
+        // Do we need to (re)initialize our xi4 interpolator?
         for(index = 2*npoints; index < 3*npoints; ++index) {
-            _xiValues.push_back(getParameterValue(_indexBase + index));
+            if(isParameterValueChanged(_indexBase + index)) break;
         }
-        _xi4.reset(new likely::Interpolator(_rValues,_xiValues,_method));
+        if(index < 3*npoints) {
+            _xiValues.resize(0);
+            for(index = 2*npoints; index < 3*npoints; ++index) {
+                _xiValues.push_back(getParameterValue(_indexBase + index));
+            }
+            _xi4.reset(new likely::Interpolator(_rValues,_xiValues,_method));
+        }
     }
 }
 
