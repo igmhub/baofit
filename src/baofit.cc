@@ -109,14 +109,12 @@ int main(int argc, char **argv) {
         ("save-icov", "Saves the inverse covariance of the combined data after final cuts.")
         ("save-icov-scale", po::value<double>(&saveICovScale)->default_value(1),
             "Scale factor applied to inverse covariance elements when using save-icov.")
-        ("fix-aln-cov", "Fixes covariance matrix of points in 'aln' parametrization")
         ("fix-mode-scales", po::value<std::string>(&fixModeScales)->default_value(""),
             "Fixes covariance matrix using mode scales from the specified file.")
         ("project-modes-keep", po::value<int>(&projectModesNKeep)->default_value(0),
             "Projects combined data onto the largest (nkeep>0) or smallest (nkeep<0) variance modes.")
         ;
     cosmolibOptions.add_options()
-        ("weighted", "Data vectors are inverse-covariance weighted.")
         ("reuse-cov", po::value<int>(&reuseCov)->default_value(-1),
 	        "Reuse covariance estimated for n-th realization of each plate (if >=0).")
         ("minll", po::value<double>(&minll)->default_value(0.0002,"0.0002"),
@@ -139,7 +137,7 @@ int main(int argc, char **argv) {
             "Redshift binsize.")
         ("nz", po::value<int>(&nz)->default_value(2),
             "Maximum number of redshift bins.")
-        ("saved-format", "Cosmolib data in format written by our save options.")
+        ("fix-aln-cov", "Fixes covariance matrix of points in 'aln' parametrization")
         ;
     analysisOptions.add_options()
         ("rmin", po::value<double>(&rmin)->default_value(0),
@@ -151,25 +149,25 @@ int main(int argc, char **argv) {
         ("rveto-center", po::value<double>(&rVetoCenter)->default_value(114),
             "Center (Mpc/h) of co-moving separation window to veto in fit.")
         ("mu-min", po::value<double>(&muMin)->default_value(-1),
-            "Final cut on minimum value of mu = rL/r to use in the fit (coordinate data only).")
+            "Final cut on minimum value of mu = rL/r to use in the fit (ignored for multipole data).")
         ("mu-max", po::value<double>(&muMax)->default_value(1),
-            "Final cut on maximum value of mu = rL/r to use in the fit (coordinate data only).")
-        ("z-min", po::value<double>(&zMin)->default_value(0.),
-            "Final cut on minimum value of redshift (coordinate data only).")
-        ("z-max", po::value<double>(&zMax)->default_value(10.),
-            "Final cut on maximum value of redshift (coordinate data only).")
-        ("ll-min", po::value<double>(&llMin)->default_value(0),
-            "Minimum value of log(lam2/lam1) to use in fit (Aln2 data only).")
-        ("ll-max", po::value<double>(&llMax)->default_value(1),
-            "Maximum value of log(lam2/lam1) to use in fit (Aln2 data only).")
-        ("sep-min", po::value<double>(&sepMin)->default_value(0),
-            "Minimum value of separation in arcmins to use in fit (Aln2 data only).")
-        ("sep-max", po::value<double>(&sepMax)->default_value(200),
-            "Maximum value of separation in arcmins to use in fit (Aln2 data only).")
+            "Final cut on maximum value of mu = rL/r to use in the fit (ignored for multipole data).")
         ("lmin", po::value<int>(&lmin)->default_value(0),
             "Final cut on minimum multipole ell (0,2,4) to use in fit (multipole data only).")
         ("lmax", po::value<int>(&lmax)->default_value(2),
             "Final cut on maximum multipole ell (0,2,4) to use in fit (multipole data only).")
+        ("z-min", po::value<double>(&zMin)->default_value(0.),
+            "Final cut on minimum value of redshift.")
+        ("z-max", po::value<double>(&zMax)->default_value(10.),
+            "Final cut on maximum value of redshift.")
+        ("ll-min", po::value<double>(&llMin)->default_value(0),
+            "Minimum value of log(lam2/lam1) to use in fit (quasar and cosmolib data only).")
+        ("ll-max", po::value<double>(&llMax)->default_value(1),
+            "Maximum value of log(lam2/lam1) to use in fit (quasar and cosmolib data only).")
+        ("sep-min", po::value<double>(&sepMin)->default_value(0),
+            "Minimum value of separation in arcmins to use in fit (quasar and cosmolib data only).")
+        ("sep-max", po::value<double>(&sepMax)->default_value(200),
+            "Maximum value of separation in arcmins to use in fit (quasar and cosmolib data only).")
         ("output-prefix", po::value<std::string>(&outputPrefix)->default_value(""),
             "Prefix to use for all analysis output files.")
         ("ndump", po::value<int>(&ndump)->default_value(100),
@@ -249,10 +247,9 @@ int main(int argc, char **argv) {
     std::copy(modelConfigSave.begin(),modelConfigSave.end(),modelConfig.end()-nSave);
     
     // Extract boolean options.
-    bool verbose(0 == vm.count("quiet")), weighted(vm.count("weighted")),
+    bool verbose(0 == vm.count("quiet")),
         checkPosDef(vm.count("check-posdef")), fixCovariance(0 == vm.count("naive-covariance")),
-        anisotropic(vm.count("anisotropic")),
-        fitEach(vm.count("fit-each")), savedFormat(vm.count("saved-format")),
+        anisotropic(vm.count("anisotropic")), fitEach(vm.count("fit-each")),
         decorrelated(vm.count("decorrelated")), toymcSave(vm.count("toymc-save")),
         saveICov(vm.count("save-icov")), multiSpline(vm.count("multi-spline")),
         fixAlnCov(vm.count("fix-aln-cov")), saveData(vm.count("save-data")),
