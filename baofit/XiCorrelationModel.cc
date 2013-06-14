@@ -94,7 +94,7 @@ void local::XiCorrelationModel::_initializeInterpolators() const {
             double xi0r0 = (*_xi0)(r0);
             double xi2r0 = getParameterValue(_indexBase + npoints);
             double xi4r0 = getParameterValue(_indexBase + npoints + 1);
-            std::cout << "r0 = " << r0 << ", xi0r0 = " << xi0r0 << ", xi2r0 = " << xi2r0 << ", xi4r0 = " << xi4r0 << std::endl;
+            //std::cout << "r0 = " << r0 << ", xi0r0 = " << xi0r0 << ", xi2r0 = " << xi2r0 << ", xi4r0 = " << xi4r0 << std::endl;
             // Create the necessary integrators
             likely::Integrator xi2Integrator(_xi2IntegrandPtr,1e-6,1e-6);
             likely::Integrator xi4Integrator(_xi4IntegrandPtr,1e-6,1e-6);
@@ -107,7 +107,7 @@ void local::XiCorrelationModel::_initializeInterpolators() const {
                 double r = _rValues[index];
                 integral += xi2Integrator.integrateSmooth(_rValues[index-1],r);
                 _xiValues.push_back((*_xi0)(r) + (r0*(xi2r0-xi0r0) - 3*integral)/r);
-                std::cout << "ell=2 index=" << index << " xi2 = " << _xiValues[index] << std::endl;
+                //std::cout << "ell=2 index=" << index << " xi2 = " << _xiValues[index] << std::endl;
             }
             // Build the ell = 2 integrator
             _xi2.reset(new likely::Interpolator(_rValues,_xiValues,_method));
@@ -120,7 +120,7 @@ void local::XiCorrelationModel::_initializeInterpolators() const {
                 double r = _rValues[index], rsq(r*r);
                 integral += xi4Integrator.integrateSmooth(_rValues[index-1],r);
                 _xiValues.push_back((*_xi0)(r) + (r03*(xi4r0-xi0r0) - 5*integral)/(r*rsq));
-                std::cout << "ell=4 index=" << index << " xi4 = " << _xiValues[index] << std::endl;
+                //std::cout << "ell=4 index=" << index << " xi4 = " << _xiValues[index] << std::endl;
             }
             // Build the ell = 2 integrator
             _xi4.reset(new likely::Interpolator(_rValues,_xiValues,_method));
@@ -229,21 +229,23 @@ likely::FunctionMinimumCPtr fmin) {
                 norm0*getParameterValue(pindex)/rsq) << std::endl;
             indexMap.insert(std::pair<int,int>(dindex,pindex));
         }
-        pindex = _indexBase + npoints + rindex;
-        if(errors[pindex] > 0) {
-            dindex = 3*rindex + 1;
-            pnorm[dindex] = norm2/rsq;
-            out << dindex << ' ' << boost::lexical_cast<std::string>(
-                norm2*getParameterValue(pindex)/rsq) << std::endl;
-            indexMap.insert(std::pair<int,int>(dindex,pindex));
-        }
-        pindex = _indexBase + 2*npoints + rindex;
-        if(errors[pindex] > 0) {
-            dindex = 3*rindex + 2;
-            pnorm[dindex] = norm4/rsq;
-            out << dindex << ' ' << boost::lexical_cast<std::string>(
-                norm4*getParameterValue(pindex)/rsq) << std::endl;
-            indexMap.insert(std::pair<int,int>(dindex,pindex));
+        if(_independentMultipoles) {
+            pindex = _indexBase + npoints + rindex;
+            if(errors[pindex] > 0) {
+                dindex = 3*rindex + 1;
+                pnorm[dindex] = norm2/rsq;
+                out << dindex << ' ' << boost::lexical_cast<std::string>(
+                    norm2*getParameterValue(pindex)/rsq) << std::endl;
+                indexMap.insert(std::pair<int,int>(dindex,pindex));
+            }
+            pindex = _indexBase + 2*npoints + rindex;
+            if(errors[pindex] > 0) {
+                dindex = 3*rindex + 2;
+                pnorm[dindex] = norm4/rsq;
+                out << dindex << ' ' << boost::lexical_cast<std::string>(
+                    norm4*getParameterValue(pindex)/rsq) << std::endl;
+                indexMap.insert(std::pair<int,int>(dindex,pindex));
+            }
         }
     }
     out.close();

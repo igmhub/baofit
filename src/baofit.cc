@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
             "Maximum k in h/Mpc for k P(k) B-spline.")
         ("order-spline", po::value<int>(&splineOrder)->default_value(3),
             "Order of B-spline in k P(k).")
-        ("multi-spline", "Fits independent parameters for each multipole.")
+        ("constrained-multipoles", "Constrains multipoles using Kaiser theory (Xi and Pk models only).")
         ("xi-points", po::value<std::string>(&xiPoints)->default_value(""),
             "Comma-separated list of r values (Mpc/h) to use for interpolating r^2 xi(r)")
         ("xi-method", po::value<std::string>(&xiMethod)->default_value("cspline"),
@@ -251,7 +251,7 @@ int main(int argc, char **argv) {
         checkPosDef(vm.count("check-posdef")), fixCovariance(0 == vm.count("naive-covariance")),
         anisotropic(vm.count("anisotropic")), fitEach(vm.count("fit-each")),
         decorrelated(vm.count("decorrelated")), toymcSave(vm.count("toymc-save")),
-        saveICov(vm.count("save-icov")), multiSpline(vm.count("multi-spline")),
+        saveICov(vm.count("save-icov")), constrainedMultipoles(vm.count("constrained-multipoles")),
         fixAlnCov(vm.count("fix-aln-cov")), saveData(vm.count("save-data")),
         scalarWeights(vm.count("scalar-weights")), noInitialFit(vm.count("no-initial-fit")),
         compareEach(vm.count("compare-each")), compareEachFinal(vm.count("compare-each-final")),
@@ -301,10 +301,11 @@ int main(int argc, char **argv) {
         
         if(nSpline > 0) {
             model.reset(new baofit::PkCorrelationModel(modelrootName,nowigglesName,
-                kloSpline,khiSpline,nSpline,splineOrder,multiSpline,zref,crossCorrelation));
+                kloSpline,khiSpline,nSpline,splineOrder,!constrainedMultipoles,zref,crossCorrelation));
         }
         else if(xiPoints.length() > 0) {
-            model.reset(new baofit::XiCorrelationModel(xiPoints,xiMethod,multiSpline,zref,crossCorrelation));
+            model.reset(new baofit::XiCorrelationModel(xiPoints,xiMethod,!constrainedMultipoles,
+                zref,crossCorrelation));
         }
         else {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
@@ -528,7 +529,7 @@ int main(int argc, char **argv) {
         analyzer.printScaleZEff(fmin,zref,"BAO alpha-perp");
         // If we just did a multipole fit (and have a valid fit), save the results in a format
         // that can be used as input for a subsequent multipole fit
-        if(xiPoints.length() > 0 && fmin->hasCovariance() && multiSpline) {
+        if(xiPoints.length() > 0 && fmin->hasCovariance()) {
             boost::shared_ptr<baofit::XiCorrelationModel> xiModel =
                 boost::dynamic_pointer_cast<baofit::XiCorrelationModel>(model);
             xiModel->saveMultipolesAsData(outputPrefix,fmin);
