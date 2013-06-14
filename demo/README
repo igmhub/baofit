@@ -1,12 +1,1 @@
-Correlation function input files in the cosmolib demo format, created with the commands below:
-
-./baofit -i ../config/Aln2.ini --toymc-samples 1 --toymc-save --toymc-scale 0.1 --no-initial-fit --rmin 20 --rmax 190 --save-icov --save-icov-scale 10 --output-prefix demo_
-
-cp demo_mcsave.data ../demo/Aln2.data
-cp demo_save.icov ../demo/Aln2.icov
-
-./baofit -i ../config/demo.ini >! ../demo/Aln2.log
-
-The warning about "failed to estimate full covariance matrix" is because we only generate 1 MC sample and
-is safe to ignore. Make sure that Aln2.ini is reading delta_pk_Aln2_d3d/mocks_by_realization.list in order
-to reproduce the package files.
+See http://darkmatter.ps.uci.edu/wiki/DeepZot/Baofit/Validation for details on the files here.
