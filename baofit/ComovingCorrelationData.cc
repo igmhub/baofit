@@ -8,8 +8,9 @@
 namespace local = baofit;
 
 local::ComovingCorrelationData::ComovingCorrelationData(likely::BinnedGrid grid,
-CoordinateSystem coordinateSystem) 
-: AbsCorrelationData(grid,Coordinate), _coordinateSystem(coordinateSystem), _lastIndex(-1)
+CoordinateSystem coordinateSystem)
+: AbsCorrelationData(grid,coordinateSystem==MultipoleCoordinates ? Multipole : Coordinate),
+_coordinateSystem(coordinateSystem), _lastIndex(-1)
 {
 }
 
@@ -38,12 +39,12 @@ void local::ComovingCorrelationData::_setIndex(int index) const {
 
 double local::ComovingCorrelationData::getRadius(int index) const {
     _setIndex(index);
-    if(_coordinateSystem == PolarCoordinates) {
-        return _binCenter[0];
-    }
-    else {
+    if(_coordinateSystem == CartesianCoordinates) {
         double rpar = _binCenter[0], rperp = _binCenter[1];
         return std::sqrt(rpar*rpar+rperp*rperp);
+    }
+    else {
+        return _binCenter[0];
     }
 }
 
@@ -52,9 +53,22 @@ double local::ComovingCorrelationData::getCosAngle(int index) const {
     if(_coordinateSystem == PolarCoordinates) {
         return _binCenter[1];
     }
-    else {
+    else if(_coordinateSystem == CartesianCoordinates) {
         double rpar = _binCenter[0], rperp = _binCenter[1];
         return rpar/std::sqrt(rpar*rpar+rperp*rperp);
+    }
+    else {
+        throw RuntimeError("ComovingCorrelationData::getMultipole: invalid coordinate system.");
+    }    
+}
+
+cosmo::Multipole local::ComovingCorrelationData::getMultipole(int index) const {
+    _setIndex(index);
+    if(_coordinateSystem == MultipoleCoordinates) {
+        return static_cast<cosmo::Multipole>(std::floor(_binCenter[1]+0.5));
+    }
+    else {
+        throw RuntimeError("ComovingCorrelationData::getMultipole: invalid coordinate system.");
     }
 }
 

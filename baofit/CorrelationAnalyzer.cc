@@ -38,13 +38,6 @@ bool verbose, bool scalarWeights)
 
 local::CorrelationAnalyzer::~CorrelationAnalyzer() { }
 
-void local::CorrelationAnalyzer::setZData(double zdata) {
-    if(zdata < 0) {
-        throw RuntimeError("CorrelationAnalyzer: expected zdata >= 0.");        
-    }
-    _zdata = zdata;
-}
-
 int local::CorrelationAnalyzer::addData(AbsCorrelationDataCPtr data, int reuseCovIndex) {
     return _resampler.addObservation(
         boost::dynamic_pointer_cast<const likely::BinnedData>(data),reuseCovIndex);
@@ -163,10 +156,16 @@ AbsCorrelationDataCPtr sample, std::string const &config) const {
         double chisq = 2*fmin->getMinValue();
         int nbins = sample->getNBinsWithData();
         int npar = fmin->getNParameters(true);
-        double prob = 1 - boost::math::gamma_p((nbins-npar)/2.,chisq/2);
-        std::cout << std::endl << "Fit results: chiSquare / dof = " << chisq << " / ("
-            << nbins << '-' << npar << "), prob = " << prob << ", log(det(Covariance)) = "
-            << sample->getCovarianceMatrix()->getLogDeterminant() << std::endl << std::endl;
+        if(chisq > 0 && nbins > npar) {
+            double prob = 1 - boost::math::gamma_p((nbins-npar)/2.,chisq/2);
+            std::cout << std::endl << "Fit results: chiSquare / dof = " << chisq << " / ("
+                << nbins << '-' << npar << "), prob = " << prob << ", log(det(Covariance)) = "
+                << sample->getCovarianceMatrix()->getLogDeterminant() << std::endl << std::endl;
+        }
+        else {
+            std::cout << std::endl << "Fit is ill-conditioned with nbins = " << nbins
+                << ", npar = " << npar << ", chiSquare = " << chisq << std::endl << std::endl;
+        }
         fmin->printToStream(std::cout);
     }
     return fmin;
@@ -267,7 +266,7 @@ namespace baofit {
 
 int local::CorrelationAnalyzer::doJackknifeAnalysis(int jackknifeDrop, likely::FunctionMinimumPtr fmin,
 likely::FunctionMinimumPtr fmin2, std::string const &refitConfig, std::string const &saveName,
-int nsave) const {
+int nsave, double zsave) const {
     if(jackknifeDrop <= 0) {
         throw RuntimeError("CorrelationAnalyzer::doJackknifeAnalysis: expected jackknifeDrop > 0.");
     }
@@ -275,12 +274,12 @@ int nsave) const {
         throw RuntimeError("CorrelationAnalyzer::doJackknifeAnalysis: need > 1 observation.");
     }
     CorrelationAnalyzer::JackknifeSampler sampler(jackknifeDrop,_resampler);
-    return doSamplingAnalysis(sampler, "Jackknife", fmin, fmin2, refitConfig, saveName, nsave);
+    return doSamplingAnalysis(sampler, "Jackknife", fmin, fmin2, refitConfig, saveName, nsave, zsave);
 }
 
 int local::CorrelationAnalyzer::doBootstrapAnalysis(int bootstrapTrials, int bootstrapSize,
 bool fixCovariance, likely::FunctionMinimumPtr fmin, likely::FunctionMinimumPtr fmin2,
-std::string const &refitConfig, std::string const &saveName, int nsave) const {
+std::string const &refitConfig, std::string const &saveName, int nsave, double zsave) const {
     if(bootstrapTrials <= 0) {
         throw RuntimeError("CorrelationAnalyzer::doBootstrapAnalysis: expected bootstrapTrials > 0.");
     }
@@ -292,19 +291,19 @@ std::string const &refitConfig, std::string const &saveName, int nsave) const {
     }
     if(0 == bootstrapSize) bootstrapSize = getNData();
     CorrelationAnalyzer::BootstrapSampler sampler(bootstrapTrials,bootstrapSize,fixCovariance,_resampler);
-    return doSamplingAnalysis(sampler, "Bootstrap", fmin, fmin2, refitConfig, saveName, nsave);
+    return doSamplingAnalysis(sampler, "Bootstrap", fmin, fmin2, refitConfig, saveName, nsave, zsave);
 }
 
 int local::CorrelationAnalyzer::fitEach(likely::FunctionMinimumPtr fmin, likely::FunctionMinimumPtr fmin2,
-std::string const &refitConfig, std::string const &saveName, int nsave) const {
+std::string const &refitConfig, std::string const &saveName, int nsave, double zsave) const {
     CorrelationAnalyzer::EachSampler sampler(_resampler);
-    return doSamplingAnalysis(sampler, "Individual", fmin, fmin2, refitConfig, saveName, nsave);    
+    return doSamplingAnalysis(sampler, "Individual", fmin, fmin2, refitConfig, saveName, nsave, zsave);    
 }
 
 int local::CorrelationAnalyzer::doToyMCSampling(int ngen, std::string const &mcConfig,
 std::string const &mcSaveFile, double varianceScale, likely::FunctionMinimumPtr fmin,
 likely::FunctionMinimumPtr fmin2, std::string const &refitConfig,
-std::string const &saveName, int nsave) const {
+std::string const &saveName, int nsave, double zsave) const {
     if(ngen <= 0) {
         throw RuntimeError("CorrelationAnalyzer::doMCSampling: expected ngen > 0.");
     }
@@ -336,7 +335,7 @@ std::string const &saveName, int nsave) const {
     fitter.getPrediction(pvalues,truth);
     // Build the sampler for this analysis.
     CorrelationAnalyzer::ToyMCSampler sampler(ngen,prototype,truth,mcSaveFile);
-    return doSamplingAnalysis(sampler, "MonteCarlo", fmin, fmin2, refitConfig, saveName, nsave);
+    return doSamplingAnalysis(sampler, "MonteCarlo", fmin, fmin2, refitConfig, saveName, nsave, zsave);
 }
 
 namespace baofit {
@@ -344,8 +343,8 @@ namespace baofit {
     class SamplingOutput : public boost::noncopyable {
     public:
         SamplingOutput(likely::FunctionMinimumCPtr fmin, likely::FunctionMinimumCPtr fmin2,
-        std::string const &saveName, int nsave, CorrelationAnalyzer const &parent)
-        : _nsave(nsave), _parent(parent) {
+        std::string const &saveName, int nsave, double zsave, CorrelationAnalyzer const &parent)
+        : _nsave(nsave), _zsave(zsave), _parent(parent) {
             if(0 < saveName.length()) {
                 _save.reset(new std::ofstream(saveName.c_str()));
                 // Print a header consisting of the number of parameters, the number of dump points,
@@ -373,8 +372,8 @@ namespace baofit {
                     *_save << 2*fmin2->getMinValue() << ' ';
                 }
                 if(_nsave > 0) {
-                    _parent.dumpModel(*_save,fmin->getFitParameters(),_nsave,"",true);
-                    if(fmin2) _parent.dumpModel(*_save,fmin2->getFitParameters(),_nsave,"",true);
+                    _parent.dumpModel(*_save,fmin->getFitParameters(),_nsave,_zsave,"",true);
+                    if(fmin2) _parent.dumpModel(*_save,fmin2->getFitParameters(),_nsave,_zsave,"",true);
                 }
                 *_save << std::endl;
             }            
@@ -403,13 +402,14 @@ namespace baofit {
             }
             // Save best-fit model multipoles, if requested.
             if(_nsave > 0) {
-                _parent.dumpModel(*_save,parameters,_nsave,"",true);
-                if(parameters2.size() > 0) _parent.dumpModel(*_save,parameters2,_nsave,"",true);
+                _parent.dumpModel(*_save,parameters,_nsave,_zsave,"",true);
+                if(parameters2.size() > 0) _parent.dumpModel(*_save,parameters2,_nsave,_zsave,"",true);
             }
             *_save << std::endl;            
        }
     private:
         int _nsave;
+        double _zsave;
         CorrelationAnalyzer const &_parent;
         boost::scoped_ptr<std::ofstream> _save;
     };
@@ -417,14 +417,14 @@ namespace baofit {
 
 int local::CorrelationAnalyzer::doSamplingAnalysis(CorrelationAnalyzer::AbsSampler &sampler,
 std::string const &method, likely::FunctionMinimumPtr fmin, likely::FunctionMinimumPtr fmin2,
-std::string const &refitConfig, std::string const &saveName, int nsave) const {
+std::string const &refitConfig, std::string const &saveName, int nsave, double zsave) const {
     if(nsave < 0) {
         throw RuntimeError("CorrelationAnalyzer::doSamplingAnalysis: expected nsave >= 0.");
     }
     if((!fmin2 && 0 < refitConfig.size()) || !!fmin2 && 0 == refitConfig.size()) {
         throw RuntimeError("CorrelationAnalyzer::doSamplingAnalysis: inconsistent refit parameters.");
     }
-    SamplingOutput output(fmin,fmin2,saveName,nsave,*this);
+    SamplingOutput output(fmin,fmin2,saveName,nsave,zsave,*this);
     baofit::AbsCorrelationDataCPtr sample;
     // Initialize the parameter value statistics accumulators we will need.
     likely::FitParameterStatisticsPtr refitStats,
@@ -477,7 +477,7 @@ std::string const &refitConfig, std::string const &saveName, int nsave) const {
 }
 
 void local::CorrelationAnalyzer::generateMarkovChain(int nchain, int interval, likely::FunctionMinimumCPtr fmin,
-std::string const &saveName, int nsave) const {
+std::string const &saveName, int nsave, double zsave) const {
     if(nchain <= 0) {
         throw RuntimeError("CorrelationAnalyzer::generateMarkovChain: expected nchain > 0.");
     }
@@ -491,7 +491,7 @@ std::string const &saveName, int nsave) const {
     std::vector<double> samples;
     fitter.mcmc(fmin, nchain, interval, samples);
     // Output the results and accumulate statistics.
-    SamplingOutput output(fmin,likely::FunctionMinimumCPtr(),saveName,nsave,*this);
+    SamplingOutput output(fmin,likely::FunctionMinimumCPtr(),saveName,nsave,zsave,*this);
     likely::FitParameters parameters(fmin->getFitParameters());
     likely::FitParameterStatistics paramStats(parameters);
     int npar = parameters.size();
@@ -516,13 +516,13 @@ std::string const &saveName, int nsave) const {
 }
 
 int local::CorrelationAnalyzer::parameterScan(likely::FunctionMinimumCPtr fmin,
-AbsCorrelationDataCPtr sample, std::string const &saveName, int nsave) const {
+AbsCorrelationDataCPtr sample, std::string const &saveName, int nsave, double zsave) const {
     int nfits(0);
     // Initialize the grid we will be sampling.
     likely::FitParameters params = fmin->getFitParameters();
     likely::BinnedGrid grid = likely::getFitParametersGrid(params);
     // Prepare to output samples at each grid point.
-    SamplingOutput output(fmin,likely::FunctionMinimumCPtr(),saveName,nsave,*this);
+    SamplingOutput output(fmin,likely::FunctionMinimumCPtr(),saveName,nsave,zsave,*this);
     // Loop over grid points.
     for(likely::BinnedGrid::Iterator iter = grid.begin(); iter != grid.end(); ++iter) {
         nfits++;
@@ -607,10 +607,20 @@ AbsCorrelationDataCPtr combined, std::string const &script, bool dumpGradients) 
 }
 
 void local::CorrelationAnalyzer::dumpModel(std::ostream &out, likely::FitParameters parameters,
-int ndump, std::string const &script, bool oneLine) const {
+int ndump, double zdump, std::string const &script, bool oneLine) const {
     if(ndump <= 1) {
         throw RuntimeError("CorrelationAnalyzer::dump: expected ndump > 1.");
     }
+    if(zdump < 0) {
+        // Use the redshift of the first bin of the first subsample, if none is specified
+        AbsCorrelationDataCPtr subsample =
+            boost::dynamic_pointer_cast<const baofit::AbsCorrelationData>(_resampler.getObservation(0));
+        zdump = subsample->getRedshift(0);
+    }
+    if(_verbose && !oneLine) {
+        std::cout << "Dumping fit model at " << ndump << " points using z = " << zdump << std::endl;
+    }
+
     // Should check that parameters are "congruent" (have same names?) with model params.
     // assert(parameters.isCongruent(model...))
     // Modify the parameters using the specified script, if any.
@@ -622,9 +632,9 @@ int ndump, std::string const &script, bool oneLine) const {
     double dr((_rmax - _rmin)/(ndump-1));
     for(int rIndex = 0; rIndex < ndump; ++rIndex) {
         double rval(_rmin + dr*rIndex);
-        double mono = _model->evaluate(rval,cosmo::Monopole,_zdata,parameterValues);
-        double quad = _model->evaluate(rval,cosmo::Quadrupole,_zdata,parameterValues);
-        double hexa = _model->evaluate(rval,cosmo::Hexadecapole,_zdata,parameterValues);
+        double mono = _model->evaluate(rval,cosmo::Monopole,zdump,parameterValues);
+        double quad = _model->evaluate(rval,cosmo::Quadrupole,zdump,parameterValues);
+        double hexa = _model->evaluate(rval,cosmo::Hexadecapole,zdump,parameterValues);
         // Output the model predictions for this radius in the requested format.
         if(!oneLine) out << rval;
         out << ' ' << boost::lexical_cast<std::string>(mono) << ' '

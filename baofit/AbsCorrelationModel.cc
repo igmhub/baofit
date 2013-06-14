@@ -20,7 +20,7 @@ local::AbsCorrelationModel::~AbsCorrelationModel() { }
 double local::AbsCorrelationModel::evaluate(double r, double mu, double z,
 likely::Parameters const &params) {
     bool anyChanged = updateParameterValues(params);
-    _applyVelocityShift(r,mu,z);
+    if(_crossCorrelation) _applyVelocityShift(r,mu,z);
     double result = _evaluate(r,mu,z,anyChanged);
     resetParameterValuesChanged();
     return result;

@@ -3,6 +3,8 @@
 #ifndef BAOFIT_ABS_CORRELATION_DATA
 #define BAOFIT_ABS_CORRELATION_DATA
 
+#include "baofit/types.h"
+
 #include "likely/BinnedData.h"
 #include "likely/BinnedGrid.h"
 #include "likely/types.h"
@@ -57,6 +59,20 @@ namespace baofit {
 	
 	inline AbsCorrelationData::TransverseBinningType
 	    AbsCorrelationData::getTransverseBinningType() const { return _type; }
+
+    // Creates and returns a BinnedGrid for a correlation function data set using the
+    // strings provided to specify the binning along each of the three axes. The
+    // axis labels provided as a comma-separated string (e.g., "r,mu,z") will be
+    // used for error messages and verbose printing (if requested).
+    likely::BinnedGrid createCorrelationGrid(std::string const &axis1Bins,
+        std::string const &axis2Bins, std::string const &axis3Bins,
+        std::string const &axisLabels, bool verbose);
+
+    // Loads a binned correlation function using the specified prototype
+    // and returns a BinnedData object. Set icov true to read .icov files instead of .cov.
+    // Set weighted true to read .wdata files instead of .data.
+    AbsCorrelationDataPtr loadCorrelationData(std::string const &dataName,
+        AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted);
 
 } // baofit
 
