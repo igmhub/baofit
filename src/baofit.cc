@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
         zMin,zMax,llMin,llMax,sepMin,sepMax,distR0,zdump;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
         mcmcSave,mcmcInterval,toymcSamples,reuseCov,nSpline,splineOrder,bootstrapCovTrials,
-        projectModesNKeep;
+        projectModesNKeep,covSampleSize;
     std::string modelrootName,fiducialName,nowigglesName,dataName,xiPoints,toymcConfig,
         platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig,
         fixModeScales,distAdd,distMul,dataFormat,axis1Bins,axis2Bins,axis3Bins;
@@ -113,6 +113,8 @@ int main(int argc, char **argv) {
             "Fixes covariance matrix using mode scales from the specified file.")
         ("project-modes-keep", po::value<int>(&projectModesNKeep)->default_value(0),
             "Projects combined data onto the largest (nkeep>0) or smallest (nkeep<0) variance modes.")
+        ("cov-sample-size", po::value<int>(&covSampleSize)->default_value(0),
+            "Rescales chisq icov by (N-n-2)/(N-1) using specified N > 0 (n is number of bins after cuts).")
         ;
     cosmolibOptions.add_options()
         ("reuse-cov", po::value<int>(&reuseCov)->default_value(-1),
