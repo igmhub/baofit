@@ -500,6 +500,12 @@ int main(int argc, char **argv) {
             fmin = fitter.guess();
         }
         else {
+            if(verbose && covSampleSize > 0) {
+                int n = combined->getNBinsWithData();
+                std::cout << "Chisq icov rescaled by (" << covSampleSize << " - " << n
+                    << " - 2)/(" << covSampleSize << " - 1) = " << (covSampleSize-n-2.)/(covSampleSize-1.)
+                    << std::endl;
+            }
             fmin = analyzer.fitSample(combined);
         }
         // Dump the fit parameters in model-config format.
