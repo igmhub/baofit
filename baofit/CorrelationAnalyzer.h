@@ -18,7 +18,7 @@ namespace baofit {
 	public:
 	    // Creates a new analyzer using the specified minimization method.
 	    // The range [rmin,rmax] will be used for dumping any model multipoles.
-		CorrelationAnalyzer(std::string const &method, double rmin, double rmax,
+		CorrelationAnalyzer(std::string const &method, double rmin, double rmax, int covSampleSize = 0,
 		    bool verbose = true, bool scalarWeights = false);
 		virtual ~CorrelationAnalyzer();
 		// Set the verbose level during analysis.
@@ -142,6 +142,7 @@ namespace baofit {
 	private:
         std::string _method;
         double _rmin, _rmax;
+        int _covSampleSize;
         bool _verbose;
         likely::BinnedDataResampler _resampler;
         AbsCorrelationModelPtr _model;

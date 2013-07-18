@@ -292,7 +292,7 @@ int main(int argc, char **argv) {
 
     // Initialize our analyzer.
     likely::Random::instance()->setSeed(randomSeed);
-    baofit::CorrelationAnalyzer analyzer(minMethod,rmin,rmax,verbose,scalarWeights);
+    baofit::CorrelationAnalyzer analyzer(minMethod,rmin,rmax,covSampleSize,verbose,scalarWeights);
 
     // Initialize the fit model we will use.
     cosmo::AbsHomogeneousUniversePtr cosmology;
@@ -496,7 +496,7 @@ int main(int argc, char **argv) {
         // Fit the combined sample or use the initial model-config.
         likely::FunctionMinimumPtr fmin;
         if(noInitialFit) {
-            baofit::CorrelationFitter fitter(combined,model);
+            baofit::CorrelationFitter fitter(combined,model,covSampleSize);
             fmin = fitter.guess();
         }
         else {

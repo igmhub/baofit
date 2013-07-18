@@ -28,8 +28,9 @@
 namespace local = baofit;
 
 local::CorrelationAnalyzer::CorrelationAnalyzer(std::string const &method, double rmin, double rmax,
-bool verbose, bool scalarWeights)
-: _method(method), _rmin(rmin), _rmax(rmax), _verbose(verbose), _resampler(scalarWeights)
+int covSampleSize, bool verbose, bool scalarWeights)
+: _method(method), _rmin(rmin), _rmax(rmax), _covSampleSize(covSampleSize),
+_verbose(verbose), _resampler(scalarWeights)
 {
     if(rmin >= rmax) {
         throw RuntimeError("CorrelationAnalyzer: expected rmin < rmax.");
@@ -150,7 +151,7 @@ std::string const &scaleName) const {
 
 likely::FunctionMinimumPtr local::CorrelationAnalyzer::fitSample(
 AbsCorrelationDataCPtr sample, std::string const &config) const {
-    CorrelationFitter fitter(sample,_model);
+    CorrelationFitter fitter(sample,_model,_covSampleSize);
     likely::FunctionMinimumPtr fmin = fitter.fit(_method,config);
     if(_verbose) {
         double chisq = 2*fmin->getMinValue();
@@ -329,7 +330,7 @@ std::string const &saveName, int nsave, double zsave) const {
     std::vector<double> pvalues;
     likely::getFitParameterValues(parameters,pvalues);
     // Build a fitter to calculate the truth vector.
-    CorrelationFitter fitter(prototype, _model);
+    CorrelationFitter fitter(prototype, _model, _covSampleSize);
     // Calculate the truth vector.
     std::vector<double> truth;
     fitter.getPrediction(pvalues,truth);
@@ -437,7 +438,7 @@ std::string const &refitConfig, std::string const &saveName, int nsave, double z
     int nsamples(0);
     while(sample = sampler.nextSample()) {
         // Fit the sample.
-        baofit::CorrelationFitter fitEngine(sample,_model);
+        baofit::CorrelationFitter fitEngine(sample,_model,_covSampleSize);
         likely::FunctionMinimumPtr sampleMin = fitEngine.fit(_method);
         bool ok = (sampleMin->getStatus() == likely::FunctionMinimum::OK);
         // Refit the sample if requested and the first fit succeeded.
@@ -486,7 +487,7 @@ std::string const &saveName, int nsave, double zsave) const {
     }
     // Create a fitter to calculate the likelihood.
     AbsCorrelationDataCPtr combined = getCombined(true);
-    CorrelationFitter fitter(combined,_model);
+    CorrelationFitter fitter(combined,_model,_covSampleSize);
     // Generate the MCMC chains, saving the results in a vector.
     std::vector<double> samples;
     fitter.mcmc(fmin, nchain, interval, samples);
@@ -646,7 +647,7 @@ int ndump, double zdump, std::string const &script, bool oneLine) const {
 
 void local::CorrelationAnalyzer::getDecorrelatedWeights(AbsCorrelationDataCPtr data,
 likely::Parameters const &params, std::vector<double> &dweights) const {
-    CorrelationFitter fitter(data, _model);
+    CorrelationFitter fitter(data, _model,_covSampleSize);
     std::vector<double> prediction;
     fitter.getPrediction(params,prediction);
     data->getDecorrelatedWeights(prediction,dweights);
