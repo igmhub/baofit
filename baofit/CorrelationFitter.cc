@@ -17,7 +17,8 @@
 
 namespace local = baofit;
 
-local::CorrelationFitter::CorrelationFitter(AbsCorrelationDataCPtr data, AbsCorrelationModelPtr model)
+local::CorrelationFitter::CorrelationFitter(AbsCorrelationDataCPtr data, AbsCorrelationModelPtr model,
+int covSampleSize)
 : _data(data), _model(model), _errorScale(1), _type(data->getTransverseBinningType())
 {
     if(!data || 0 == data->getNBinsWithData()) {
@@ -25,6 +26,18 @@ local::CorrelationFitter::CorrelationFitter(AbsCorrelationDataCPtr data, AbsCorr
     }
     if(!model) {
         throw RuntimeError("CorrelationFitter: need a model to fit.");
+    }
+    int n = _data->getNBinsWithData();
+    if(0 < covSampleSize) {
+        if(covSampleSize <= n+2) {
+            throw RuntimeError("CorrelationFitter: cannot fit with covSampleSize <= nbins+2");
+        }
+        // Correct for the mean bias in the inverse of an unbiased covariance estimate.
+        // See eqn (25) of http://arxiv.org/abs/1212.4359
+        _icovScale = (covSampleSize - n - 2.)/(covSampleSize - 1.);
+    }
+    else {
+        _icovScale = 1;
     }
 }
 
@@ -69,7 +82,7 @@ double local::CorrelationFitter::operator()(likely::Parameters const &params) co
     // Scale chiSquare by 0.5 since the likely minimizer expects a -log(likelihood).
     // Add any model priors on the parameters. The additional factor of _errorScale
     // is to allow arbitrary error contours to be calculated a la MNCONTOUR.
-    return (0.5*_data->chiSquare(pred) + _model->evaluatePriors())/_errorScale;
+    return (0.5*_icovScale*_data->chiSquare(pred) + _model->evaluatePriors())/_errorScale;
 }
 
 likely::FunctionMinimumPtr local::CorrelationFitter::fit(std::string const &methodName,
