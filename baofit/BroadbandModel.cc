@@ -111,6 +111,8 @@ std::string const &paramSpec, double r0, double z0, AbsCorrelationModel *base)
     }
     if(_rIndexStep < 0) {
         _rIndexDenom = -_rIndexStep;
+        _rIndexMin *= _rIndexDenom;
+        _rIndexMax *= _rIndexDenom;
         _rIndexStep = 1;
     }
     else {
@@ -149,7 +151,7 @@ std::string const &paramSpec, double r0, double z0, AbsCorrelationModel *base)
     boost::format pname("%s z%d mu%d r%+d rP%d rT%d");
     for(int zIndex = _zIndexMin; zIndex <= _zIndexMax; zIndex += _zIndexStep) {
         for(int muIndex = _muIndexMin; muIndex <= _muIndexMax; muIndex += _muIndexStep) {
-            for(int rIndex = _rIndexMin*_rIndexDenom; rIndex <= _rIndexMax*_rIndexDenom; rIndex += _rIndexStep) {
+            for(int rIndex = _rIndexMin; rIndex <= _rIndexMax; rIndex += _rIndexStep) {
                 for(int rPIndex = _rPIndexMin; rPIndex <= _rPIndexMax; rPIndex += _rPIndexStep) {
                     for(int rTIndex = _rTIndexMin; rTIndex <= _rTIndexMax; rTIndex += _rTIndexStep) {
                         int index = _base.defineParameter(boost::str(
@@ -204,7 +206,7 @@ double local::BroadbandModel::_evaluate(double r, double mu, double z, bool anyC
         double zFactor = std::pow(zz,zIndex);
         for(int muIndex = _muIndexMin; muIndex <= _muIndexMax; muIndex += _muIndexStep) {
             double muFactor = legendreP(muIndex,mu);
-            for(int rIndex = _rIndexMin*_rIndexDenom; rIndex <= _rIndexMax*_rIndexDenom; rIndex += _rIndexStep) {
+            for(int rIndex = _rIndexMin; rIndex <= _rIndexMax; rIndex += _rIndexStep) {
                 double rFactor = std::pow(rIndex > 0 ? rr-1 : rr, (double)rIndex/_rIndexDenom);
                 for(int rPIndex = _rPIndexMin; rPIndex <= _rPIndexMax; rPIndex += _rPIndexStep) {
                     double rPFactor = std::pow(rPIndex > 0 ? rrP-1 : rrP, rPIndex);
