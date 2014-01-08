@@ -33,6 +33,9 @@ try:
 			print 'unexpected length',len(bestfit),'of header line 3'
 			sys.exit(-1)
 		lineno = 3
+		min1 = max1 = bestfit[index1]
+		min2 = max2 = bestfit[index2]
+		print min1,min2
 		bestchisq = bestfit[npar]
 		for line in fin.readlines():
 			lineno += 1
@@ -41,7 +44,11 @@ try:
 				print 'unexpected length',len(scanfit),'of line',lineno
 				sys.exit(-1)
 			print >>fout, scanfit[index1],scanfit[index2],scanfit[npar]-bestchisq
-		print 'parsed',lineno-3,'scan points'
+			min1 = min(min1,scanfit[index1])
+			max1 = max(max1,scanfit[index1])
+			min2 = min(min2,scanfit[index2])
+			max2 = max(max2,scanfit[index2])
+		print 'parsed %d scan points covering [%.3f,%.3f] x [%.3f,%.3f]' % (lineno-3,min1,max1,min2,max2)
 except IOError,e:
 	print str(e)
 	sys.exit(-1)
