@@ -63,7 +63,10 @@ namespace broadband {
                 axis[boost::bind(&Grammar::finalizeAxis,this,boost::ref(z))];
 
             // Spec for one axis is either n, n1:n2, or n1:n2:dn
-            axis = ( int_[push_back(ref(specs),_1)] % ':' );
+            axis = (
+                ( int_[push_back(ref(specs),_1)] % ':' ) |
+                ( int_[push_back(ref(specs),_1)] >> ':' >> int_[push_back(ref(specs),_1)] >> 
+                    ":1/" >> int_[push_back(ref(specs),-_1)] ) );
         }
         qi::rule<std::string::const_iterator> pspec,rmuz,rmu,rPrT,rPrTz,rmurPrTz,axis;
         // This vector is filled with the specs for each axis during parsing
