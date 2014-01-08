@@ -1,3 +1,13 @@
+File Formats
+============
+
+The formats of the .data and .cov files are documented at:
+
+  http://darkmatter.ps.uci.edu/wiki/DeepZot/Baofit/Format
+
+The .scan files contain three columns: alpha-parallel, alpha-perp, chisq
+
+
 How to reproduce published BOSS results
 =======================================
 
@@ -14,11 +24,15 @@ baofit -i ../config/BOSSDR11QSOLyaF.ini
 
 All of the resulting output files will be created in your working directory and prefixed with XXX_ (with XXX = BOSSDR9LyaFXi, etc).
 
-File Formats
-============
 
-The formats of the XXX.data and XXX.cov files are documented at:
+Chi-Square Scans
+================
 
-  http://darkmatter.ps.uci.edu/wiki/DeepZot/Baofit/Format
+To reproduce the .scan files, add the --parameter-scan option to produce XXX_scan.dat. This file starts with a three-line header that describes the baseline fit, followed by one line per scan point. The scan point lines give each parameter value (including fixed parameters) in the same order that they are normally displaed, followed by the chisq value. The anisotropic BAO scale parameters are in the 10th and 11th columns of these lines (counting from 1). Use the parsescan.py python script to extract the 3 columns that appear in the .scan files, e.g.
 
-The XXX_scan.dat files contain three columns (alpha-parallel, alpha-perp, chisq) and can be reproduced by adding the --parameter-scan option to any of command-lines given above.
+# converts --parameter-scan output into .scan file for Font-Ribera 2013
+./parsescan.py BOSSDR11QSOLyaF_scan.dat BOSSDR11QSOLyaF.scan 10 11 
+
+There is a mathematica package for more sophisticated processing of baofit outputs:
+
+  https://github.com/deepzot/mathpkg/blob/master/BaoFitTools.m
