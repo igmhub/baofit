@@ -106,8 +106,17 @@ std::string const &paramSpec, double r0, double z0, AbsCorrelationModel *base)
     _rIndexMin = grammar.r[0];
     _rIndexMax = grammar.r[1];
     _rIndexStep = grammar.r[2];
-    if(_rIndexMax < _rIndexMin || _rIndexStep <= 0) {
+    if(_rIndexMax < _rIndexMin || _rIndexStep == 0) {
         throw RuntimeError("BroadbandModel: illegal r-parameter specification.");
+    }
+    if(_rIndexStep < 0) {
+        _rIndexDenom = -_rIndexStep;
+        _rIndexMin *= _rIndexDenom;
+        _rIndexMax *= _rIndexDenom;
+        _rIndexStep = 1;
+    }
+    else {
+        _rIndexDenom = 1;
     }
     _muIndexMin = grammar.mu[0];
     _muIndexMax = grammar.mu[1];
@@ -198,7 +207,7 @@ double local::BroadbandModel::_evaluate(double r, double mu, double z, bool anyC
         for(int muIndex = _muIndexMin; muIndex <= _muIndexMax; muIndex += _muIndexStep) {
             double muFactor = legendreP(muIndex,mu);
             for(int rIndex = _rIndexMin; rIndex <= _rIndexMax; rIndex += _rIndexStep) {
-                double rFactor = std::pow(rIndex > 0 ? rr-1 : rr, rIndex);
+                double rFactor = std::pow(rIndex > 0 ? rr-1 : rr, (double)rIndex/_rIndexDenom);
                 for(int rPIndex = _rPIndexMin; rPIndex <= _rPIndexMax; rPIndex += _rPIndexStep) {
                     double rPFactor = std::pow(rPIndex > 0 ? rrP-1 : rrP, rPIndex);
                     for(int rTIndex = _rTIndexMin; rTIndex <= _rTIndexMax; rTIndex += _rTIndexStep) {

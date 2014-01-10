@@ -15,6 +15,7 @@ namespace baofit {
 	    //   n => only index is n
 	    //   n1:n2 => indices n1...n2
 	    //   n1:n2:dn => indices n1...n2 in steps of dn
+		// For the r-axis only, dn < 0 is allowed and implies fractional steps of 1/(-dn).
 	    // The set of axes that will be used is determined by one of the following prefixes:
 	    //   r,mu=
 	    //   rP,rT=
@@ -44,7 +45,7 @@ namespace baofit {
         virtual double _evaluate(double r, cosmo::Multipole multipole, double z, bool anyChanged) const;
 	private:
         int _indexBase;
-        int _rIndexMin,_rIndexMax,_rIndexStep;
+        int _rIndexMin,_rIndexMax,_rIndexStep,_rIndexDenom;
         int _muIndexMin,_muIndexMax,_muIndexStep;
         int _rPIndexMin,_rPIndexMax,_rPIndexStep;
         int _rTIndexMin,_rTIndexMax,_rTIndexStep;

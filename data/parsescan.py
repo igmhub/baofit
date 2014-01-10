@@ -32,11 +32,11 @@ try:
 		if len(bestfit) != 1+npar+3*ndump:
 			print 'unexpected length',len(bestfit),'of header line 3'
 			sys.exit(-1)
-		lineno = 3
+		print 'best fit is at (%.3f,%.3f)' % (bestfit[index1],bestfit[index2])
 		min1 = max1 = bestfit[index1]
 		min2 = max2 = bestfit[index2]
-		print min1,min2
 		bestchisq = bestfit[npar]
+		lineno = 3
 		for line in fin.readlines():
 			lineno += 1
 			scanfit = map(float,line.split())
