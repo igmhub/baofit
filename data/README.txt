@@ -35,7 +35,7 @@ You can use the parsescan.py python script to extract the 3 columns that appear 
 # Busca 2013
 ./parsescan.py BOSSDR9LyaFXi_scan.dat BOSSDR9LyaFXi.scan 7 6 
 
-# Font-Fibera 2013
+# Slosar 2013
 ./parsescan.py BOSSDR9LyaF_scan.dat BOSSDR9LyaF.scan 7 6
 
 # Font-Fibera 2013
