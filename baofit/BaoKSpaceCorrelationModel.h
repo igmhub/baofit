@@ -21,6 +21,7 @@ namespace baofit {
 	    // reference redshift.
 		BaoKSpaceCorrelationModel(std::string const &modelrootName,
 		    std::string const &fiducialName, std::string const &nowigglesName,
+            double rmin, double rmax, double relerr, double abserr, int ellMax,
             std::string const &distAdd, std::string const &distMul, double distR0,
             double zref, bool anisotropic = false, bool decoupled = false,
             bool crossCorrelation = false);

@@ -22,6 +22,7 @@ namespace local = baofit;
 
 local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &modelrootName,
     std::string const &fiducialName, std::string const &nowigglesName,
+    double rmin, double rmax, double relerr, double abserr, int ellMax,
     std::string const &distAdd, std::string const &distMul, double distR0,
     double zref, bool anisotropic, bool decoupled, bool crossCorrelation)
 : AbsCorrelationModel("BAO k-Space Correlation Model"), _anisotropic(anisotropic), _decoupled(decoupled)
@@ -69,8 +70,10 @@ local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &m
     // Create our fiducial and no-wiggles models. We don't initialize our models
     // yet, and instead wait until we are first evaluated and have values for
     // our distortion parameters.
-    double rmin(20),rmax(200),relerr(1e-3),abserr(1e-5),abspow(0);
-    int nr(180),ellMax(4);
+    if(rmin >= rmax) throw RuntimeError("BaoKSpaceCorrelationModel: expected rmin < rmax.");
+    if(rmin <= 0) throw RuntimeError("BaoKSpaceCorrelationModel: expected rmin > 0.");
+    int nr = (int)std::ceil(rmax-rmin); // space interpolation points at ~1 Mpc/h
+    double abspow(0);
     bool symmetric(true);
     // Xifid(r,mu) ~ D(k,mu_k)*Pfid(k)
     _Xifid.reset(new cosmo::DistortedPowerCorrelation(PfidPtr,distortionModelPtr,
