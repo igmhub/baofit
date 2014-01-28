@@ -118,30 +118,33 @@ bool anyChanged) const {
     biasSq = _redshiftEvolution(biasSq,gammaBias,z);
     _betaz = _redshiftEvolution(beta,gammaBeta,z);
 
-    // Redo the transforms from (k,mu_k) to (r,mu).
-    int nmu(20),minSamplesPerDecade(40);
-    double margin(2), vepsMax(1e-1), vepsMin(1e-6);
-    bool optimize(false),bypass(false),converged(true);
-    if(!_Xifid->isInitialized()) {
-        // Initialize the first time. This is when the automatic calculation of numerical
-        // precision parameters takes place.
-        _Xifid->initialize(nmu,minSamplesPerDecade,margin,vepsMax,vepsMin,optimize);
-    }
-    else {
-        // We are already initialized, so just redo the transforms.
-        converged &= _Xifid->transform(bypass);
-    }
-    if(!_Xinw->isInitialized()) {
-        // Initialize the first time. This is when the automatic calculation of numerical
-        // precision parameters takes place.
-        _Xinw->initialize(nmu,minSamplesPerDecade,margin,vepsMax,vepsMin,optimize);
-    }
-    else {
-        // We are already initialized, so just redo the transforms.
-        converged &= _Xinw->transform(bypass);
-    }
-    if(!converged) {
-        throw RuntimeError("BaoKSpaceCorrelationModel: transforms not converged.");
+    // Redo the transforms from (k,mu_k) to (r,mu) if necessary
+    if(anyChanged && isParameterValueChanged("beta")) {
+        std::cout << "transforming..." << std::endl;
+        int nmu(20),minSamplesPerDecade(40);
+        double margin(2), vepsMax(1e-1), vepsMin(1e-6);
+        bool optimize(false),bypass(false),converged(true);
+        if(!_Xifid->isInitialized()) {
+            // Initialize the first time. This is when the automatic calculation of numerical
+            // precision parameters takes place.
+            _Xifid->initialize(nmu,minSamplesPerDecade,margin,vepsMax,vepsMin,optimize);
+        }
+        else {
+            // We are already initialized, so just redo the transforms.
+            converged &= _Xifid->transform(bypass);
+        }
+        if(!_Xinw->isInitialized()) {
+            // Initialize the first time. This is when the automatic calculation of numerical
+            // precision parameters takes place.
+            _Xinw->initialize(nmu,minSamplesPerDecade,margin,vepsMax,vepsMin,optimize);
+        }
+        else {
+            // We are already initialized, so just redo the transforms.
+            converged &= _Xinw->transform(bypass);
+        }
+        if(!converged) {
+            throw RuntimeError("BaoKSpaceCorrelationModel: transforms not converged.");
+        }
     }
 
     // Lookup BAO peak parameter values.
