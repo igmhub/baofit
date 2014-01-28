@@ -56,6 +56,7 @@ int main(int argc, char **argv) {
             "No-wiggles correlation functions will be read from <name>.<ell>.dat with ell=0,2,4.")
         ("modelroot", po::value<std::string>(&modelrootName)->default_value(""),
             "Common path to prepend to all model filenames.")
+        ("kspace", "Use a k-space model (default is r-space)")
         ("zref", po::value<double>(&zref)->default_value(2.25),
             "Reference redshift used by model correlation functions.")
         ("dist-add", po::value<std::string>(&distAdd)->default_value(""),
@@ -259,7 +260,7 @@ int main(int argc, char **argv) {
         compareEach(vm.count("compare-each")), compareEachFinal(vm.count("compare-each-final")),
         decoupled(vm.count("decoupled")), loadICov(vm.count("load-icov")),
         loadWData(vm.count("load-wdata")), crossCorrelation(vm.count("cross-correlation")),
-        parameterScan(vm.count("parameter-scan"));
+        parameterScan(vm.count("parameter-scan")), kspace(vm.count("kspace"));
 
     // Check that we have a recognized data format.
     if(dataFormat != "comoving-cartesian" && dataFormat != "comoving-polar" &&
@@ -308,6 +309,12 @@ int main(int argc, char **argv) {
         else if(xiPoints.length() > 0) {
             model.reset(new baofit::XiCorrelationModel(xiPoints,xiMethod,!constrainedMultipoles,
                 zref,crossCorrelation));
+        }
+        else if(kspace) {
+            // Build our fit model from tabulated P(k) on disk.
+            model.reset(new baofit::BaoKSpaceCorrelationModel(
+                modelrootName,fiducialName,nowigglesName,distAdd,distMul,distR0,zref,anisotropic,
+                decoupled,crossCorrelation));            
         }
         else {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
