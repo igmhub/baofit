@@ -32,6 +32,7 @@ namespace baofit {
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
     protected:
         friend class BaoCorrelationModel;
+        friend class BaoKSpaceCorrelationModel;
         friend class BroadbandModel;
         // The public methods above call these protected methods after making parameter values
         // and changes available via our base class' getParameterValue() and isParameterValueChanged()

@@ -81,10 +81,11 @@ am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(bindir)" \
 LTLIBRARIES = $(lib_LTLIBRARIES)
 libbaofit_la_LIBADD =
 am_libbaofit_la_OBJECTS = AbsCorrelationModel.lo \
-	BaoCorrelationModel.lo BroadbandModel.lo XiCorrelationModel.lo \
-	PkCorrelationModel.lo AbsCorrelationData.lo \
-	QuasarCorrelationData.lo ComovingCorrelationData.lo \
-	CorrelationFitter.lo CorrelationAnalyzer.lo boss.lo
+	BaoCorrelationModel.lo BaoKSpaceCorrelationModel.lo \
+	BroadbandModel.lo XiCorrelationModel.lo PkCorrelationModel.lo \
+	AbsCorrelationData.lo QuasarCorrelationData.lo \
+	ComovingCorrelationData.lo CorrelationFitter.lo \
+	CorrelationAnalyzer.lo boss.lo
 libbaofit_la_OBJECTS = $(am_libbaofit_la_OBJECTS)
 PROGRAMS = $(bin_PROGRAMS)
 am_baofit_OBJECTS = baofit.$(OBJEXT)
@@ -273,6 +274,7 @@ pkgconfig_DATA = baofit.pc
 libbaofit_la_SOURCES = \
 	baofit/AbsCorrelationModel.cc \
 	baofit/BaoCorrelationModel.cc \
+	baofit/BaoKSpaceCorrelationModel.cc \
 	baofit/BroadbandModel.cc \
 	baofit/XiCorrelationModel.cc \
 	baofit/PkCorrelationModel.cc \
@@ -293,6 +295,7 @@ nobase_include_HEADERS = \
 	baofit/RuntimeError.h \
 	baofit/AbsCorrelationModel.h \
 	baofit/BaoCorrelationModel.h \
+	baofit/BaoKSpaceCorrelationModel.h \
 	baofit/BroadbandModel.h \
 	baofit/XiCorrelationModel.h \
 	baofit/PkCorrelationModel.h \
@@ -455,6 +458,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/AbsCorrelationData.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/AbsCorrelationModel.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/BaoCorrelationModel.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/BaoKSpaceCorrelationModel.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/BroadbandModel.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ComovingCorrelationData.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/CorrelationAnalyzer.Plo@am__quote@
@@ -499,6 +503,13 @@ BaoCorrelationModel.lo: baofit/BaoCorrelationModel.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='baofit/BaoCorrelationModel.cc' object='BaoCorrelationModel.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o BaoCorrelationModel.lo `test -f 'baofit/BaoCorrelationModel.cc' || echo '$(srcdir)/'`baofit/BaoCorrelationModel.cc
+
+BaoKSpaceCorrelationModel.lo: baofit/BaoKSpaceCorrelationModel.cc
+@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT BaoKSpaceCorrelationModel.lo -MD -MP -MF $(DEPDIR)/BaoKSpaceCorrelationModel.Tpo -c -o BaoKSpaceCorrelationModel.lo `test -f 'baofit/BaoKSpaceCorrelationModel.cc' || echo '$(srcdir)/'`baofit/BaoKSpaceCorrelationModel.cc
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/BaoKSpaceCorrelationModel.Tpo $(DEPDIR)/BaoKSpaceCorrelationModel.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='baofit/BaoKSpaceCorrelationModel.cc' object='BaoKSpaceCorrelationModel.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o BaoKSpaceCorrelationModel.lo `test -f 'baofit/BaoKSpaceCorrelationModel.cc' || echo '$(srcdir)/'`baofit/BaoKSpaceCorrelationModel.cc
 
 BroadbandModel.lo: baofit/BroadbandModel.cc
 @am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT BroadbandModel.lo -MD -MP -MF $(DEPDIR)/BroadbandModel.Tpo -c -o BroadbandModel.lo `test -f 'baofit/BroadbandModel.cc' || echo '$(srcdir)/'`baofit/BroadbandModel.cc

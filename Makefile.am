@@ -25,6 +25,7 @@ pkgconfig_DATA = baofit.pc
 libbaofit_la_SOURCES = \
 	baofit/AbsCorrelationModel.cc \
 	baofit/BaoCorrelationModel.cc \
+	baofit/BaoKSpaceCorrelationModel.cc \
 	baofit/BroadbandModel.cc \
 	baofit/XiCorrelationModel.cc \
 	baofit/PkCorrelationModel.cc \
@@ -44,6 +45,7 @@ nobase_include_HEADERS = \
 	baofit/RuntimeError.h \
 	baofit/AbsCorrelationModel.h \
 	baofit/BaoCorrelationModel.h \
+	baofit/BaoKSpaceCorrelationModel.h \
 	baofit/BroadbandModel.h \
 	baofit/XiCorrelationModel.h \
 	baofit/PkCorrelationModel.h \
