@@ -27,8 +27,6 @@ namespace baofit {
 		virtual ~BaoKSpaceCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
-        // Evaluates our k-space distortion model D(k,mu_k) using our current parameter values.
-        double evaluateKSpaceDistortion(double k, double mu_k) const;
 	protected:
 		// Returns the correlation function evaluated in redshift space where (r,mu) is
 		// the pair separation and z is their average redshift. The separation r should
@@ -38,9 +36,11 @@ namespace baofit {
         AbsCorrelationModelPtr _distortAdd, _distortMul;
         bool _anisotropic, _decoupled;
         int _indexBase;
-        cosmo::CorrelationFunctionPtr _fid0, _fid2, _fid4, _nw0, _nw2, _nw4;
-        cosmo::TabulatedPowerCPtr _Pfid, _Pnw;
         cosmo::DistortedPowerCorrelationPtr _Xifid, _Xinw;
+        // Evaluates our k-space distortion model D(k,mu_k) using our current parameter values.
+        double _evaluateKSpaceDistortion(double k, double mu_k) const;
+        // Parameters initialized in _evaluate that are needed by _evaluateKSpaceDistortion
+        mutable double _betaz;
 	}; // BaoKSpaceCorrelationModel
 } // baofit
 

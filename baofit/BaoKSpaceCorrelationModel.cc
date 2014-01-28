@@ -5,13 +5,15 @@
 #include "baofit/BroadbandModel.h"
 
 #include "likely/Interpolator.h"
-#include "likely/function.h"
+#include "likely/function_impl.h"
 
 #include "cosmo/RuntimeError.h"
 #include "cosmo/TabulatedPower.h"
 #include "cosmo/DistortedPowerCorrelation.h"
 
 #include "boost/format.hpp"
+#include "boost/smart_ptr.hpp"
+#include "boost/bind.hpp"
 
 #include <cmath>
 #include <cassert>
@@ -37,22 +39,47 @@ local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &m
     defineParameter("BAO alpha-perp",1,0.1);
     defineParameter("gamma-scale",0,0.5);
 
-    // Load the interpolation data we will use for each multipole of each model.
+    // Load the P(k) interpolation data we will use for each multipole of each model.
     std::string root(modelrootName);
     if(0 < root.size() && root[root.size()-1] != '/') root += '/';
     boost::format fileName("%s%s_matterpower.dat");
     bool extrapolateBelow(true),extrapolateAbove(true);
     double maxRelError(1e-3);
+    cosmo::TabulatedPowerCPtr Pfid,Pnw;
     try {
-        _Pfid = cosmo::createTabulatedPower(boost::str(fileName % root % fiducialName),
+        Pfid = cosmo::createTabulatedPower(boost::str(fileName % root % fiducialName),
             extrapolateBelow,extrapolateAbove,maxRelError);
-        _Pnw = cosmo::createTabulatedPower(boost::str(fileName % root % nowigglesName),
+        Pnw = cosmo::createTabulatedPower(boost::str(fileName % root % nowigglesName),
             extrapolateBelow,extrapolateAbove,maxRelError);
     }
     catch(cosmo::RuntimeError const &e) {
         throw RuntimeError("BaoKSpaceCorrelationModel: error while reading model interpolation data.");
     }
-    // Define our broadband distortion models, if any.
+
+    // Create smart pointers to our power spectra Pfid(k) and Pnw(fid)
+    likely::GenericFunctionPtr PfidPtr =
+        likely::createFunctionPtr<const cosmo::TabulatedPower>(Pfid);
+    likely::GenericFunctionPtr PnwPtr =
+        likely::createFunctionPtr<const cosmo::TabulatedPower>(Pnw);
+
+    // Create a smart pointer to our k-space distortion model D(k,mu_k)
+    cosmo::RMuFunctionCPtr distortionModelPtr(new cosmo::RMuFunction(boost::bind(
+        &BaoKSpaceCorrelationModel::_evaluateKSpaceDistortion,this,_1,_2)));
+
+    // Create our fiducial and no-wiggles models. We don't initialize our models
+    // yet, and instead wait until we are first evaluated and have values for
+    // our distortion parameters.
+    double rmin(20),rmax(200),relerr(1e-3),abserr(1e-5),abspow(0);
+    int nr(180),ellMax(4);
+    bool symmetric(true);
+    // Xifid(r,mu) ~ D(k,mu_k)*Pfid(k)
+    _Xifid.reset(new cosmo::DistortedPowerCorrelation(PfidPtr,distortionModelPtr,
+        rmin,rmax,nr,ellMax,symmetric,relerr,abserr,abspow));
+    // Xinw(r,mu) ~ D(k,mu_k)*Pnw(k)
+    _Xinw.reset(new cosmo::DistortedPowerCorrelation(PnwPtr,distortionModelPtr,
+        rmin,rmax,nr,ellMax,symmetric,relerr,abserr,abspow));
+
+    // Define our r-space broadband distortion models, if any.
     if(distAdd.length() > 0) {
         _distortAdd.reset(new baofit::BroadbandModel("Additive broadband distortion",
             "dist add",distAdd,distR0,zref,this));
@@ -65,29 +92,57 @@ local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &m
 
 local::BaoKSpaceCorrelationModel::~BaoKSpaceCorrelationModel() { }
 
-double local::BaoKSpaceCorrelationModel::evaluateKSpaceDistortion(double k, double mu_k) const {
-    return 1;
+double local::BaoKSpaceCorrelationModel::_evaluateKSpaceDistortion(double k, double mu_k) const {
+    double mu2(mu_k*mu_k);
+    // Calculate linear bias model
+    double tmp = 1 + _betaz*mu2;
+    double linear = tmp*tmp;
+    // Put the pieces together
+    return linear;
 }
 
-double local::BaoKSpaceCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
+double local::BaoKSpaceCorrelationModel::_evaluate(double r, double mu, double z,
+bool anyChanged) const {
 
     // Lookup linear bias parameters.
     double beta = getParameterValue(0);
     double bb = getParameterValue(1);
-    // Calculate bias from beta and bb.
+    // Calculate bias^2 from beta and bb.
     double bias = bb/(1+beta);
     double biasSq = bias*bias;
-    // Calculate beta factors
-    double betaAvg = beta;
-    double betaProd = beta*beta;
 
     // Lookup linear bias redshift evolution parameters.
     double gammaBias = getParameterValue(2);
     double gammaBeta = getParameterValue(3);
     // Apply redshift evolution
     biasSq = _redshiftEvolution(biasSq,gammaBias,z);
-    betaAvg = _redshiftEvolution(betaAvg,gammaBeta,z);
-    betaProd = _redshiftEvolution(betaProd,2*gammaBeta,z);
+    _betaz = _redshiftEvolution(beta,gammaBeta,z);
+
+    // Redo the transforms from (k,mu_k) to (r,mu).
+    int nmu(20),minSamplesPerDecade(40);
+    double margin(2), vepsMax(1e-1), vepsMin(1e-6);
+    bool optimize(false),bypass(false),converged(true);
+    if(!_Xifid->isInitialized()) {
+        // Initialize the first time. This is when the automatic calculation of numerical
+        // precision parameters takes place.
+        _Xifid->initialize(nmu,minSamplesPerDecade,margin,vepsMax,vepsMin,optimize);
+    }
+    else {
+        // We are already initialized, so just redo the transforms.
+        converged &= _Xifid->transform(bypass);
+    }
+    if(!_Xinw->isInitialized()) {
+        // Initialize the first time. This is when the automatic calculation of numerical
+        // precision parameters takes place.
+        _Xinw->initialize(nmu,minSamplesPerDecade,margin,vepsMax,vepsMin,optimize);
+    }
+    else {
+        // We are already initialized, so just redo the transforms.
+        converged &= _Xinw->transform(bypass);
+    }
+    if(!converged) {
+        throw RuntimeError("BaoKSpaceCorrelationModel: transforms not converged.");
+    }
 
     // Lookup BAO peak parameter values.
     double ampl = getParameterValue(_indexBase + 1); //("BAO amplitude");
@@ -117,11 +172,11 @@ double local::BaoKSpaceCorrelationModel::_evaluate(double r, double mu, double z
         muBAO = mu;
     }
 
-    // Calculate the cosmological predictions with and without 'wiggles'
+    // Calculate the cosmological predictions with and without 'wiggles' at (rBAO,muBAO)
     double fid = biasSq*_Xifid->getCorrelation(rBAO,muBAO);
     double nw = biasSq*_Xinw->getCorrelation(rBAO,muBAO);
 
-    // Calculate the peak decomposition
+    // Calculate the peak + smooth decomposition and rescale the peak
     double peak = ampl*(fid-nw);
     double smooth = nw;
 
@@ -130,9 +185,10 @@ double local::BaoKSpaceCorrelationModel::_evaluate(double r, double mu, double z
         // Recalculate the smooth cosmological prediction using (r,mu) instead of (rBAO,muBAO)
         nw = biasSq*_Xinw->getCorrelation(r,mu);
     }
+    // Put the pieces back together
     double xi = peak + smooth;
     
-    // Add broadband distortions, if any.
+    // Add r-space broadband distortions, if any.
     if(_distortMul) xi *= 1 + _distortMul->_evaluate(r,mu,z,anyChanged);
     if(_distortAdd) {
         double distortion = _distortAdd->_evaluate(r,mu,z,anyChanged);
