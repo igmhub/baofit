@@ -6,11 +6,15 @@
 
 #include "likely/Interpolator.h"
 #include "likely/function.h"
-#include "likely/RuntimeError.h"
+
+#include "cosmo/RuntimeError.h"
+#include "cosmo/TabulatedPower.h"
+#include "cosmo/DistortedPowerCorrelation.h"
 
 #include "boost/format.hpp"
 
 #include <cmath>
+#include <cassert>
 
 namespace local = baofit;
 
@@ -20,42 +24,32 @@ local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &m
     double zref, bool anisotropic, bool decoupled, bool crossCorrelation)
 : AbsCorrelationModel("BAO k-Space Correlation Model"), _anisotropic(anisotropic), _decoupled(decoupled)
 {
+    _setZRef(zref);
     // Linear bias parameters
-    _indexBase = _defineLinearBiasParameters(zref,crossCorrelation);
+    defineParameter("beta",1.4,0.1);
+    defineParameter("(1+beta)*bias",-0.336,0.03);
+    defineParameter("gamma-bias",3.8,0.3);
+    _indexBase = defineParameter("gamma-beta",0,0.1);
     // BAO peak parameters (values can be retrieved efficiently as offsets from _indexBase)
     defineParameter("BAO amplitude",1,0.15);
     defineParameter("BAO alpha-iso",1,0.02);
     defineParameter("BAO alpha-parallel",1,0.1);
     defineParameter("BAO alpha-perp",1,0.1);
     defineParameter("gamma-scale",0,0.5);
-    // quasar radiation parameters 
-    defineParameter("Rad strength",0.,0.1); 
-    defineParameter("Rad anisotropy",0.,0.1);
-    defineParameter("Rad mean free path",200.,10.); // in Mpc/h
-    defineParameter("Rad quasar lifetime",10.,0.1); // in Myr
-    // by default, the radiation parameters are fixed
-    configureFitParameters("fix[Rad*]=0");
 
     // Load the interpolation data we will use for each multipole of each model.
     std::string root(modelrootName);
     if(0 < root.size() && root[root.size()-1] != '/') root += '/';
-    boost::format fileName("%s%s.%d.dat");
-    std::string method("cspline");
+    boost::format fileName("%s%s_matterpower.dat");
+    bool extrapolateBelow(true),extrapolateAbove(true);
+    double maxRelError(1e-3);
     try {
-        _fid0 = likely::createFunctionPtr(likely::createInterpolator(
-            boost::str(fileName % root % fiducialName % 0),method));
-        _fid2 = likely::createFunctionPtr(likely::createInterpolator(
-            boost::str(fileName % root % fiducialName % 2),method));
-        _fid4 = likely::createFunctionPtr(likely::createInterpolator(
-            boost::str(fileName % root % fiducialName % 4),method));
-        _nw0 = likely::createFunctionPtr(likely::createInterpolator(
-            boost::str(fileName % root % nowigglesName % 0),method));
-        _nw2 = likely::createFunctionPtr(likely::createInterpolator(
-            boost::str(fileName % root % nowigglesName % 2),method));
-        _nw4 = likely::createFunctionPtr(likely::createInterpolator(
-            boost::str(fileName % root % nowigglesName % 4),method));
+        _Pfid = cosmo::createTabulatedPower(boost::str(fileName % root % fiducialName),
+            extrapolateBelow,extrapolateAbove,maxRelError);
+        _Pnw = cosmo::createTabulatedPower(boost::str(fileName % root % nowigglesName),
+            extrapolateBelow,extrapolateAbove,maxRelError);
     }
-    catch(likely::RuntimeError const &e) {
+    catch(cosmo::RuntimeError const &e) {
         throw RuntimeError("BaoKSpaceCorrelationModel: error while reading model interpolation data.");
     }
     // Define our broadband distortion models, if any.
@@ -71,9 +65,31 @@ local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &m
 
 local::BaoKSpaceCorrelationModel::~BaoKSpaceCorrelationModel() { }
 
+double local::BaoKSpaceCorrelationModel::evaluateKSpaceDistortion(double k, double mu_k) const {
+    return 1;
+}
+
 double local::BaoKSpaceCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
 
-    // Lookup parameter values by name.
+    // Lookup linear bias parameters.
+    double beta = getParameterValue(0);
+    double bb = getParameterValue(1);
+    // Calculate bias from beta and bb.
+    double bias = bb/(1+beta);
+    double biasSq = bias*bias;
+    // Calculate beta factors
+    double betaAvg = beta;
+    double betaProd = beta*beta;
+
+    // Lookup linear bias redshift evolution parameters.
+    double gammaBias = getParameterValue(2);
+    double gammaBeta = getParameterValue(3);
+    // Apply redshift evolution
+    biasSq = _redshiftEvolution(biasSq,gammaBias,z);
+    betaAvg = _redshiftEvolution(betaAvg,gammaBeta,z);
+    betaProd = _redshiftEvolution(betaProd,2*gammaBeta,z);
+
+    // Lookup BAO peak parameter values.
     double ampl = getParameterValue(_indexBase + 1); //("BAO amplitude");
     double scale = getParameterValue(_indexBase + 2); //"BAO alpha-iso");
     double scale_parallel = getParameterValue(_indexBase + 3); //("BAO alpha-parallel");
@@ -95,31 +111,24 @@ double local::BaoKSpaceCorrelationModel::_evaluate(double r, double mu, double z
         double rscale = std::sqrt(ap1*ap1*musq + (1-musq)*bp1*bp1);
         rBAO = r*rscale;
         muBAO = mu*ap1/rscale;
-        // Linear approximation, equivalent to multipole model below
-        /*
-        rBAO = r*(1 + (ap1-1)*musq + (bp1-1)*(1-musq));
-        muBAO = mu*(1 + (ap1-bp1)*(1-musq));
-        */
     }
     else {
         rBAO = r*scale;
         muBAO = mu;
     }
 
-    // Calculate the cosmological prediction.
-    double norm0 = _getNormFactor(cosmo::Monopole,z), norm2 = _getNormFactor(cosmo::Quadrupole,z),
-        norm4 = _getNormFactor(cosmo::Hexadecapole,z);
-    double musq(muBAO*muBAO);
-    double L2 = (-1+3*musq)/2., L4 = (3+musq*(-30+35*musq))/8.;
-    double fid = norm0*(*_fid0)(rBAO) + norm2*L2*(*_fid2)(rBAO) + norm4*L4*(*_fid4)(rBAO);
-    double nw = norm0*(*_nw0)(rBAO) + norm2*L2*(*_nw2)(rBAO) + norm4*L4*(*_nw4)(rBAO);
+    // Calculate the cosmological predictions with and without 'wiggles'
+    double fid = biasSq*_Xifid->getCorrelation(rBAO,muBAO);
+    double nw = biasSq*_Xinw->getCorrelation(rBAO,muBAO);
+
+    // Calculate the peak decomposition
     double peak = ampl*(fid-nw);
     double smooth = nw;
+
+    // Do not scale the cosmological broadband, if requested
     if(_decoupled) {
         // Recalculate the smooth cosmological prediction using (r,mu) instead of (rBAO,muBAO)
-        double musq(mu*mu);
-        double L2 = (-1+3*musq)/2., L4 = (3+musq*(-30+35*musq))/8.;
-        smooth = norm0*(*_nw0)(r) + norm2*L2*(*_nw2)(r) + norm4*L4*(*_nw4)(r);
+        nw = biasSq*_Xinw->getCorrelation(r,mu);
     }
     double xi = peak + smooth;
     
@@ -127,30 +136,8 @@ double local::BaoKSpaceCorrelationModel::_evaluate(double r, double mu, double z
     if(_distortMul) xi *= 1 + _distortMul->_evaluate(r,mu,z,anyChanged);
     if(_distortAdd) {
         double distortion = _distortAdd->_evaluate(r,mu,z,anyChanged);
-        // The additive distortion is multiplied by ((1+z)/(1+z0))^gamma_bias
-        double gamma_bias = getParameterValue(_indexBase - 1); //("gamma-bias");
-        xi += _redshiftEvolution(distortion,gamma_bias,z);
-    }
-
-    // Lookup radiation parameters, also value by name.
-    double rad_strength = getParameterValue(_indexBase + 6);
-    double rad_aniso = getParameterValue(_indexBase + 7);
-    double mean_free_path = getParameterValue(_indexBase + 8);
-    double quasar_lifetime = getParameterValue(_indexBase + 9);
-
-    // add quasar radiation effects (for cross-correlations only)
-    // allways works with decoupled
-    if(rad_strength>0 && r>0.){ 
-        // isotropical radiation
-        double rad = rad_strength/(r*r);
-        // attenuation
-        rad *= std::exp(-r/mean_free_path);
-        // anisotropy
-        rad *= (1 - rad_aniso*(1-mu*mu));
-        // time effects 
-        double ctd = r*(1-mu)/(1+z);
-        rad *= std::exp(-ctd/quasar_lifetime);
-        xi += rad;
+        // The additive distortion is multiplied by ((1+z)/(1+z0))^gammaBias
+        xi += _redshiftEvolution(distortion,gammaBias,z);
     }
 
     return xi;
