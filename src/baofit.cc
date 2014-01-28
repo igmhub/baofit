@@ -179,6 +179,7 @@ int main(int argc, char **argv) {
             "Redshift to use to evaluate dumped best-fit multipoles.")
         ("decorrelated", "Combined data is saved with decorrelated errors.")
         ("no-initial-fit", "Skips initial fit to combined sample.")
+        ("calculate-gradients", "Calculates gradients of best-fit model for each parameter")
         ("scalar-weights", "Combine plates using scalar weights instead of Cinv weights.")
         ("refit-config", po::value<std::string>(&refitConfig)->default_value(""),
             "Script to modify parameters for refits.")
@@ -260,7 +261,8 @@ int main(int argc, char **argv) {
         compareEach(vm.count("compare-each")), compareEachFinal(vm.count("compare-each-final")),
         decoupled(vm.count("decoupled")), loadICov(vm.count("load-icov")),
         loadWData(vm.count("load-wdata")), crossCorrelation(vm.count("cross-correlation")),
-        parameterScan(vm.count("parameter-scan")), kspace(vm.count("kspace"));
+        parameterScan(vm.count("parameter-scan")), kspace(vm.count("kspace")),
+        calculateGradients(vm.count("calculate-gradients"));
 
     // Check that we have a recognized data format.
     if(dataFormat != "comoving-cartesian" && dataFormat != "comoving-polar" &&
@@ -574,14 +576,14 @@ int main(int argc, char **argv) {
             // Dump the best-fit residuals for each data bin.
             std::string outName = outputPrefix + "residuals.dat";
             std::ofstream out(outName.c_str());
-            analyzer.dumpResiduals(out,fmin,combined);
+            analyzer.dumpResiduals(out,fmin,combined,"",calculateGradients);
             out.close();
         }
         if(altConfig.length() > 0) {
             // Dump the best-fit residuals for each data bin using an alternate model.
             std::string outName = outputPrefix + "altresiduals.dat";
             std::ofstream out(outName.c_str());
-            analyzer.dumpResiduals(out,fmin,combined,altConfig);
+            analyzer.dumpResiduals(out,fmin,combined,altConfig,calculateGradients);
             out.close();
         }
         // Calculate and save a bootstrap estimate of the (unfinalized) combined covariance
