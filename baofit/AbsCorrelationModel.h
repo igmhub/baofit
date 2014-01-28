@@ -46,8 +46,10 @@ namespace baofit {
         // of bias and beta parameters if crossCorrelation is true. Returns the index
         // of the last parameter defined.
         int _defineLinearBiasParameters(double zref, bool crossCorrelation = false);
-        // Returns the reference redshift passed to _defineLinearBiasParameters
+        // Returns the reference redshift
         double _getZRef() const;
+        // Sets the reference redshift
+        void _setZRef(double zref);
         // Applies a shift dpi in the parallel direction to the separation (r,mu) using a fiducial
         // cosmology to convert from dv in km/s to dpi in Mpc/h at the specified redshift z. The
         // value of dv is obtained from the "delta-v" parameter defined by _defineLinearBiasParameters.

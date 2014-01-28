@@ -50,10 +50,14 @@ bool anyChanged) const {
     return cosmo::getMultipole(fOfMuPtr,(int)multipole);
 }
 
+void local::AbsCorrelationModel::_setZRef(double zref) {
+    if(zref < 0) throw RuntimeError("AbsCorrelationModel: expected zref >= 0.");
+    _zref = zref;    
+}
+
 int local::AbsCorrelationModel::_defineLinearBiasParameters(double zref, bool crossCorrelation) {
     if(_indexBase >= 0) throw RuntimeError("AbsCorrelationModel: linear bias parameters already defined.");
-    if(zref < 0) throw RuntimeError("AbsCorrelationModel: expected zref >= 0.");
-    _zref = zref;
+    _setZRef(zref);
     // Linear bias parameters
     _indexBase = defineParameter("beta",1.4,0.1);
     defineParameter("(1+beta)*bias",-0.336,0.03);
