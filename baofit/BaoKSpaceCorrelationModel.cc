@@ -141,10 +141,9 @@ bool anyChanged) const {
     _snlPar2 = snlPar*snlPar;
 
     // Redo the transforms from (k,mu_k) to (r,mu) if necessary
-    if(anyChanged && (
-        isParameterValueChanged(0) ||
-        isParameterValueChanged(_nlBase) || isParameterValueChanged(_nlBase+1)
-        )) {
+    if(anyChanged) {
+        bool nlChanged = isParameterValueChanged(_nlBase) || isParameterValueChanged(_nlBase+1);
+        bool otherChanged = isParameterValueChanged(0);
         int nmu(20),minSamplesPerDecade(40);
         double margin(2), vepsMax(1e-1), vepsMin(1e-6);
         bool optimize(false),bypass(false),converged(true);
@@ -157,7 +156,7 @@ bool anyChanged) const {
                 _Xifid->printToStream(std::cout);
             }
         }
-        else {
+        else if(nlChanged || otherChanged) {
             // We are already initialized, so just redo the transforms.
             converged &= _Xifid->transform(bypass);
         }
@@ -170,11 +169,16 @@ bool anyChanged) const {
                 _Xinw->printToStream(std::cout);
             }
         }
-        else {
+        else if(nlChanged || otherChanged) {
             // We are already initialized, so just redo the transforms.
             converged &= _Xinw->transform(bypass);
         }
         if(!converged) {
+            std::cerr << "WARNING: transforms not converged with:" << std::endl;
+            int npar = getNParameters();
+            for(int ipar = 0; ipar < npar; ++ipar) {
+                std::cerr << "  par[" << ipar << "] = " << getParameterValue(ipar) << std::endl;
+            }
             throw RuntimeError("BaoKSpaceCorrelationModel: transforms not converged.");
         }
     }
