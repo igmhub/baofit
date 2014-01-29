@@ -33,9 +33,12 @@ _anisotropic(anisotropic), _decoupled(decoupled), _crossCorrelation(crossCorrela
     defineParameter("beta",1.4,0.1);
     defineParameter("(1+beta)*bias",-0.336,0.03);
     defineParameter("gamma-bias",3.8,0.3);
-    _indexBase = defineParameter("gamma-beta",0,0.1);
-    // BAO peak parameters (values can be retrieved efficiently as offsets from _indexBase)
-    defineParameter("BAO amplitude",1,0.15);
+    defineParameter("gamma-beta",0,0.1);
+    // Non-linear broadening parameters
+    _nlBase = defineParameter("SigmaNL-perp",3.26,0.3);
+    defineParameter("1+f",2,0.1);
+    // BAO peak parameters
+    _baoBase = defineParameter("BAO amplitude",1,0.15);
     defineParameter("BAO alpha-iso",1,0.02);
     defineParameter("BAO alpha-parallel",1,0.1);
     defineParameter("BAO alpha-perp",1,0.1);
@@ -107,8 +110,11 @@ double local::BaoKSpaceCorrelationModel::_evaluateKSpaceDistortion(double k, dou
     // Calculate linear bias model
     double tmp = 1 + _betaz*mu2;
     double linear = tmp*tmp;
+    // Calculate non-linear broadening
+    double snl2 = _snlPar2*mu2 + _snlPerp2*(1-mu2);
+    double nonlinear = std::exp(-0.5*snl2*k*k);
     // Put the pieces together
-    return linear;
+    return nonlinear*linear;
 }
 
 double local::BaoKSpaceCorrelationModel::_evaluate(double r, double mu, double z,
@@ -128,8 +134,17 @@ bool anyChanged) const {
     biasSq = _redshiftEvolution(biasSq,gammaBias,z);
     _betaz = _redshiftEvolution(beta,gammaBeta,z);
 
+    // Lookup non-linear broadening parameters.
+    double snlPerp = getParameterValue(_nlBase);
+    double snlPar = snlPerp*getParameterValue(_nlBase+1);
+    _snlPerp2 = snlPerp*snlPerp;
+    _snlPar2 = snlPar*snlPar;
+
     // Redo the transforms from (k,mu_k) to (r,mu) if necessary
-    if(anyChanged && isParameterValueChanged("beta")) {
+    if(anyChanged && (
+        isParameterValueChanged(0) ||
+        isParameterValueChanged(_nlBase) || isParameterValueChanged(_nlBase+1)
+        )) {
         int nmu(20),minSamplesPerDecade(40);
         double margin(2), vepsMax(1e-1), vepsMin(1e-6);
         bool optimize(false),bypass(false),converged(true);
@@ -165,11 +180,11 @@ bool anyChanged) const {
     }
 
     // Lookup BAO peak parameter values.
-    double ampl = getParameterValue(_indexBase + 1); //("BAO amplitude");
-    double scale = getParameterValue(_indexBase + 2); //"BAO alpha-iso");
-    double scale_parallel = getParameterValue(_indexBase + 3); //("BAO alpha-parallel");
-    double scale_perp = getParameterValue(_indexBase + 4); //("BAO alpha-perp");
-    double gamma_scale = getParameterValue(_indexBase + 5); //("gamma-scale");
+    double ampl = getParameterValue(_baoBase);
+    double scale = getParameterValue(_baoBase + 1);
+    double scale_parallel = getParameterValue(_baoBase + 2);
+    double scale_perp = getParameterValue(_baoBase + 3);
+    double gamma_scale = getParameterValue(_baoBase + 4);
 
     // Transform (r,mu) to (rBAO,muBAO) using the scale parameters.
     double rBAO, muBAO;

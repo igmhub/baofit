@@ -44,12 +44,12 @@ namespace baofit {
         double _dilmin, _dilmax;
         AbsCorrelationModelPtr _distortAdd, _distortMul;
         bool _anisotropic, _decoupled, _crossCorrelation, _verbose;
-        int _indexBase;
+        int _nlBase, _baoBase;
         cosmo::DistortedPowerCorrelationPtr _Xifid, _Xinw;
         // Evaluates our k-space distortion model D(k,mu_k) using our current parameter values.
         double _evaluateKSpaceDistortion(double k, double mu_k) const;
         // Parameters initialized in _evaluate that are needed by _evaluateKSpaceDistortion
-        mutable double _betaz;
+        mutable double _betaz, _snlPar2, _snlPerp2;
 	}; // BaoKSpaceCorrelationModel
 } // baofit
 
