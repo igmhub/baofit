@@ -73,7 +73,13 @@ _anisotropic(anisotropic), _decoupled(decoupled), _crossCorrelation(crossCorrela
     // our distortion parameters.
     if(rmin >= rmax) throw RuntimeError("BaoKSpaceCorrelationModel: expected rmin < rmax.");
     if(rmin <= 0) throw RuntimeError("BaoKSpaceCorrelationModel: expected rmin > 0.");
-    int nr = (int)std::ceil(rmax-rmin); // space interpolation points at ~1 Mpc/h
+    if(dilmin > dilmax) throw RuntimeError("BaoKSpaceCorrelationModel: expected dilmin <= dilmax.");
+    if(dilmin <= 0) throw RuntimeError("BaoKSpaceCorrelationModel: expected dilmin > 0.");
+    // Expand the radial ranges needed for transforms to allow for the min/max dilation.
+    rmin *= dilmin;
+    rmax *= dilmax;
+    // Space interpolation points at ~1 Mpc/h.
+    int nr = (int)std::ceil(rmax-rmin); 
     double abspow(0);
     bool symmetric(true);
     // Xifid(r,mu) ~ D(k,mu_k)*Pfid(k)
@@ -165,25 +171,28 @@ bool anyChanged) const {
     double scale_perp = getParameterValue(_indexBase + 4); //("BAO alpha-perp");
     double gamma_scale = getParameterValue(_indexBase + 5); //("gamma-scale");
 
-    // Calculate redshift evolution of the scale parameters.
-    scale = _redshiftEvolution(scale,gamma_scale,z);
-    scale_parallel = _redshiftEvolution(scale_parallel,gamma_scale,z);
-    scale_perp = _redshiftEvolution(scale_perp,gamma_scale,z);
-
     // Transform (r,mu) to (rBAO,muBAO) using the scale parameters.
     double rBAO, muBAO;
     if(_anisotropic) {
-        double ap1(scale_parallel);
-        double bp1(scale_perp);
+        double apar = _redshiftEvolution(scale_parallel,gamma_scale,z);
+        double aperp = _redshiftEvolution(scale_perp,gamma_scale,z);
         double musq(mu*mu);
-        // Exact (r,mu) transformation
-        double rscale = std::sqrt(ap1*ap1*musq + (1-musq)*bp1*bp1);
-        rBAO = r*rscale;
-        muBAO = mu*ap1/rscale;
+        scale = std::sqrt(apar*apar*musq + aperp*aperp*(1-musq));
+        rBAO = r*scale;
+        muBAO = apar*mu/scale;
     }
     else {
+        scale = _redshiftEvolution(scale,gamma_scale,z);
         rBAO = r*scale;
         muBAO = mu;
+    }
+
+    // Check dilation limits
+    if(scale < _dilmin) {
+        throw RuntimeError("BaoKSpaceCorrelationModel: hit min dilation limit.");
+    }
+    else if(scale > _dilmax) {
+        throw RuntimeError("BaoKSpaceCorrelationModel: hit max dilation limit.");
     }
 
     // Calculate the cosmological predictions with and without 'wiggles' at (rBAO,muBAO)
