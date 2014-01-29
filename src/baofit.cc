@@ -322,7 +322,7 @@ int main(int argc, char **argv) {
             // Build our fit model from tabulated P(k) on disk.
             model.reset(new baofit::BaoKSpaceCorrelationModel(
                 modelrootName,fiducialName,nowigglesName,rmin,rmax,relerr,abserr,ellMax,
-                distAdd,distMul,distR0,zref,anisotropic,decoupled,crossCorrelation));            
+                distAdd,distMul,distR0,zref,anisotropic,decoupled,crossCorrelation,verbose));            
         }
         else {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.

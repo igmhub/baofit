@@ -16,7 +16,7 @@
 #include "boost/bind.hpp"
 
 #include <cmath>
-#include <cassert>
+#include <iostream>
 
 namespace local = baofit;
 
@@ -24,8 +24,9 @@ local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &m
     std::string const &fiducialName, std::string const &nowigglesName,
     double rmin, double rmax, double relerr, double abserr, int ellMax,
     std::string const &distAdd, std::string const &distMul, double distR0,
-    double zref, bool anisotropic, bool decoupled, bool crossCorrelation)
-: AbsCorrelationModel("BAO k-Space Correlation Model"), _anisotropic(anisotropic), _decoupled(decoupled)
+    double zref, bool anisotropic, bool decoupled, bool crossCorrelation, bool verbose)
+: AbsCorrelationModel("BAO k-Space Correlation Model"), _anisotropic(anisotropic),
+_decoupled(decoupled), _crossCorrelation(crossCorrelation), _verbose(verbose)
 {
     _setZRef(zref);
     // Linear bias parameters
@@ -123,7 +124,6 @@ bool anyChanged) const {
 
     // Redo the transforms from (k,mu_k) to (r,mu) if necessary
     if(anyChanged && isParameterValueChanged("beta")) {
-        std::cout << "transforming..." << std::endl;
         int nmu(20),minSamplesPerDecade(40);
         double margin(2), vepsMax(1e-1), vepsMin(1e-6);
         bool optimize(false),bypass(false),converged(true);
@@ -131,6 +131,10 @@ bool anyChanged) const {
             // Initialize the first time. This is when the automatic calculation of numerical
             // precision parameters takes place.
             _Xifid->initialize(nmu,minSamplesPerDecade,margin,vepsMax,vepsMin,optimize);
+            if(_verbose) {
+                std::cout << "-- Initialized fiducial k-space model:" << std::endl;
+                _Xifid->printToStream(std::cout);
+            }
         }
         else {
             // We are already initialized, so just redo the transforms.
@@ -140,6 +144,10 @@ bool anyChanged) const {
             // Initialize the first time. This is when the automatic calculation of numerical
             // precision parameters takes place.
             _Xinw->initialize(nmu,minSamplesPerDecade,margin,vepsMax,vepsMin,optimize);
+            if(_verbose) {
+                std::cout << "-- Initialized no-wiggles k-space model:" << std::endl;
+                _Xinw->printToStream(std::cout);
+            }
         }
         else {
             // We are already initialized, so just redo the transforms.

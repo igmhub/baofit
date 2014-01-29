@@ -24,7 +24,7 @@ namespace baofit {
             double rmin, double rmax, double relerr, double abserr, int ellMax,
             std::string const &distAdd, std::string const &distMul, double distR0,
             double zref, bool anisotropic = false, bool decoupled = false,
-            bool crossCorrelation = false);
+            bool crossCorrelation = false, bool verbose = false);
 		virtual ~BaoKSpaceCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
@@ -35,7 +35,7 @@ namespace baofit {
         virtual double _evaluate(double r, double mu, double z, bool anyChanged) const;
 	private:
         AbsCorrelationModelPtr _distortAdd, _distortMul;
-        bool _anisotropic, _decoupled;
+        bool _anisotropic, _decoupled, _crossCorrelation, _verbose;
         int _indexBase;
         cosmo::DistortedPowerCorrelationPtr _Xifid, _Xinw;
         // Evaluates our k-space distortion model D(k,mu_k) using our current parameter values.
