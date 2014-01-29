@@ -24,9 +24,10 @@ local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &m
     std::string const &fiducialName, std::string const &nowigglesName, double zref,
     double rmin, double rmax, double dilmin, double dilmax, double relerr, double abserr, int ellMax,
     std::string const &distAdd, std::string const &distMul, double distR0,
-    bool anisotropic, bool decoupled, bool crossCorrelation, bool verbose)
+    bool anisotropic, bool decoupled,  bool nlBroadband, bool crossCorrelation, bool verbose)
 : AbsCorrelationModel("BAO k-Space Correlation Model"), _dilmin(dilmin), _dilmax(dilmax),
-_anisotropic(anisotropic), _decoupled(decoupled), _crossCorrelation(crossCorrelation), _verbose(verbose)
+_anisotropic(anisotropic), _decoupled(decoupled), _nlBroadband(nlBroadband),
+_crossCorrelation(crossCorrelation), _verbose(verbose)
 {
     _setZRef(zref);
     // Linear bias parameters

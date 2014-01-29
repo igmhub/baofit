@@ -61,6 +61,8 @@ int main(int argc, char **argv) {
             "Minimum radial dilation allowed for k-space models")
         ("dilmax", po::value<double>(&dilmax)->default_value(1.5),
             "Maximum radial dilation allowed for k-space models")
+        ("nl-broadband",
+            "k-space non-linear effects applied to broadband cosmology (default is peak only)")
         ("ellmax", po::value<int>(&ellMax)->default_value(4),
             "Maximum ell to use for k-space transforms")
         ("relerr", po::value<double>(&relerr)->default_value(1e-3),
@@ -272,7 +274,7 @@ int main(int argc, char **argv) {
         decoupled(vm.count("decoupled")), loadICov(vm.count("load-icov")),
         loadWData(vm.count("load-wdata")), crossCorrelation(vm.count("cross-correlation")),
         parameterScan(vm.count("parameter-scan")), kspace(vm.count("kspace")),
-        calculateGradients(vm.count("calculate-gradients"));
+        calculateGradients(vm.count("calculate-gradients")), nlBroadband(vm.count("nl-broadband"));
 
     // Check that we have a recognized data format.
     if(dataFormat != "comoving-cartesian" && dataFormat != "comoving-polar" &&
@@ -327,7 +329,7 @@ int main(int argc, char **argv) {
             model.reset(new baofit::BaoKSpaceCorrelationModel(
                 modelrootName,fiducialName,nowigglesName,zref,
                 rmin,rmax,dilmin,dilmax,relerr,abserr,ellMax,
-                distAdd,distMul,distR0,anisotropic,decoupled,crossCorrelation,verbose));            
+                distAdd,distMul,distR0,anisotropic,decoupled,nlBroadband,crossCorrelation,verbose));            
         }
         else {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
