@@ -18,12 +18,19 @@ namespace baofit {
 	class BaoKSpaceCorrelationModel : public AbsCorrelationModel {
 	public:
 	    // Creates a new model using the specified tabulated power spectra at the specified
-	    // reference redshift.
+	    // reference redshift. The rmin,rmax parameters specify the range of observed r this
+        // model will be evaluated at. The dilmin,dilmax parameters specify the max range of
+        // radial dilations that will be explored. The relerr and abserr parameters determine
+        // the target accuracy of the numerical transforms from k to r space, using an even
+        // multipole expansion up to ellMax. The input tabulated power spectra specified by
+        // the model names provided are assumed to be normalized for redshift zref and will
+        // be re-normalized appropriately when the model is evaluated at any different z.
 		BaoKSpaceCorrelationModel(std::string const &modelrootName,
-		    std::string const &fiducialName, std::string const &nowigglesName,
-            double rmin, double rmax, double relerr, double abserr, int ellMax,
+		    std::string const &fiducialName, std::string const &nowigglesName, double zref,
+            double rmin, double rmax, double dilmin, double dilmax,
+            double relerr, double abserr, int ellMax,
             std::string const &distAdd, std::string const &distMul, double distR0,
-            double zref, bool anisotropic = false, bool decoupled = false,
+            bool anisotropic = false, bool decoupled = false,
             bool crossCorrelation = false, bool verbose = false);
 		virtual ~BaoKSpaceCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
@@ -34,6 +41,7 @@ namespace baofit {
 		// be provided in Mpc/h.
         virtual double _evaluate(double r, double mu, double z, bool anyChanged) const;
 	private:
+        double _dilmin, _dilmax;
         AbsCorrelationModelPtr _distortAdd, _distortMul;
         bool _anisotropic, _decoupled, _crossCorrelation, _verbose;
         int _indexBase;

@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
 
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,
         rVetoWidth,rVetoCenter,muMin,muMax,kloSpline,khiSpline,toymcScale,saveICovScale,
-        zMin,zMax,llMin,llMax,sepMin,sepMax,distR0,zdump,relerr,abserr;
+        zMin,zMax,llMin,llMax,sepMin,sepMax,distR0,zdump,relerr,abserr,dilmin,dilmax;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
         mcmcSave,mcmcInterval,toymcSamples,reuseCov,nSpline,splineOrder,bootstrapCovTrials,
         projectModesNKeep,covSampleSize,ellMax;
@@ -57,6 +57,10 @@ int main(int argc, char **argv) {
         ("modelroot", po::value<std::string>(&modelrootName)->default_value(""),
             "Common path to prepend to all model filenames.")
         ("kspace", "Use a k-space model (default is r-space)")
+        ("dilmin", po::value<double>(&dilmin)->default_value(0.5),
+            "Minimum radial dilation allowed for k-space models")
+        ("dilmax", po::value<double>(&dilmax)->default_value(1.5),
+            "Maximum radial dilation allowed for k-space models")
         ("ellmax", po::value<int>(&ellMax)->default_value(4),
             "Maximum ell to use for k-space transforms")
         ("relerr", po::value<double>(&relerr)->default_value(1e-3),
@@ -321,8 +325,9 @@ int main(int argc, char **argv) {
         else if(kspace) {
             // Build our fit model from tabulated P(k) on disk.
             model.reset(new baofit::BaoKSpaceCorrelationModel(
-                modelrootName,fiducialName,nowigglesName,rmin,rmax,relerr,abserr,ellMax,
-                distAdd,distMul,distR0,zref,anisotropic,decoupled,crossCorrelation,verbose));            
+                modelrootName,fiducialName,nowigglesName,zref,
+                rmin,rmax,dilmin,dilmax,relerr,abserr,ellMax,
+                distAdd,distMul,distR0,anisotropic,decoupled,crossCorrelation,verbose));            
         }
         else {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
