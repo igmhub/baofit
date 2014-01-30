@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
             "Maximum radial dilation allowed for k-space models")
         ("nl-broadband",
             "k-space non-linear effects applied to broadband cosmology (default is peak only)")
-        ("ellmax", po::value<int>(&ellMax)->default_value(4),
+        ("ell-max", po::value<int>(&ellMax)->default_value(4),
             "Maximum ell to use for k-space transforms")
         ("relerr", po::value<double>(&relerr)->default_value(1e-3),
             "Relative error target for k-space transforms")
