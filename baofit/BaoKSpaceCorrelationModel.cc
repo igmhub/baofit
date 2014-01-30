@@ -61,10 +61,12 @@ _crossCorrelation(crossCorrelation), _verbose(verbose)
     catch(cosmo::RuntimeError const &e) {
         throw RuntimeError("BaoKSpaceCorrelationModel: error while reading model interpolation data.");
     }
+    // Internally, we use the peak = (fid - nw) and smooth = nw components to evaluate our model.
+    cosmo::TabulatedPowerCPtr Ppk = Pfid->createDelta(Pnw);
 
-    // Create smart pointers to our power spectra Pfid(k) and Pnw(fid)
-    likely::GenericFunctionPtr PfidPtr =
-        likely::createFunctionPtr<const cosmo::TabulatedPower>(Pfid);
+    // Create smart pointers to our power spectra Ppk(k) and Pnw(fid)
+    likely::GenericFunctionPtr PpkPtr =
+        likely::createFunctionPtr<const cosmo::TabulatedPower>(Ppk);
     likely::GenericFunctionPtr PnwPtr =
         likely::createFunctionPtr<const cosmo::TabulatedPower>(Pnw);
 
@@ -86,8 +88,8 @@ _crossCorrelation(crossCorrelation), _verbose(verbose)
     int nr = (int)std::ceil(rmax-rmin); 
     double abspow(0);
     bool symmetric(true);
-    // Xifid(r,mu) ~ D(k,mu_k)*Pfid(k)
-    _Xifid.reset(new cosmo::DistortedPowerCorrelation(PfidPtr,distortionModelPtr,
+    // Xipk(r,mu) ~ D(k,mu_k)*Ppk(k)
+    _Xipk.reset(new cosmo::DistortedPowerCorrelation(PpkPtr,distortionModelPtr,
         rmin,rmax,nr,ellMax,symmetric,relerr,abserr,abspow));
     // Xinw(r,mu) ~ D(k,mu_k)*Pnw(k)
     _Xinw.reset(new cosmo::DistortedPowerCorrelation(PnwPtr,distortionModelPtr,
@@ -148,18 +150,23 @@ bool anyChanged) const {
         int nmu(20),minSamplesPerDecade(40);
         double margin(2), vepsMax(1e-1), vepsMin(1e-6);
         bool optimize(false),bypass(false),converged(true);
-        if(!_Xifid->isInitialized()) {
+        if(!_Xipk->isInitialized()) {
             // Initialize the first time. This is when the automatic calculation of numerical
             // precision parameters takes place.
-            _Xifid->initialize(nmu,minSamplesPerDecade,margin,vepsMax,vepsMin,optimize);
+            _Xipk->initialize(nmu,minSamplesPerDecade,margin,vepsMax,vepsMin,optimize);
             if(_verbose) {
-                std::cout << "-- Initialized fiducial k-space model:" << std::endl;
-                _Xifid->printToStream(std::cout);
+                std::cout << "-- Initialized peak k-space model:" << std::endl;
+                _Xipk->printToStream(std::cout);
             }
         }
         else if(nlChanged || otherChanged) {
             // We are already initialized, so just redo the transforms.
-            converged &= _Xifid->transform(bypass);
+            converged &= _Xipk->transform(bypass);
+        }
+        // Are we only applying non-linear broadening to the peak?
+        if(!_nlBroadband) {
+            _snlPerp2 = _snlPar2 = 0;
+            nlChanged = false;
         }
         if(!_Xinw->isInitialized()) {
             // Initialize the first time. This is when the automatic calculation of numerical
@@ -211,21 +218,13 @@ bool anyChanged) const {
         throw RuntimeError("BaoKSpaceCorrelationModel: hit max dilation limit.");
     }
 
-    // Calculate the cosmological predictions with and without 'wiggles' at (rBAO,muBAO)
-    double fid = biasSq*_Xifid->getCorrelation(rBAO,muBAO);
-    double nw = biasSq*_Xinw->getCorrelation(rBAO,muBAO);
-
-    // Calculate the peak + smooth decomposition and rescale the peak
-    double peak = ampl*(fid-nw);
-    double smooth = nw;
-
-    // Do not scale the cosmological broadband, if requested
-    if(_decoupled) {
-        // Recalculate the smooth cosmological prediction using (r,mu) instead of (rBAO,muBAO)
-        nw = biasSq*_Xinw->getCorrelation(r,mu);
-    }
-    // Put the pieces back together
-    double xi = peak + smooth;
+    // Calculate the cosmological predictions...
+    // the peak model is always evaluated at (rBAO,muBAO)
+    double peak = _Xipk->getCorrelation(rBAO,muBAO);
+    // the decoupled option determines where we evaluate the smooth model
+    double smooth = (_decoupled) ? _Xinw->getCorrelation(r,mu) : _Xinw->getCorrelation(rBAO,muBAO);
+    // Combine the pieces with the appropriate normalization factors
+    double xi = biasSq*(ampl*peak + smooth);
     
     // Add r-space broadband distortions, if any.
     if(_distortMul) xi *= 1 + _distortMul->_evaluate(r,mu,z,anyChanged);
