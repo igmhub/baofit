@@ -27,7 +27,7 @@ local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &m
     bool anisotropic, bool decoupled,  bool nlBroadband, bool crossCorrelation, bool verbose)
 : AbsCorrelationModel("BAO k-Space Correlation Model"), _dilmin(dilmin), _dilmax(dilmax),
 _anisotropic(anisotropic), _decoupled(decoupled), _nlBroadband(nlBroadband),
-_crossCorrelation(crossCorrelation), _verbose(verbose)
+_crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarnings(10)
 {
     _setZRef(zref);
     // Linear bias parameters
@@ -182,8 +182,13 @@ bool anyChanged) const {
             converged &= _Xinw->transform(bypass);
         }
         if(!converged) {
-            std::cout << "WARNING: transforms not converged with:" << std::endl;
-            printCurrentValues(std::cout);
+            if(++_nWarnings <= _maxWarnings) {
+                std::cout << "WARNING: transforms not converged with:" << std::endl;
+                printCurrentValues(std::cout);
+                if(_nWarnings == _maxWarnings) {
+                    std::cout << "(will not print any more warnings like this)" << std::endl;
+                }
+            }
         }
     }
 
