@@ -148,7 +148,7 @@ bool anyChanged) const {
         bool nlChanged = isParameterValueChanged(_nlBase) || isParameterValueChanged(_nlBase+1);
         bool otherChanged = isParameterValueChanged(0);
         int nmu(20),minSamplesPerDecade(40);
-        double margin(2), vepsMax(1e-1), vepsMin(1e-6);
+        double margin(4), vepsMax(1e-1), vepsMin(1e-6);
         bool optimize(false),bypass(false),converged(true);
         if(!_Xipk->isInitialized()) {
             // Initialize the first time. This is when the automatic calculation of numerical
