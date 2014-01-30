@@ -175,12 +175,8 @@ bool anyChanged) const {
             converged &= _Xinw->transform(bypass);
         }
         if(!converged) {
-            std::cerr << "WARNING: transforms not converged with:" << std::endl;
-            int npar = getNParameters();
-            for(int ipar = 0; ipar < npar; ++ipar) {
-                std::cerr << "  par[" << ipar << "] = " << getParameterValue(ipar) << std::endl;
-            }
-            throw RuntimeError("BaoKSpaceCorrelationModel: transforms not converged.");
+            std::cout << "WARNING: transforms not converged with:" << std::endl;
+            printCurrentValues(std::cout);
         }
     }
 
