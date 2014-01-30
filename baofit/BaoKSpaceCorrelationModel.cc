@@ -35,6 +35,14 @@ _crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarni
     defineParameter("(1+beta)*bias",-0.336,0.03);
     defineParameter("gamma-bias",3.8,0.3);
     defineParameter("gamma-beta",0,0.1);
+    if(crossCorrelation) {
+        // Amount to shift each separation's line of sight velocity in km/s
+        _setDVIndex(defineParameter("delta-v",0,10));
+        // We use don't use beta2 and (1+beta2)*bias2 here since for galaxies or quasars
+        // the combination beta2*bias2 = f = dln(G)/dln(a) is well constrained.
+        defineParameter("bias2",3.6,0.1);
+        defineParameter("beta2*bias2",1,0.05);
+    }
     // Non-linear broadening parameters
     _nlBase = defineParameter("SigmaNL-perp",3.26,0.3);
     defineParameter("1+f",2,0.1);
@@ -111,8 +119,9 @@ local::BaoKSpaceCorrelationModel::~BaoKSpaceCorrelationModel() { }
 double local::BaoKSpaceCorrelationModel::_evaluateKSpaceDistortion(double k, double mu_k) const {
     double mu2(mu_k*mu_k);
     // Calculate linear bias model
-    double tmp = 1 + _betaz*mu2;
-    double linear = tmp*tmp;
+    double tracer1 = 1 + _betaz*mu2;
+    double tracer2 = _crossCorrelation ? 1 + _beta2z*mu2 : tracer1;
+    double linear = tracer1*tracer2;
     // Calculate non-linear broadening
     double snl2 = _snlPar2*mu2 + _snlPerp2*(1-mu2);
     double nonlinear = std::exp(-0.5*snl2*k*k);
@@ -128,7 +137,18 @@ bool anyChanged) const {
     double bb = getParameterValue(1);
     // Calculate bias^2 from beta and bb.
     double bias = bb/(1+beta);
-    double biasSq = bias*bias;
+    // Get linear bias parameters of other tracer (if we are modeling a cross correlation)
+    // and calculate the combined bias^2 at zref.
+    double beta2,biasSq;
+    if(_crossCorrelation) {
+        double bias2 = getParameterValue(5);
+        double beta2bias2 = getParameterValue(6);
+        beta2 = beta2bias2/bias2;
+        biasSq = bias*bias2;
+    }
+    else {
+        biasSq = bias*bias;
+    }
 
     // Lookup linear bias redshift evolution parameters.
     double gammaBias = getParameterValue(2);
@@ -136,6 +156,7 @@ bool anyChanged) const {
     // Apply redshift evolution
     biasSq = _redshiftEvolution(biasSq,gammaBias,z);
     _betaz = _redshiftEvolution(beta,gammaBeta,z);
+    if(_crossCorrelation) _beta2z = _redshiftEvolution(beta2,gammaBeta,z);
 
     // Lookup non-linear broadening parameters.
     double snlPerp = getParameterValue(_nlBase);
