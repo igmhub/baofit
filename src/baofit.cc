@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
         zMin,zMax,llMin,llMax,sepMin,sepMax,distR0,zdump,relerr,abserr,dilmin,dilmax;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
         mcmcSave,mcmcInterval,toymcSamples,reuseCov,nSpline,splineOrder,bootstrapCovTrials,
-        projectModesNKeep,covSampleSize,ellMax;
+        projectModesNKeep,covSampleSize,ellMax,samplesPerDecade;
     std::string modelrootName,fiducialName,nowigglesName,dataName,xiPoints,toymcConfig,
         platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig,
         fixModeScales,distAdd,distMul,dataFormat,axis1Bins,axis2Bins,axis3Bins;
@@ -57,6 +57,8 @@ int main(int argc, char **argv) {
         ("modelroot", po::value<std::string>(&modelrootName)->default_value(""),
             "Common path to prepend to all model filenames.")
         ("kspace", "Use a k-space model (default is r-space)")
+        ("samples-per-decade", po::value<int>(&samplesPerDecade)->default_value(50),
+            "Number of log-spaced k samples per decade for interpolating multipoles")
         ("dilmin", po::value<double>(&dilmin)->default_value(0.5),
             "Minimum radial dilation allowed for k-space models")
         ("dilmax", po::value<double>(&dilmax)->default_value(1.5),
@@ -328,7 +330,7 @@ int main(int argc, char **argv) {
             // Build our fit model from tabulated P(k) on disk.
             model.reset(new baofit::BaoKSpaceCorrelationModel(
                 modelrootName,fiducialName,nowigglesName,zref,
-                rmin,rmax,dilmin,dilmax,relerr,abserr,ellMax,
+                rmin,rmax,dilmin,dilmax,relerr,abserr,ellMax,samplesPerDecade,
                 distAdd,distMul,distR0,anisotropic,decoupled,nlBroadband,crossCorrelation,verbose));            
         }
         else {

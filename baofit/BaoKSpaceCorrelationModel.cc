@@ -22,7 +22,8 @@ namespace local = baofit;
 
 local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &modelrootName,
     std::string const &fiducialName, std::string const &nowigglesName, double zref,
-    double rmin, double rmax, double dilmin, double dilmax, double relerr, double abserr, int ellMax,
+    double rmin, double rmax, double dilmin, double dilmax,
+    double relerr, double abserr, int ellMax, int samplesPerDecade,
     std::string const &distAdd, std::string const &distMul, double distR0,
     bool anisotropic, bool decoupled,  bool nlBroadband, bool crossCorrelation, bool verbose)
 : AbsCorrelationModel("BAO k-Space Correlation Model"), _dilmin(dilmin), _dilmax(dilmax),
@@ -72,6 +73,10 @@ _crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarni
     // Internally, we use the peak = (fid - nw) and smooth = nw components to evaluate our model.
     cosmo::TabulatedPowerCPtr Ppk = Pfid->createDelta(Pnw);
 
+    // Use the k limits of our tabulated P(k) for k-interpolation of our transforms
+    double klo = Ppk->getKMin(), khi = Ppk->getKMax();
+    int nk = std::ceil(std::log10(khi/klo)*samplesPerDecade);
+
     // Create smart pointers to our power spectra Ppk(k) and Pnw(fid)
     likely::GenericFunctionPtr PpkPtr =
         likely::createFunctionPtr<const cosmo::TabulatedPower>(Ppk);
@@ -98,10 +103,10 @@ _crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarni
     bool symmetric(true);
     // Xipk(r,mu) ~ D(k,mu_k)*Ppk(k)
     _Xipk.reset(new cosmo::DistortedPowerCorrelation(PpkPtr,distortionModelPtr,
-        rmin,rmax,nr,ellMax,symmetric,relerr,abserr,abspow));
+        klo,khi,nk,rmin,rmax,nr,ellMax,symmetric,relerr,abserr,abspow));
     // Xinw(r,mu) ~ D(k,mu_k)*Pnw(k)
     _Xinw.reset(new cosmo::DistortedPowerCorrelation(PnwPtr,distortionModelPtr,
-        rmin,rmax,nr,ellMax,symmetric,relerr,abserr,abspow));
+        klo,khi,nk,rmin,rmax,nr,ellMax,symmetric,relerr,abserr,abspow));
 
     // Define our r-space broadband distortion models, if any.
     if(distAdd.length() > 0) {
@@ -168,13 +173,13 @@ bool anyChanged) const {
     if(anyChanged) {
         bool nlChanged = isParameterValueChanged(_nlBase) || isParameterValueChanged(_nlBase+1);
         bool otherChanged = isParameterValueChanged(0);
-        int nmu(20),minSamplesPerDecade(40);
+        int nmu(20);
         double margin(4), vepsMax(1e-1), vepsMin(1e-6);
-        bool optimize(false),bypass(false),converged(true);
+        bool optimize(false),interpolateK(true),bypassConvergenceTest(false),converged(true);
         if(!_Xipk->isInitialized()) {
             // Initialize the first time. This is when the automatic calculation of numerical
             // precision parameters takes place.
-            _Xipk->initialize(nmu,minSamplesPerDecade,margin,vepsMax,vepsMin,optimize);
+            _Xipk->initialize(nmu,margin,vepsMax,vepsMin,optimize);
             if(_verbose) {
                 std::cout << "-- Initialized peak k-space model:" << std::endl;
                 _Xipk->printToStream(std::cout);
@@ -182,7 +187,7 @@ bool anyChanged) const {
         }
         else if(nlChanged || otherChanged) {
             // We are already initialized, so just redo the transforms.
-            converged &= _Xipk->transform(bypass);
+            converged &= _Xipk->transform(interpolateK,bypassConvergenceTest);
         }
         // Are we only applying non-linear broadening to the peak?
         if(!_nlBroadband) {
@@ -192,7 +197,7 @@ bool anyChanged) const {
         if(!_Xinw->isInitialized()) {
             // Initialize the first time. This is when the automatic calculation of numerical
             // precision parameters takes place.
-            _Xinw->initialize(nmu,minSamplesPerDecade,margin,vepsMax,vepsMin,optimize);
+            _Xinw->initialize(nmu,margin,vepsMax,vepsMin,optimize);
             if(_verbose) {
                 std::cout << "-- Initialized no-wiggles k-space model:" << std::endl;
                 _Xinw->printToStream(std::cout);
@@ -200,7 +205,7 @@ bool anyChanged) const {
         }
         else if(nlChanged || otherChanged) {
             // We are already initialized, so just redo the transforms.
-            converged &= _Xinw->transform(bypass);
+            converged &= _Xinw->transform(interpolateK,bypassConvergenceTest);
         }
         if(!converged) {
             if(++_nWarnings <= _maxWarnings) {
