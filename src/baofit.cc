@@ -28,10 +28,10 @@ int main(int argc, char **argv) {
 
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,
         rVetoWidth,rVetoCenter,muMin,muMax,kloSpline,khiSpline,toymcScale,saveICovScale,
-        zMin,zMax,llMin,llMax,sepMin,sepMax,distR0,zdump;
+        zMin,zMax,llMin,llMax,sepMin,sepMax,distR0,zdump,relerr,abserr,dilmin,dilmax;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
         mcmcSave,mcmcInterval,toymcSamples,reuseCov,nSpline,splineOrder,bootstrapCovTrials,
-        projectModesNKeep,covSampleSize;
+        projectModesNKeep,covSampleSize,ellMax,samplesPerDecade;
     std::string modelrootName,fiducialName,nowigglesName,dataName,xiPoints,toymcConfig,
         platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig,
         fixModeScales,distAdd,distMul,dataFormat,axis1Bins,axis2Bins,axis3Bins;
@@ -56,6 +56,21 @@ int main(int argc, char **argv) {
             "No-wiggles correlation functions will be read from <name>.<ell>.dat with ell=0,2,4.")
         ("modelroot", po::value<std::string>(&modelrootName)->default_value(""),
             "Common path to prepend to all model filenames.")
+        ("kspace", "Use a k-space model (default is r-space)")
+        ("samples-per-decade", po::value<int>(&samplesPerDecade)->default_value(50),
+            "Number of log-spaced k samples per decade for interpolating multipoles")
+        ("dilmin", po::value<double>(&dilmin)->default_value(0.5),
+            "Minimum radial dilation allowed for k-space models")
+        ("dilmax", po::value<double>(&dilmax)->default_value(1.5),
+            "Maximum radial dilation allowed for k-space models")
+        ("nl-broadband",
+            "k-space non-linear effects applied to broadband cosmology (default is peak only)")
+        ("ell-max", po::value<int>(&ellMax)->default_value(4),
+            "Maximum ell to use for k-space transforms")
+        ("relerr", po::value<double>(&relerr)->default_value(1e-3),
+            "Relative error target for k-space transforms")
+        ("abserr", po::value<double>(&abserr)->default_value(1e-5),
+            "Absolute error target for k-space transforms")
         ("zref", po::value<double>(&zref)->default_value(2.25),
             "Reference redshift used by model correlation functions.")
         ("dist-add", po::value<std::string>(&distAdd)->default_value(""),
@@ -178,6 +193,7 @@ int main(int argc, char **argv) {
             "Redshift to use to evaluate dumped best-fit multipoles.")
         ("decorrelated", "Combined data is saved with decorrelated errors.")
         ("no-initial-fit", "Skips initial fit to combined sample.")
+        ("calculate-gradients", "Calculates gradients of best-fit model for each parameter")
         ("scalar-weights", "Combine plates using scalar weights instead of Cinv weights.")
         ("refit-config", po::value<std::string>(&refitConfig)->default_value(""),
             "Script to modify parameters for refits.")
@@ -259,7 +275,8 @@ int main(int argc, char **argv) {
         compareEach(vm.count("compare-each")), compareEachFinal(vm.count("compare-each-final")),
         decoupled(vm.count("decoupled")), loadICov(vm.count("load-icov")),
         loadWData(vm.count("load-wdata")), crossCorrelation(vm.count("cross-correlation")),
-        parameterScan(vm.count("parameter-scan"));
+        parameterScan(vm.count("parameter-scan")), kspace(vm.count("kspace")),
+        calculateGradients(vm.count("calculate-gradients")), nlBroadband(vm.count("nl-broadband"));
 
     // Check that we have a recognized data format.
     if(dataFormat != "comoving-cartesian" && dataFormat != "comoving-polar" &&
@@ -308,6 +325,13 @@ int main(int argc, char **argv) {
         else if(xiPoints.length() > 0) {
             model.reset(new baofit::XiCorrelationModel(xiPoints,xiMethod,!constrainedMultipoles,
                 zref,crossCorrelation));
+        }
+        else if(kspace) {
+            // Build our fit model from tabulated P(k) on disk.
+            model.reset(new baofit::BaoKSpaceCorrelationModel(
+                modelrootName,fiducialName,nowigglesName,zref,
+                rmin,rmax,dilmin,dilmax,relerr,abserr,ellMax,samplesPerDecade,
+                distAdd,distMul,distR0,anisotropic,decoupled,nlBroadband,crossCorrelation,verbose));            
         }
         else {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
@@ -567,14 +591,14 @@ int main(int argc, char **argv) {
             // Dump the best-fit residuals for each data bin.
             std::string outName = outputPrefix + "residuals.dat";
             std::ofstream out(outName.c_str());
-            analyzer.dumpResiduals(out,fmin,combined);
+            analyzer.dumpResiduals(out,fmin,combined,"",calculateGradients);
             out.close();
         }
         if(altConfig.length() > 0) {
             // Dump the best-fit residuals for each data bin using an alternate model.
             std::string outName = outputPrefix + "altresiduals.dat";
             std::ofstream out(outName.c_str());
-            analyzer.dumpResiduals(out,fmin,combined,altConfig);
+            analyzer.dumpResiduals(out,fmin,combined,altConfig,calculateGradients);
             out.close();
         }
         // Calculate and save a bootstrap estimate of the (unfinalized) combined covariance

@@ -12,7 +12,7 @@
 namespace local = baofit;
 
 local::AbsCorrelationModel::AbsCorrelationModel(std::string const &name)
-: FitModel(name), _indexBase(-1), _crossCorrelation(false)
+: FitModel(name), _indexBase(-1), _crossCorrelation(false), _dvIndex(-1)
 { }
 
 local::AbsCorrelationModel::~AbsCorrelationModel() { }
@@ -20,7 +20,7 @@ local::AbsCorrelationModel::~AbsCorrelationModel() { }
 double local::AbsCorrelationModel::evaluate(double r, double mu, double z,
 likely::Parameters const &params) {
     bool anyChanged = updateParameterValues(params);
-    if(_crossCorrelation) _applyVelocityShift(r,mu,z);
+    if(_dvIndex >= 0) _applyVelocityShift(r,mu,z);
     double result = _evaluate(r,mu,z,anyChanged);
     resetParameterValuesChanged();
     return result;
@@ -50,10 +50,14 @@ bool anyChanged) const {
     return cosmo::getMultipole(fOfMuPtr,(int)multipole);
 }
 
+void local::AbsCorrelationModel::_setZRef(double zref) {
+    if(zref < 0) throw RuntimeError("AbsCorrelationModel: expected zref >= 0.");
+    _zref = zref;    
+}
+
 int local::AbsCorrelationModel::_defineLinearBiasParameters(double zref, bool crossCorrelation) {
     if(_indexBase >= 0) throw RuntimeError("AbsCorrelationModel: linear bias parameters already defined.");
-    if(zref < 0) throw RuntimeError("AbsCorrelationModel: expected zref >= 0.");
-    _zref = zref;
+    _setZRef(zref);
     // Linear bias parameters
     _indexBase = defineParameter("beta",1.4,0.1);
     defineParameter("(1+beta)*bias",-0.336,0.03);
@@ -64,6 +68,7 @@ int local::AbsCorrelationModel::_defineLinearBiasParameters(double zref, bool cr
         _crossCorrelation = true;
         // Amount to shift each separation's line of sight velocity in km/s
         defineParameter("delta-v",0,10);
+        _setDVIndex(_indexBase + DELTA_V);
         // We use don't use beta2 and (1+beta2)*bias2 here since for galaxies or quasars
         // so that this parameter corresponds directly to f = dln(G)/dln(a), which is what
         // we usually want to constrain when the second component is galaxies or quasars.
@@ -80,7 +85,7 @@ int local::AbsCorrelationModel::_defineLinearBiasParameters(double zref, bool cr
 
 void local::AbsCorrelationModel::_applyVelocityShift(double &r, double &mu, double z) {
     // Lookup value of delta_v
-    double dv = getParameterValue(_indexBase + DELTA_V);
+    double dv = getParameterValue(_dvIndex);
     // Convert dv in km/s to dpi in Mpc/h using a flat matter+lambda cosmology with OmegaLambda = 0.73
     double zp1 = 1+z;
     double dpi = (dv/100.)*(1+z)/std::sqrt(0.73+0.27*zp1*zp1*zp1);

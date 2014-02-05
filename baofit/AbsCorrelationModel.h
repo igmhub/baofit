@@ -32,6 +32,7 @@ namespace baofit {
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
     protected:
         friend class BaoCorrelationModel;
+        friend class BaoKSpaceCorrelationModel;
         friend class BroadbandModel;
         // The public methods above call these protected methods after making parameter values
         // and changes available via our base class' getParameterValue() and isParameterValueChanged()
@@ -45,8 +46,12 @@ namespace baofit {
         // of bias and beta parameters if crossCorrelation is true. Returns the index
         // of the last parameter defined.
         int _defineLinearBiasParameters(double zref, bool crossCorrelation = false);
-        // Returns the reference redshift passed to _defineLinearBiasParameters
+        // Returns the reference redshift
         double _getZRef() const;
+        // Sets the reference redshift
+        void _setZRef(double zref);
+        // Sets the index of the velocity shift parameter to use.
+        void _setDVIndex(int index);
         // Applies a shift dpi in the parallel direction to the separation (r,mu) using a fiducial
         // cosmology to convert from dv in km/s to dpi in Mpc/h at the specified redshift z. The
         // value of dv is obtained from the "delta-v" parameter defined by _defineLinearBiasParameters.
@@ -57,7 +62,7 @@ namespace baofit {
         // Updates the multipole normalization factors b^2(z)*C_ell(beta(z)) returned by getNormFactor(ell).
         double _getNormFactor(cosmo::Multipole multipole, double z) const;
     private:
-        int _indexBase;
+        int _indexBase, _dvIndex;
         bool _crossCorrelation;
         enum IndexOffset {
             BETA = 0, BB = 1, GAMMA_BIAS = 2, GAMMA_BETA = 3, DELTA_V = 4, BIAS2 = 5, BB2 = 6
@@ -66,6 +71,7 @@ namespace baofit {
 	}; // AbsCorrelationModel
 
     inline double AbsCorrelationModel::_getZRef() const { return _zref; }
+    inline void AbsCorrelationModel::_setDVIndex(int index) { _dvIndex = index; }
 
 } // baofit
 
