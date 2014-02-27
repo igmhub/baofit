@@ -32,18 +32,22 @@ double local::AbsCorrelationData::getCosAngle(int index) const { return 0; }
 cosmo::Multipole local::AbsCorrelationData::getMultipole(int index) const { return cosmo::Monopole; }
 
 void local::AbsCorrelationData::setFinalCuts(double rMin, double rMax, double rVetoMin, double rVetoMax,
-double muMin, double muMax, cosmo::Multipole lMin, cosmo::Multipole lMax,
-double zMin, double zMax) {
+double muMin, double muMax, double rperpMin, double rperpMax, double rparMin, double rparMax,
+cosmo::Multipole lMin, cosmo::Multipole lMax, double zMin, double zMax) {
     if(rMin > rMax) throw RuntimeError("AbsCorrelationData::setFinalCuts: expected r-min <= r-max.");
     if(rVetoMin > rVetoMax) {
         throw RuntimeError("AbsCorrelationData::setFinalCuts: expected rveto-min <= rveto-max.");
     }
     if(muMin > muMax) throw RuntimeError("AbsCorrelationData::setFinalCuts: expected mu-min <= mu-max.");
+    if(rperpMin > rperpMax) throw RuntimeError("AbsCorrelationData::setFinalCuts: expected rperp-min <= rperp-max.");
+    if(rparMin > rparMax) throw RuntimeError("AbsCorrelationData::setFinalCuts: expected rpar-min <= rpar-max.");
     if(lMin > lMax) throw RuntimeError("AbsCorrelationData::setFinalCuts: expected lmin <= lmax.");
     if(zMin > zMax) throw RuntimeError("AbsCorrelationData::setFinalCuts: expected z-min <= z-max.");
     _rMin = rMin; _rMax = rMax;
     _rVetoMin = rVetoMin; _rVetoMax = rVetoMax;
     _muMin = muMin; _muMax = muMax;
+    _rperpMin = rperpMin; _rperpMax = rperpMax;
+    _rparMin = rparMin; _rparMax = rparMax;
     _lMin = lMin; _lMax = lMax;
     _zMin = zMin; _zMax = zMax;
     _haveFinalCuts = true;
@@ -53,6 +57,8 @@ void local::AbsCorrelationData::_cloneFinalCuts(AbsCorrelationData &other) const
     other._rMin = _rMin; other._rMax = _rMax;
     other._rVetoMin = _rVetoMin; other._rVetoMax = _rVetoMax;
     other._muMin = _muMin; other._muMax = _muMax;
+    other._rperpMin = _rperpMin; other._rperpMax = _rperpMax;
+    other._rparMin = _rparMin; other._rparMax = _rparMax;
     other._lMin = _lMin; other._lMax = _lMax;
     other._zMin = _zMin; other._zMax = _zMax;
     other._haveFinalCuts = _haveFinalCuts;
@@ -73,6 +79,10 @@ void local::AbsCorrelationData::_applyFinalCuts(std::set<int> &keep) const {
         if(_type == Coordinate) {
             double mu(getCosAngle(index));
             if(mu < _muMin || mu > _muMax) continue;
+            double rpar = r*mu;
+            if(rpar < _rparMin || rpar > _rparMax) continue;
+            double rperp = r*std::sqrt(1-mu*mu);
+            if(rperp < _rperpMin || rperp > _rperpMax) continue;
         }
         else { // _type == Multipole
             int ell(getMultipole(index));

@@ -533,9 +533,19 @@ AbsCorrelationDataCPtr sample, std::string const &saveName, int nsave, double zs
                 << " using " << config << std::endl;
         }
         // Do the fit.
-        likely::FunctionMinimumCPtr gridMin = fitSample(sample,config);
-        // Add the results to our output file.
-        output.saveSample(gridMin->getFitParameters(),gridMin->getMinValue());
+        try {
+            likely::FunctionMinimumCPtr gridMin = fitSample(sample,config);
+            // Add the results to our output file.
+            output.saveSample(gridMin->getFitParameters(),gridMin->getMinValue());
+        }
+        catch(std::runtime_error const &e) {
+            std::cerr << "ERROR while fitting:\n  " << e.what() << std::endl;
+            // Use a copy of initial parameters with the config for this step applied.
+            likely::FitParameters pcopy(params);
+            likely::modifyFitParameters(pcopy,config);
+            // Save results with fval = 0
+            output.saveSample(pcopy,0.);
+        }
     }
     return nfits;
 }
