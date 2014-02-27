@@ -41,7 +41,8 @@ namespace baofit {
         // getTransverseBinningType() returns Coordinate and, otherwise, (muMin,muMax)
         // will be ignored.
         void setFinalCuts(double rMin, double rMax, double rVetoMin, double rVetoMax,
-            double muMin, double muMax, cosmo::Multipole lMin, cosmo::Multipole lMax,
+            double muMin, double muMax, double rperpMin, double rperpMax,
+            double rparMin, double rparMax, cosmo::Multipole lMin, cosmo::Multipole lMax,
             double zMin, double zMax);
     protected:
         // Copies our final cuts to the specified object.
@@ -52,7 +53,8 @@ namespace baofit {
         void _applyFinalCuts(std::set<int> &keep) const;
     private:
         TransverseBinningType _type;
-        double _rMin,_rMax,_rVetoMin,_rVetoMax,_muMin,_muMax,_zMin,_zMax;
+        double _rMin,_rMax,_rVetoMin,_rVetoMax,_muMin,_muMax,_rperpMin,_rperpMax,
+            _rparMin,_rparMax,_zMin,_zMax;
         cosmo::Multipole _lMin,_lMax;
         bool _haveFinalCuts;
 	}; // AbsCorrelationData

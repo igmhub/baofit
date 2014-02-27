@@ -28,7 +28,8 @@ int main(int argc, char **argv) {
 
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,
         rVetoWidth,rVetoCenter,muMin,muMax,kloSpline,khiSpline,toymcScale,saveICovScale,
-        zMin,zMax,llMin,llMax,sepMin,sepMax,distR0,zdump,relerr,abserr,dilmin,dilmax;
+        zMin,zMax,llMin,llMax,sepMin,sepMax,distR0,zdump,relerr,abserr,dilmin,dilmax,
+        rperpMin,rperpMax,rparMin,rparMax;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
         mcmcSave,mcmcInterval,toymcSamples,reuseCov,nSpline,splineOrder,bootstrapCovTrials,
         projectModesNKeep,covSampleSize,ellMax,samplesPerDecade;
@@ -166,9 +167,17 @@ int main(int argc, char **argv) {
         ("rveto-center", po::value<double>(&rVetoCenter)->default_value(114),
             "Center (Mpc/h) of co-moving separation window to veto in fit.")
         ("mu-min", po::value<double>(&muMin)->default_value(-1),
-            "Final cut on minimum value of mu = rL/r to use in the fit (ignored for multipole data).")
+            "Final cut on minimum value of mu = rpar/r to use in the fit (ignored for multipole data).")
         ("mu-max", po::value<double>(&muMax)->default_value(1),
-            "Final cut on maximum value of mu = rL/r to use in the fit (ignored for multipole data).")
+            "Final cut on maximum value of mu = rpar/r to use in the fit (ignored for multipole data).")
+        ("rperp-min", po::value<double>(&rperpMin)->default_value(0.),
+            "Final cut on minimum value of rperp to use in the fit (ignored for multipole data).")
+        ("rperp-max", po::value<double>(&rperpMax)->default_value(200.),
+            "Final cut on maximum value of rperp to use in the fit (ignored for multipole data).")
+        ("rpar-min", po::value<double>(&rparMin)->default_value(-200.),
+            "Final cut on minimum value of rpar to use in the fit (ignored for multipole data).")
+        ("rpar-max", po::value<double>(&rparMax)->default_value(200.),
+            "Final cut on maximum value of rpar to use in the fit (ignored for multipole data).")
         ("lmin", po::value<int>(&lmin)->default_value(0),
             "Final cut on minimum multipole ell (0,2,4) to use in fit (multipole data only).")
         ("lmax", po::value<int>(&lmax)->default_value(2),
@@ -390,7 +399,8 @@ int main(int argc, char **argv) {
             throw baofit::RuntimeError("Internal error: missing data-format handler.");
         }
         // Set the final cuts that have not already been specified in the prototype ctors above.
-        prototype->setFinalCuts(rmin,rmax,rVetoMin,rVetoMax,muMin,muMax,ellmin,ellmax,zMin,zMax);
+        prototype->setFinalCuts(rmin,rmax,rVetoMin,rVetoMax,muMin,muMax,
+            rperpMin,rperpMax,rparMin,rparMax,ellmin,ellmax,zMin,zMax);
         
         // Load the vector of mode scale corrections to apply, if any
         std::vector<double> modeScales;
