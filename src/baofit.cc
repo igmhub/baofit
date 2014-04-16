@@ -29,10 +29,10 @@ int main(int argc, char **argv) {
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,
         rVetoWidth,rVetoCenter,muMin,muMax,kloSpline,khiSpline,toymcScale,saveICovScale,
         zMin,zMax,llMin,llMax,sepMin,sepMax,distR0,zdump,relerr,abserr,dilmin,dilmax,
-        rperpMin,rperpMax,rparMin,rparMax;
-    int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
+        rperpMin,rperpMax,rparMin,rparMax,gridspacing;
+    int nsep,nzbins,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
         mcmcSave,mcmcInterval,toymcSamples,reuseCov,nSpline,splineOrder,bootstrapCovTrials,
-        projectModesNKeep,covSampleSize,ellMax,samplesPerDecade;
+        projectModesNKeep,covSampleSize,ellMax,samplesPerDecade,ngridx,ngridy,ngridz;
     std::string modelrootName,fiducialName,nowigglesName,dataName,xiPoints,toymcConfig,
         platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig,
         fixModeScales,distAdd,distMul,dataFormat,axis1Bins,axis2Bins,axis3Bins;
@@ -72,6 +72,15 @@ int main(int argc, char **argv) {
             "Relative error target for k-space transforms")
         ("abserr", po::value<double>(&abserr)->default_value(1e-5),
             "Absolute error target for k-space transforms")
+        ("kspace-fft", "Use a k-space model with 3D FFT")
+        ("gridspacing", po::value<double>(&spacing)->default_value(4),
+            "Grid spacing in Mpc/h for 3D FFT.")
+        ("ngridx", po::value<int>(&nx)->default_value(400),
+            "Grid size along x-axis for 3D FFT.")
+        ("ngridy", po::value<int>(&ny)->default_value(0),
+            "Grid size along line-of-sight y-axis for 3D FFT (or zero for ny=nx).")
+        ("ngridz", po::value<int>(&nz)->default_value(0),
+            "Grid size along z-axis for 3D FFT (or zero for nz=ny).")
         ("zref", po::value<double>(&zref)->default_value(2.25),
             "Reference redshift used by model correlation functions.")
         ("dist-add", po::value<std::string>(&distAdd)->default_value(""),
@@ -153,7 +162,7 @@ int main(int argc, char **argv) {
             "Minimum redshift.")
         ("dz", po::value<double>(&dz)->default_value(1.0,"1.0"),
             "Redshift binsize.")
-        ("nz", po::value<int>(&nz)->default_value(2),
+        ("nz", po::value<int>(&nzbins)->default_value(2),
             "Maximum number of redshift bins.")
         ("fix-aln-cov", "Fixes covariance matrix of points in 'aln' parametrization")
         ;
@@ -285,7 +294,8 @@ int main(int argc, char **argv) {
         decoupled(vm.count("decoupled")), loadICov(vm.count("load-icov")),
         loadWData(vm.count("load-wdata")), crossCorrelation(vm.count("cross-correlation")),
         parameterScan(vm.count("parameter-scan")), kspace(vm.count("kspace")),
-        calculateGradients(vm.count("calculate-gradients")), nlBroadband(vm.count("nl-broadband"));
+        kspacefft(vm.count("kspace-fft")), calculateGradients(vm.count("calculate-gradients")),
+        nlBroadband(vm.count("nl-broadband"));
 
     // Check that we have a recognized data format.
     if(dataFormat != "comoving-cartesian" && dataFormat != "comoving-polar" &&
@@ -340,6 +350,13 @@ int main(int argc, char **argv) {
             model.reset(new baofit::BaoKSpaceCorrelationModel(
                 modelrootName,fiducialName,nowigglesName,zref,
                 rmin,rmax,dilmin,dilmax,relerr,abserr,ellMax,samplesPerDecade,
+                distAdd,distMul,distR0,anisotropic,decoupled,nlBroadband,crossCorrelation,verbose));            
+        }
+        else if(kspacefft) {
+            // Build our fit model from tabulated P(k) on disk and use a 3D FFT.
+            model.reset(new baofit::BaoKSpaceFftCorrelationModel(
+                modelrootName,fiducialName,nowigglesName,zref,
+                dilmin,dilmax,gridspacing,ngridx,ngridy,ngridz,
                 distAdd,distMul,distR0,anisotropic,decoupled,nlBroadband,crossCorrelation,verbose));            
         }
         else {
