@@ -82,7 +82,8 @@ LTLIBRARIES = $(lib_LTLIBRARIES)
 libbaofit_la_LIBADD =
 am_libbaofit_la_OBJECTS = AbsCorrelationModel.lo \
 	BaoCorrelationModel.lo BaoKSpaceCorrelationModel.lo \
-	BroadbandModel.lo XiCorrelationModel.lo PkCorrelationModel.lo \
+	BaoKSpaceFftCorrelationModel.lo BroadbandModel.lo \
+	XiCorrelationModel.lo PkCorrelationModel.lo \
 	AbsCorrelationData.lo QuasarCorrelationData.lo \
 	ComovingCorrelationData.lo CorrelationFitter.lo \
 	CorrelationAnalyzer.lo boss.lo
@@ -275,6 +276,7 @@ libbaofit_la_SOURCES = \
 	baofit/AbsCorrelationModel.cc \
 	baofit/BaoCorrelationModel.cc \
 	baofit/BaoKSpaceCorrelationModel.cc \
+	baofit/BaoKSpaceFftCorrelationModel.cc \
 	baofit/BroadbandModel.cc \
 	baofit/XiCorrelationModel.cc \
 	baofit/PkCorrelationModel.cc \
@@ -296,6 +298,7 @@ nobase_include_HEADERS = \
 	baofit/AbsCorrelationModel.h \
 	baofit/BaoCorrelationModel.h \
 	baofit/BaoKSpaceCorrelationModel.h \
+	baofit/BaoKSpaceFftCorrelationModel.h \
 	baofit/BroadbandModel.h \
 	baofit/XiCorrelationModel.h \
 	baofit/PkCorrelationModel.h \
@@ -459,6 +462,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/AbsCorrelationModel.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/BaoCorrelationModel.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/BaoKSpaceCorrelationModel.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/BaoKSpaceFftCorrelationModel.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/BroadbandModel.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ComovingCorrelationData.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/CorrelationAnalyzer.Plo@am__quote@
@@ -510,6 +514,13 @@ BaoKSpaceCorrelationModel.lo: baofit/BaoKSpaceCorrelationModel.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='baofit/BaoKSpaceCorrelationModel.cc' object='BaoKSpaceCorrelationModel.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o BaoKSpaceCorrelationModel.lo `test -f 'baofit/BaoKSpaceCorrelationModel.cc' || echo '$(srcdir)/'`baofit/BaoKSpaceCorrelationModel.cc
+
+BaoKSpaceFftCorrelationModel.lo: baofit/BaoKSpaceFftCorrelationModel.cc
+@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT BaoKSpaceFftCorrelationModel.lo -MD -MP -MF $(DEPDIR)/BaoKSpaceFftCorrelationModel.Tpo -c -o BaoKSpaceFftCorrelationModel.lo `test -f 'baofit/BaoKSpaceFftCorrelationModel.cc' || echo '$(srcdir)/'`baofit/BaoKSpaceFftCorrelationModel.cc
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/BaoKSpaceFftCorrelationModel.Tpo $(DEPDIR)/BaoKSpaceFftCorrelationModel.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='baofit/BaoKSpaceFftCorrelationModel.cc' object='BaoKSpaceFftCorrelationModel.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o BaoKSpaceFftCorrelationModel.lo `test -f 'baofit/BaoKSpaceFftCorrelationModel.cc' || echo '$(srcdir)/'`baofit/BaoKSpaceFftCorrelationModel.cc
 
 BroadbandModel.lo: baofit/BroadbandModel.cc
 @am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT BroadbandModel.lo -MD -MP -MF $(DEPDIR)/BroadbandModel.Tpo -c -o BroadbandModel.lo `test -f 'baofit/BroadbandModel.cc' || echo '$(srcdir)/'`baofit/BroadbandModel.cc
