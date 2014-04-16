@@ -33,6 +33,7 @@ namespace baofit {
     protected:
         friend class BaoCorrelationModel;
         friend class BaoKSpaceCorrelationModel;
+        friend class BaoKSpaceFftCorrelationModel;
         friend class BroadbandModel;
         // The public methods above call these protected methods after making parameter values
         // and changes available via our base class' getParameterValue() and isParameterValueChanged()
