@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
         rVetoWidth,rVetoCenter,muMin,muMax,kloSpline,khiSpline,toymcScale,saveICovScale,
         zMin,zMax,llMin,llMax,sepMin,sepMax,distR0,zdump,relerr,abserr,dilmin,dilmax,
         rperpMin,rperpMax,rparMin,rparMax,gridspacing;
-    int nsep,nzbins,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
+    int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
         mcmcSave,mcmcInterval,toymcSamples,reuseCov,nSpline,splineOrder,bootstrapCovTrials,
         projectModesNKeep,covSampleSize,ellMax,samplesPerDecade,ngridx,ngridy,ngridz;
     std::string modelrootName,fiducialName,nowigglesName,dataName,xiPoints,toymcConfig,
@@ -73,14 +73,14 @@ int main(int argc, char **argv) {
         ("abserr", po::value<double>(&abserr)->default_value(1e-5),
             "Absolute error target for k-space transforms")
         ("kspace-fft", "Use a k-space model with 3D FFT")
-        ("gridspacing", po::value<double>(&spacing)->default_value(4),
+        ("gridspacing", po::value<double>(&gridspacing)->default_value(4),
             "Grid spacing in Mpc/h for 3D FFT.")
-        ("ngridx", po::value<int>(&nx)->default_value(400),
+        ("ngridx", po::value<int>(&ngridx)->default_value(400),
             "Grid size along x-axis for 3D FFT.")
-        ("ngridy", po::value<int>(&ny)->default_value(0),
-            "Grid size along line-of-sight y-axis for 3D FFT (or zero for ny=nx).")
-        ("ngridz", po::value<int>(&nz)->default_value(0),
-            "Grid size along z-axis for 3D FFT (or zero for nz=ny).")
+        ("ngridy", po::value<int>(&ngridy)->default_value(0),
+            "Grid size along line-of-sight y-axis for 3D FFT (or zero for ngridy=ngridx).")
+        ("ngridz", po::value<int>(&ngridz)->default_value(0),
+            "Grid size along z-axis for 3D FFT (or zero for ngridz=ngridy).")
         ("zref", po::value<double>(&zref)->default_value(2.25),
             "Reference redshift used by model correlation functions.")
         ("dist-add", po::value<std::string>(&distAdd)->default_value(""),
@@ -162,7 +162,7 @@ int main(int argc, char **argv) {
             "Minimum redshift.")
         ("dz", po::value<double>(&dz)->default_value(1.0,"1.0"),
             "Redshift binsize.")
-        ("nz", po::value<int>(&nzbins)->default_value(2),
+        ("nz", po::value<int>(&nz)->default_value(2),
             "Maximum number of redshift bins.")
         ("fix-aln-cov", "Fixes covariance matrix of points in 'aln' parametrization")
         ;
@@ -322,6 +322,10 @@ int main(int argc, char **argv) {
         return -1;
     }
     cosmo::Multipole ellmax = static_cast<cosmo::Multipole>(lmax);
+
+	// Fill in any missing grid dimensions.
+    if(0 == ngridy) ngridy = ngridx;
+    if(0 == ngridz) ngridz = ngridy;
 
     // Calculate veto window.
     double rVetoMin = rVetoCenter - 0.5*rVetoWidth, rVetoMax = rVetoCenter + 0.5*rVetoWidth;
