@@ -20,11 +20,11 @@
 namespace local = baofit;
 
 local::BaoKSpaceFftCorrelationModel::BaoKSpaceFftCorrelationModel(std::string const &modelrootName,
-    std::string const &fiducialName, std::string const &nowigglesName, double zref, double dilmin, 
-    double dilmax, double spacing, int nx, int ny, int nz, std::string const &distAdd,
+    std::string const &fiducialName, std::string const &nowigglesName, double zref,
+    double spacing, int nx, int ny, int nz, std::string const &distAdd,
     std::string const &distMul, double distR0, bool anisotropic, bool decoupled,  bool nlBroadband,
     bool crossCorrelation, bool verbose)
-: AbsCorrelationModel("BAO k-Space FFT Correlation Model"), _dilmin(dilmin), _dilmax(dilmax),
+: AbsCorrelationModel("BAO k-Space FFT Correlation Model"),
 _anisotropic(anisotropic), _decoupled(decoupled), _nlBroadband(nlBroadband),
 _crossCorrelation(crossCorrelation), _verbose(verbose)
 {
@@ -71,9 +71,6 @@ _crossCorrelation(crossCorrelation), _verbose(verbose)
     catch(cosmo::RuntimeError const &e) {
         throw RuntimeError("BaoKSpaceFftCorrelationModel: error while reading tabulated P(k) data.");
     }
-    
-    if(dilmin > dilmax) throw RuntimeError("BaoKSpaceFftCorrelationModel: expected dilmin <= dilmax.");
-    if(dilmin <= 0) throw RuntimeError("BaoKSpaceFftCorrelationModel: expected dilmin > 0.");
     
     // Internally, we use the peak = (fid - nw) and smooth = nw components to evaluate our model.
     cosmo::TabulatedPowerCPtr Ppk = Pfid->createDelta(Pnw);
@@ -123,21 +120,26 @@ double local::BaoKSpaceFftCorrelationModel::_evaluateKSpaceDistortion(double k, 
     double kpar = std::fabs(k*mu_k);
     double k0 = getParameterValue(_contBase);
     double sigk = getParameterValue(_contBase+1);
-    //double contdistortion = 1 - (1 - std::tanh((kpar-k0)/sigk))/(1 + std::tanh(k0/sigk));
     double k1 = (kpar/k0);
-    double k2 = (kpar/sigk);
-    double contdistortion = std::tanh(k1);
-    //double contdistortion = std::tanh(k1*k1);
-    //double contdistortion;
-    //if(kpar==0) {
-    //	contdistortion = 0;
-    //}
-    //else {
-    //	contdistortion = 1-2*(1-std::cos(k1))/(k1*k1);
-    //}
+    double contdistortion = std::tanh(std::pow(k1,sigk));
     //double contdistortion = 1 - (1 - std::tanh((kpar-k0)/sigk))/(1 + std::tanh(k0/sigk));
+    // Calculate non-linear correction
+    double knl(6.4), anl(0.569), kp(15.3), ap(2.01), kv0(1.22), av(1.5), kvi(0.923), avi(0.451);
+    double growth = std::pow(k/knl,anl);
+    double pressure = std::pow(k/kp,ap);
+    double kv = kv0*std::pow(1+k/kvi,avi);
+    double pecvelocity = std::pow(kpar/kv,av);
+    double nlcorrection = std::exp(growth-pressure-pecvelocity);
+    // Cross-correlation?
+    if(_crossCorrelation) {
+    	contdistortion = std::sqrt(contdistortion);
+    	nlcorrection = std::sqrt(nlcorrection);
+    }
+    // Calculate kpar suppression factor
+    //double suppression = (1 - std::tanh((kpar-0.5)/0.1))/(1 + std::tanh(0.5/0.1));
     // Put the pieces together
-    return contdistortion*nonlinear*linear;
+    //return contdistortion*nonlinear*nlcorrection*linear*suppression;
+    return contdistortion*nonlinear*nlcorrection*linear;
 }
 
 double local::BaoKSpaceFftCorrelationModel::_evaluate(double r, double mu, double z,
@@ -214,14 +216,6 @@ bool anyChanged) const {
         scale = _redshiftEvolution(scale,gamma_scale,z);
         rBAO = r*scale;
         muBAO = mu;
-    }
-
-    // Check dilation limits
-    if(scale < _dilmin) {
-        throw RuntimeError("BaoKSpaceFftCorrelationModel: hit min dilation limit.");
-    }
-    else if(scale > _dilmax) {
-        throw RuntimeError("BaoKSpaceFftCorrelationModel: hit max dilation limit.");
     }
 
     // Calculate the cosmological predictions...
