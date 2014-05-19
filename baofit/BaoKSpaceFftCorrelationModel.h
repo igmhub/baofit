@@ -25,7 +25,7 @@ namespace baofit {
         // be re-normalized appropriately when the model is evaluated at any different z.
 		BaoKSpaceFftCorrelationModel(std::string const &modelrootName,
 		    std::string const &fiducialName, std::string const &nowigglesName, double zref,
-            double dilmin, double dilmax, double spacing, int nx, int ny, int nz,
+            double spacing, int nx, int ny, int nz,
             std::string const &distAdd, std::string const &distMul, double distR0,
             bool anisotropic = false, bool decoupled = false, bool nlBroadband = false,
             bool crossCorrelation = false, bool verbose = false);
