@@ -360,7 +360,7 @@ int main(int argc, char **argv) {
             // Build our fit model from tabulated P(k) on disk and use a 3D FFT.
             model.reset(new baofit::BaoKSpaceFftCorrelationModel(
                 modelrootName,fiducialName,nowigglesName,zref,
-                dilmin,dilmax,gridspacing,ngridx,ngridy,ngridz,
+                gridspacing,ngridx,ngridy,ngridz,
                 distAdd,distMul,distR0,anisotropic,decoupled,nlBroadband,crossCorrelation,verbose));            
         }
         else {
