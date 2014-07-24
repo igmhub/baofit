@@ -422,7 +422,7 @@ std::string const &refitConfig, std::string const &saveName, int nsave, double z
     if(nsave < 0) {
         throw RuntimeError("CorrelationAnalyzer::doSamplingAnalysis: expected nsave >= 0.");
     }
-    if((!fmin2 && 0 < refitConfig.size()) || !!fmin2 && 0 == refitConfig.size()) {
+    if((!fmin2 && 0 < refitConfig.size()) || (!!fmin2 && 0 == refitConfig.size())) {
         throw RuntimeError("CorrelationAnalyzer::doSamplingAnalysis: inconsistent refit parameters.");
     }
     SamplingOutput output(fmin,fmin2,saveName,nsave,zsave,*this);
@@ -436,7 +436,8 @@ std::string const &refitConfig, std::string const &saveName, int nsave, double z
     int nInvalid(0);
     // Loop over samples.
     int nsamples(0);
-    while(sample = sampler.nextSample()) {
+    // Use double parentheses below to tell clang that the '=' is not a typo.
+    while((sample = sampler.nextSample())) {
         // Fit the sample.
         baofit::CorrelationFitter fitEngine(sample,_model,_covSampleSize);
         likely::FunctionMinimumPtr sampleMin = fitEngine.fit(_method);
