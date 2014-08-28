@@ -46,8 +46,8 @@ _crossCorrelation(crossCorrelation), _verbose(verbose)
     _nlBase = defineParameter("SigmaNL-perp",3.26,0.3);
     defineParameter("1+f",2,0.1);
     // Continuum fitting distortion parameters
-    _contBase = defineParameter("cont-k0",0.02,0.002);
-    defineParameter("cont-sigk",0.03,0.003);
+    _contBase = defineParameter("cont-kc",0.02,0.002);
+    defineParameter("cont-pc",0.03,0.003);
     // BAO peak parameters
     _baoBase = defineParameter("BAO amplitude",1,0.15);
     defineParameter("BAO alpha-iso",1,0.02);
@@ -118,11 +118,11 @@ double local::BaoKSpaceFftCorrelationModel::_evaluateKSpaceDistortion(double k, 
     double nonlinear = std::exp(-0.5*snl2*k*k);
     // Calculate continuum fitting distortion
     double kpar = std::fabs(k*mu_k);
-    double k0 = getParameterValue(_contBase);
-    double sigk = getParameterValue(_contBase+1);
-    double k1 = (kpar/k0);
-    double contdistortion = std::tanh(std::pow(k1,sigk));
-    //double contdistortion = 1 - (1 - std::tanh((kpar-k0)/sigk))/(1 + std::tanh(k0/sigk));
+    double kc = getParameterValue(_contBase);
+    double pc = getParameterValue(_contBase+1);
+    double contdistortion = std::tanh(std::pow(kpar/kc,pc));
+    //double k1 = kpar/kc + 1;
+    //double contdistortion = std::pow((k1-1/k1)/(k1+1/k1),pc);
     // Calculate non-linear correction
     double knl(6.4), anl(0.569), kp(15.3), ap(2.01), kv0(1.22), av(1.5), kvi(0.923), avi(0.451);
     double growth = std::pow(k/knl,anl);
@@ -135,10 +135,7 @@ double local::BaoKSpaceFftCorrelationModel::_evaluateKSpaceDistortion(double k, 
     	contdistortion = std::sqrt(contdistortion);
     	nlcorrection = std::sqrt(nlcorrection);
     }
-    // Calculate kpar suppression factor
-    //double suppression = (1 - std::tanh((kpar-0.5)/0.1))/(1 + std::tanh(0.5/0.1));
     // Put the pieces together
-    //return contdistortion*nonlinear*nlcorrection*linear*suppression;
     return contdistortion*nonlinear*nlcorrection*linear;
 }
 
@@ -197,10 +194,10 @@ bool anyChanged) const {
 
     // Lookup BAO peak parameter values.
     double ampl = getParameterValue(_baoBase);
-    double scale = getParameterValue(_baoBase + 1);
-    double scale_parallel = getParameterValue(_baoBase + 2);
-    double scale_perp = getParameterValue(_baoBase + 3);
-    double gamma_scale = getParameterValue(_baoBase + 4);
+    double scale = getParameterValue(_baoBase+1);
+    double scale_parallel = getParameterValue(_baoBase+2);
+    double scale_perp = getParameterValue(_baoBase+3);
+    double gamma_scale = getParameterValue(_baoBase+4);
 
     // Transform (r,mu) to (rBAO,muBAO) using the scale parameters.
     double rBAO, muBAO;
