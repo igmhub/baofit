@@ -202,7 +202,7 @@ double local::PkCorrelationModel::_getE(int j, double r, cosmo::Multipole multip
 
 double local::PkCorrelationModel::_xi(double r, cosmo::Multipole multipole) const {
     // Evaluate the smooth baseline model.
-    double xi(0), sign(1), twopisq();
+    double xi(0), sign(1);
     int nj = _nk-_splineOrder-1, offset = _indexBase;
     switch(multipole) {
     case cosmo::Monopole:
