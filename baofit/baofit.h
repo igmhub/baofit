@@ -14,6 +14,7 @@
 #include "baofit/AbsCorrelationData.h"
 #include "baofit/QuasarCorrelationData.h"
 #include "baofit/ComovingCorrelationData.h"
+#include "baofit/MultiCorrelationData.h"
 
 #include "baofit/CorrelationFitter.h"
 #include "baofit/CorrelationAnalyzer.h"
