@@ -8,3 +8,19 @@ namespace local = baofit;
 local::MultiCorrelationData::MultiCorrelationData() { }
 
 local::MultiCorrelationData::~MultiCorrelationData() { }
+
+void local::MultiCorrelationData::addDataSet(AbsCorrelationDataCPtr data) {
+	_datasets.push_back(data);
+}
+
+double local::MultiCorrelationData::getRadius(int index) const {
+}
+
+double local::MultiCorrelationData::getCosAngle(int index) const {
+}
+
+cosmo::Multipole local::MultiCorrelationData::getMultipole(int index) const {
+}
+
+double local::MultiCorrelationData::getRedshift(int index) const {
+}
