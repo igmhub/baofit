@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,
         rVetoWidth,rVetoCenter,muMin,muMax,kloSpline,khiSpline,toymcScale,saveICovScale,
         zMin,zMax,llMin,llMax,sepMin,sepMax,distR0,zdump,relerr,abserr,dilmin,dilmax,
-        rperpMin,rperpMax,rparMin,rparMax,gridspacing;
+        rperpMin,rperpMax,rparMin,rparMax,gridspacing,zcorr0,zcorr1,zcorr2;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
         mcmcSave,mcmcInterval,toymcSamples,reuseCov,nSpline,splineOrder,bootstrapCovTrials,
         projectModesNKeep,covSampleSize,ellMax,samplesPerDecade,ngridx,ngridy,ngridz;
@@ -64,15 +64,13 @@ int main(int argc, char **argv) {
             "Minimum radial dilation allowed for k-space models")
         ("dilmax", po::value<double>(&dilmax)->default_value(1.5),
             "Maximum radial dilation allowed for k-space models")
-        ("nl-broadband",
-            "k-space non-linear effects applied to broadband cosmology (default is peak only)")
         ("ell-max", po::value<int>(&ellMax)->default_value(4),
             "Maximum ell to use for k-space transforms")
         ("relerr", po::value<double>(&relerr)->default_value(1e-3),
             "Relative error target for k-space transforms")
         ("abserr", po::value<double>(&abserr)->default_value(1e-5),
             "Absolute error target for k-space transforms")
-        ("kspace-fft", "Use a k-space model with 3D FFT")
+        ("kspace-fft", "Use a k-space model with 3D FFT (default is r-space)")
         ("gridspacing", po::value<double>(&gridspacing)->default_value(4),
             "Grid spacing in Mpc/h for 3D FFT.")
         ("ngridx", po::value<int>(&ngridx)->default_value(400),
@@ -89,6 +87,12 @@ int main(int argc, char **argv) {
             "Parameterization to use for multiplicative broadband distortion.")
         ("dist-r0", po::value<double>(&distR0)->default_value(100),
             "Comoving separation in Mpc/h used to normalize broadband radial factors.")
+        ("zcorr0", po::value<double>(&zcorr0)->default_value(0),
+            "Zeroth order correction of the effective redshift for each (r,mu) bin.")
+        ("zcorr1", po::value<double>(&zcorr1)->default_value(0),
+            "First order correction of the effective redshift for each (r,mu) bin.")
+        ("zcorr2", po::value<double>(&zcorr2)->default_value(0),
+            "Second order correction of the effective redshift for each (r,mu) bin.")
         ("n-spline", po::value<int>(&nSpline)->default_value(0),
             "Number of spline knots to use spanning (klo,khi).")
         ("klo-spline", po::value<double>(&kloSpline)->default_value(0.02,"0.02"),
@@ -108,6 +112,11 @@ int main(int argc, char **argv) {
             "Parameter adjustments for dumping alternate best-fit model.")
         ("anisotropic", "Uses anisotropic scale parameters instead of an isotropic scale.")
         ("decoupled", "Only applies scale factors to BAO peak and not cosmological broadband.")
+        ("nl-broadband",
+            "k-space anisotropic non-linear broadening applied to broadband cosmology (default is peak only)")
+        ("nl-correction", "k-space non-linear correction applied in the flux power spectrum model.")
+        ("nl-correction-alt", "k-space alternative non-linear correction applied in the flux power spectrum model.")
+        ("distortion-alt", "Uses alternative model for the continuum fitting broadband distortion.")
         ("cross-correlation", "Uses independent linear bias parameters for both components.")
         ;
     dataOptions.add_options()
@@ -295,7 +304,8 @@ int main(int argc, char **argv) {
         loadWData(vm.count("load-wdata")), crossCorrelation(vm.count("cross-correlation")),
         parameterScan(vm.count("parameter-scan")), kspace(vm.count("kspace")),
         kspacefft(vm.count("kspace-fft")), calculateGradients(vm.count("calculate-gradients")),
-        nlBroadband(vm.count("nl-broadband"));
+        nlBroadband(vm.count("nl-broadband")), nlCorrection(vm.count("nl-correction")),
+        nlCorrectionAlt(vm.count("nl-correction-alt")), distortionAlt(vm.count("distortion-alt"));
 
     // Check that we have a recognized data format.
     if(dataFormat != "comoving-cartesian" && dataFormat != "comoving-polar" &&
@@ -354,14 +364,15 @@ int main(int argc, char **argv) {
             model.reset(new baofit::BaoKSpaceCorrelationModel(
                 modelrootName,fiducialName,nowigglesName,zref,
                 rmin,rmax,dilmin,dilmax,relerr,abserr,ellMax,samplesPerDecade,
-                distAdd,distMul,distR0,anisotropic,decoupled,nlBroadband,crossCorrelation,verbose));            
+                distAdd,distMul,distR0,anisotropic,decoupled,nlBroadband,crossCorrelation,verbose));
         }
         else if(kspacefft) {
             // Build our fit model from tabulated P(k) on disk and use a 3D FFT.
             model.reset(new baofit::BaoKSpaceFftCorrelationModel(
                 modelrootName,fiducialName,nowigglesName,zref,
-                gridspacing,ngridx,ngridy,ngridz,
-                distAdd,distMul,distR0,anisotropic,decoupled,nlBroadband,crossCorrelation,verbose));            
+                gridspacing,ngridx,ngridy,ngridz,distAdd,distMul,distR0,
+                zcorr0,zcorr1,zcorr2,anisotropic,decoupled,nlBroadband,nlCorrection,
+                nlCorrectionAlt,distortionAlt,crossCorrelation,verbose));
         }
         else {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
