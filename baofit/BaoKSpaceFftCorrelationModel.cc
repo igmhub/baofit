@@ -22,11 +22,13 @@ namespace local = baofit;
 local::BaoKSpaceFftCorrelationModel::BaoKSpaceFftCorrelationModel(std::string const &modelrootName,
     std::string const &fiducialName, std::string const &nowigglesName, double zref,
     double spacing, int nx, int ny, int nz, std::string const &distAdd,
-    std::string const &distMul, double distR0, bool anisotropic, bool decoupled,  bool nlBroadband,
-    bool crossCorrelation, bool verbose)
+    std::string const &distMul, double distR0, double zcorr0, double zcorr1, double zcorr2,
+    bool anisotropic, bool decoupled,  bool nlBroadband, bool nlCorrection, bool nlCorrectionAlt,
+    bool distortionAlt, bool crossCorrelation, bool verbose)
 : AbsCorrelationModel("BAO k-Space FFT Correlation Model"),
-_anisotropic(anisotropic), _decoupled(decoupled), _nlBroadband(nlBroadband),
-_crossCorrelation(crossCorrelation), _verbose(verbose)
+_zcorr0(zcorr0), _zcorr1(zcorr1), _zcorr2(zcorr2), _anisotropic(anisotropic), _decoupled(decoupled),
+_nlBroadband(nlBroadband), _nlCorrection(nlCorrection), _nlCorrectionAlt(nlCorrectionAlt),
+_distortionAlt(distortionAlt), _crossCorrelation(crossCorrelation), _verbose(verbose)
 {
     _setZRef(zref);
     // Linear bias parameters
@@ -47,7 +49,7 @@ _crossCorrelation(crossCorrelation), _verbose(verbose)
     defineParameter("1+f",2,0.1);
     // Continuum fitting distortion parameters
     _contBase = defineParameter("cont-kc",0.02,0.002);
-    defineParameter("cont-pc",0.03,0.003);
+    defineParameter("cont-pc",1,0.1);
     // BAO peak parameters
     _baoBase = defineParameter("BAO amplitude",1,0.15);
     defineParameter("BAO alpha-iso",1,0.02);
@@ -82,8 +84,8 @@ _crossCorrelation(crossCorrelation), _verbose(verbose)
         likely::createFunctionPtr<const cosmo::TabulatedPower>(Pnw);
 
     // Create a smart pointer to our k-space distortion model D(k,mu_k)
-    cosmo::RMuFunctionCPtr distortionModelPtr(new cosmo::RMuFunction(boost::bind(
-        &BaoKSpaceFftCorrelationModel::_evaluateKSpaceDistortion,this,_1,_2)));
+    cosmo::KMuPkFunctionCPtr distortionModelPtr(new cosmo::KMuPkFunction(boost::bind(
+        &BaoKSpaceFftCorrelationModel::_evaluateKSpaceDistortion,this,_1,_2,_3)));
 
     // Xipk(r,mu) ~ D(k,mu_k)*Ppk(k)
     _Xipk.reset(new cosmo::DistortedPowerCorrelationFft(PpkPtr,distortionModelPtr,spacing,nx,ny,nz));
@@ -107,7 +109,7 @@ _crossCorrelation(crossCorrelation), _verbose(verbose)
 
 local::BaoKSpaceFftCorrelationModel::~BaoKSpaceFftCorrelationModel() { }
 
-double local::BaoKSpaceFftCorrelationModel::_evaluateKSpaceDistortion(double k, double mu_k) const {
+double local::BaoKSpaceFftCorrelationModel::_evaluateKSpaceDistortion(double k, double mu_k, double pk) const {
     double mu2(mu_k*mu_k);
     // Calculate linear bias model
     double tracer1 = 1 + _betaz*mu2;
@@ -120,23 +122,35 @@ double local::BaoKSpaceFftCorrelationModel::_evaluateKSpaceDistortion(double k, 
     double kpar = std::fabs(k*mu_k);
     double kc = getParameterValue(_contBase);
     double pc = getParameterValue(_contBase+1);
-    double contdistortion = std::tanh(std::pow(kpar/kc,pc));
-    //double k1 = kpar/kc + 1;
-    //double contdistortion = std::pow((k1-1/k1)/(k1+1/k1),pc);
-    // Calculate non-linear correction
-    double knl(6.4), anl(0.569), kp(15.3), ap(2.01), kv0(1.22), av(1.5), kvi(0.923), avi(0.451);
-    double growth = std::pow(k/knl,anl);
-    double pressure = std::pow(k/kp,ap);
-    double kv = kv0*std::pow(1+k/kvi,avi);
-    double pecvelocity = std::pow(kpar/kv,av);
-    double nlcorrection = std::exp(growth-pressure-pecvelocity);
+    double k1 = kpar/kc + 1;
+    double contdistortion = std::pow((k1-1/k1)/(k1+1/k1),pc);
+    if(_distortionAlt) {
+    	contdistortion = std::tanh(std::pow(kpar/kc,pc));
+    }
+    // Calculate non-linear correction (if any)
+    double growth, pecvelocity, pressure, nonlinearcorr(1);
+    if(_nlCorrection) {
+    	double qnl(0.036), kv(0.756), av(0.454), bv(1.52), kp(12.5);
+    	growth = k*k*k*pk*_growthSq*qnl;
+        pecvelocity = std::pow(k/kv,av)*std::pow(std::fabs(mu_k),bv);
+        pressure = (k/kp)*(k/kp);
+        nonlinearcorr = std::exp(growth*(1-pecvelocity)-pressure);
+    }
+    if(_nlCorrectionAlt) {
+    	double knl(6.4), pnl(0.569), kpp(15.3), pp(2.01), kv0(1.22), pv(1.5), kvi(0.923), pvi(0.451);
+    	double kvel = kv0*std::pow(1+k/kvi,pvi);
+    	growth = std::pow(k/knl,pnl);
+    	pressure = std::pow(k/kpp,pp);
+    	pecvelocity = std::pow(kpar/kvel,pv);
+    	nonlinearcorr = std::exp(growth-pressure-pecvelocity);
+    }
     // Cross-correlation?
     if(_crossCorrelation) {
     	contdistortion = std::sqrt(contdistortion);
-    	nlcorrection = std::sqrt(nlcorrection);
+    	nonlinearcorr = std::sqrt(nonlinearcorr);
     }
     // Put the pieces together
-    return contdistortion*nonlinear*nlcorrection*linear;
+    return contdistortion*nonlinear*nonlinearcorr*linear;
 }
 
 double local::BaoKSpaceFftCorrelationModel::_evaluate(double r, double mu, double z,
@@ -163,9 +177,15 @@ bool anyChanged) const {
     // Lookup linear bias redshift evolution parameters.
     double gammaBias = getParameterValue(2);
     double gammaBeta = getParameterValue(3);
+    if(_zcorr0>0) {
+        // Calculate effective redshift for each (r,mu) bin
+        double rperp = r*std::sqrt(1-mu*mu);
+        z = _zcorr0 + _zcorr1*rperp + _zcorr2*rperp*rperp;
+    }
     // Apply redshift evolution
     biasSq = _redshiftEvolution(biasSq,gammaBias,z);
     _betaz = _redshiftEvolution(beta,gammaBeta,z);
+    _growthSq = _redshiftEvolution(1,-2,z);
     if(_crossCorrelation) _beta2z = _redshiftEvolution(beta2,gammaBeta,z);
 
     // Lookup non-linear broadening parameters.
