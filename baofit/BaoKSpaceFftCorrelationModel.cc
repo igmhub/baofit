@@ -125,29 +125,29 @@ double local::BaoKSpaceFftCorrelationModel::_evaluateKSpaceDistortion(double k, 
     double k1 = kpar/kc + 1;
     double contdistortion = std::pow((k1-1/k1)/(k1+1/k1),pc);
     if(_distortionAlt) {
-    	contdistortion = std::tanh(std::pow(kpar/kc,pc));
+        contdistortion = std::tanh(std::pow(kpar/kc,pc));
     }
     // Calculate non-linear correction (if any)
     double growth, pecvelocity, pressure, nonlinearcorr(1);
     if(_nlCorrection) {
-    	double qnl(0.036), kv(0.756), av(0.454), bv(1.52), kp(12.5);
-    	growth = k*k*k*pk*_growthSq*qnl;
+        double qnl(0.036), kv(0.756), av(0.454), bv(1.52), kp(12.5);
+        growth = k*k*k*pk*_growthSq*qnl;
         pecvelocity = std::pow(k/kv,av)*std::pow(std::fabs(mu_k),bv);
         pressure = (k/kp)*(k/kp);
         nonlinearcorr = std::exp(growth*(1-pecvelocity)-pressure);
     }
     if(_nlCorrectionAlt) {
-    	double knl(6.4), pnl(0.569), kpp(15.3), pp(2.01), kv0(1.22), pv(1.5), kvi(0.923), pvi(0.451);
-    	double kvel = kv0*std::pow(1+k/kvi,pvi);
-    	growth = std::pow(k/knl,pnl);
-    	pressure = std::pow(k/kpp,pp);
-    	pecvelocity = std::pow(kpar/kvel,pv);
-    	nonlinearcorr = std::exp(growth-pressure-pecvelocity);
+        double knl(6.4), pnl(0.569), kpp(15.3), pp(2.01), kv0(1.22), pv(1.5), kvi(0.923), pvi(0.451);
+        double kvel = kv0*std::pow(1+k/kvi,pvi);
+        growth = std::pow(k/knl,pnl);
+        pressure = std::pow(k/kpp,pp);
+        pecvelocity = std::pow(kpar/kvel,pv);
+        nonlinearcorr = std::exp(growth-pressure-pecvelocity);
     }
     // Cross-correlation?
     if(_crossCorrelation) {
-    	contdistortion = std::sqrt(contdistortion);
-    	nonlinearcorr = std::sqrt(nonlinearcorr);
+        contdistortion = std::sqrt(contdistortion);
+        nonlinearcorr = std::sqrt(nonlinearcorr);
     }
     // Put the pieces together
     return contdistortion*nonlinear*nonlinearcorr*linear;
@@ -177,8 +177,8 @@ bool anyChanged) const {
     // Lookup linear bias redshift evolution parameters.
     double gammaBias = getParameterValue(2);
     double gammaBeta = getParameterValue(3);
+    // Calculate effective redshift for each (r,mu) bin if requested
     if(_zcorr0>0) {
-        // Calculate effective redshift for each (r,mu) bin
         double rperp = r*std::sqrt(1-mu*mu);
         z = _zcorr0 + _zcorr1*rperp + _zcorr2*rperp*rperp;
     }
@@ -258,4 +258,6 @@ void  local::BaoKSpaceFftCorrelationModel::printToStream(std::ostream &out, std:
     AbsCorrelationModel::printToStream(out,formatSpec);
     out << "Using " << (_anisotropic ? "anisotropic":"isotropic") << " BAO scales." << std::endl;
     out << "Scales apply to BAO peak " << (_decoupled ? "only." : "and cosmological broadband.") << std::endl;
+    out << "Anisotropic non-linear broadening applies to peak " << (!_nlBroadband ? "only." : "and cosmological broadband.") << std::endl;
+    out << "Non-linear correction is switched " << (_nlCorrection || _nlCorrectionAlt ? "on." : "off.") << std::endl;
 }

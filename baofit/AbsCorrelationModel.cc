@@ -142,5 +142,5 @@ double local::AbsCorrelationModel::_getNormFactor(cosmo::Multipole multipole, do
 
 void  local::AbsCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
     FitModel::printToStream(out,formatSpec);
-    if(_indexBase >= 0) out << std::endl << "Reference redshift = " << _zref << std::endl;        
+    out << std::endl << "Reference redshift = " << _zref << std::endl;
 }
