@@ -19,10 +19,11 @@ baofit -i ../config/BOSSDR9LyaFXi.ini
 # Slosar 2013
 baofit -i ../config/BOSSDR9LyaF.ini
 
-# Font-Ribera 2013
+# Font-Ribera 2014
 baofit -i ../config/BOSSDR11QSOLyaF.ini
 
 # Delubac 2014
+# Start by uncompressing the covariance matrix file ../data/BOSSDR11LyaF.cov.qz using the command 'gunzip --to-stdout ../data/BOSSDR11LyaF.cov.gz > ../data/BOSSDR11LyaF.cov'
 baofit -i ../config/BOSSDR11LyaF_k.ini
 
 All of the resulting output files will be created in your working directory and prefixed with XXX_ (with XXX = BOSSDR9LyaFXi, etc).
@@ -41,7 +42,7 @@ You can use the parsescan.py python script to extract the 3 columns that appear 
 # Slosar 2013
 ./parsescan.py BOSSDR9LyaF_scan.dat BOSSDR9LyaF.scan 7 6
 
-# Font-Fibera 2013
+# Font-Fibera 2014
 ./parsescan.py BOSSDR11QSOLyaF_scan.dat BOSSDR11QSOLyaF.scan 10 9
 
 # Delubac 2014
