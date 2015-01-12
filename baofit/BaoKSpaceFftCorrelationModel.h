@@ -29,8 +29,8 @@ namespace baofit {
             std::string const &distAdd, std::string const &distMul, double distR0,
             double zcorr0, double zcorr1, double zcorr2,
             bool anisotropic = false, bool decoupled = false, bool nlBroadband = false,
-            bool nlCorrection = false, bool nlCorrectionAlt = false, bool distortionAlt = false, 
-            bool crossCorrelation = false, bool verbose = false);
+            bool nlCorrection = false, bool nlCorrectionAlt = false, bool distortionAlt = false,
+            bool noDistortion = false, bool crossCorrelation = false, bool verbose = false);
 		virtual ~BaoKSpaceFftCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
