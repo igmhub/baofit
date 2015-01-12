@@ -42,7 +42,7 @@ namespace baofit {
 	private:
         double _zcorr0, _zcorr1, _zcorr2;
         AbsCorrelationModelPtr _distortAdd, _distortMul;
-        bool _anisotropic, _decoupled, _nlBroadband, _nlCorrection, _nlCorrectionAlt, _distortionAlt, _crossCorrelation, _verbose;
+        bool _anisotropic, _decoupled, _nlBroadband, _nlCorrection, _nlCorrectionAlt, _distortionAlt, _noDistortion, _crossCorrelation, _verbose;
         int _nlBase, _contBase, _baoBase;
         cosmo::DistortedPowerCorrelationFftPtr _Xipk, _Xinw;
         // Evaluates our k-space distortion model D(k,mu_k) using our current parameter values.

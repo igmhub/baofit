@@ -24,11 +24,12 @@ local::BaoKSpaceFftCorrelationModel::BaoKSpaceFftCorrelationModel(std::string co
     double spacing, int nx, int ny, int nz, std::string const &distAdd,
     std::string const &distMul, double distR0, double zcorr0, double zcorr1, double zcorr2,
     bool anisotropic, bool decoupled,  bool nlBroadband, bool nlCorrection, bool nlCorrectionAlt,
-    bool distortionAlt, bool crossCorrelation, bool verbose)
+    bool distortionAlt, bool noDistortion, bool crossCorrelation, bool verbose)
 : AbsCorrelationModel("BAO k-Space FFT Correlation Model"),
 _zcorr0(zcorr0), _zcorr1(zcorr1), _zcorr2(zcorr2), _anisotropic(anisotropic), _decoupled(decoupled),
 _nlBroadband(nlBroadband), _nlCorrection(nlCorrection), _nlCorrectionAlt(nlCorrectionAlt),
-_distortionAlt(distortionAlt), _crossCorrelation(crossCorrelation), _verbose(verbose)
+_distortionAlt(distortionAlt), _noDistortion(noDistortion), _crossCorrelation(crossCorrelation),
+_verbose(verbose)
 {
     _setZRef(zref);
     // Linear bias parameters
@@ -126,6 +127,9 @@ double local::BaoKSpaceFftCorrelationModel::_evaluateKSpaceDistortion(double k, 
     double contdistortion = std::pow((k1-1/k1)/(k1+1/k1),pc);
     if(_distortionAlt) {
         contdistortion = std::tanh(std::pow(kpar/kc,pc));
+    }
+    if(_noDistortion) {
+        contdistortion = 1;
     }
     // Calculate non-linear correction (if any)
     double growth, pecvelocity, pressure, nonlinearcorr(1);

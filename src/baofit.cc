@@ -117,6 +117,7 @@ int main(int argc, char **argv) {
         ("nl-correction", "k-space non-linear correction applied in the flux power spectrum model.")
         ("nl-correction-alt", "k-space alternative non-linear correction applied in the flux power spectrum model.")
         ("distortion-alt", "Uses alternative model for the continuum fitting broadband distortion.")
+        ("no-distortion", "No modeling of the continuum fitting broadband distortion.")
         ("cross-correlation", "Uses independent linear bias parameters for both components.")
         ;
     dataOptions.add_options()
@@ -305,7 +306,8 @@ int main(int argc, char **argv) {
         parameterScan(vm.count("parameter-scan")), kspace(vm.count("kspace")),
         kspacefft(vm.count("kspace-fft")), calculateGradients(vm.count("calculate-gradients")),
         nlBroadband(vm.count("nl-broadband")), nlCorrection(vm.count("nl-correction")),
-        nlCorrectionAlt(vm.count("nl-correction-alt")), distortionAlt(vm.count("distortion-alt"));
+        nlCorrectionAlt(vm.count("nl-correction-alt")), distortionAlt(vm.count("distortion-alt")),
+        noDistortion(vm.count("no-distortion"));
 
     // Check that we have a recognized data format.
     if(dataFormat != "comoving-cartesian" && dataFormat != "comoving-polar" &&
@@ -372,7 +374,7 @@ int main(int argc, char **argv) {
                 modelrootName,fiducialName,nowigglesName,zref,
                 gridspacing,ngridx,ngridy,ngridz,distAdd,distMul,distR0,
                 zcorr0,zcorr1,zcorr2,anisotropic,decoupled,nlBroadband,nlCorrection,
-                nlCorrectionAlt,distortionAlt,crossCorrelation,verbose));
+                nlCorrectionAlt,distortionAlt,noDistortion,crossCorrelation,verbose));
         }
         else {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
