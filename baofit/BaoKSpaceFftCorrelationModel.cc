@@ -183,8 +183,8 @@ bool anyChanged) const {
     double gammaBeta = getParameterValue(3);
     // Calculate effective redshift for each (r,mu) bin if requested
     if(_zcorr0>0) {
-        double rperp = r*std::sqrt(1-mu*mu);
-        z = _zcorr0 + _zcorr1*rperp + _zcorr2*rperp*rperp;
+        double rpar = r*std::fabs(mu);
+        z = _zcorr0 + _zcorr1*rpar + _zcorr2*rpar*rpar;
     }
     // Apply redshift evolution
     biasSq = _redshiftEvolution(biasSq,gammaBias,z);
