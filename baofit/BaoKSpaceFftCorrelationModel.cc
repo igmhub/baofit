@@ -123,16 +123,20 @@ double local::BaoKSpaceFftCorrelationModel::_evaluateKSpaceDistortion(double k, 
     double kpar = std::fabs(k*mu_k);
     double kc = getParameterValue(_contBase);
     double pc = getParameterValue(_contBase+1);
-    double k1 = kpar/kc + 1;
-    double contdistortion = std::pow((k1-1/k1)/(k1+1/k1),pc);
-    if(_distortionAlt) {
-        contdistortion = std::tanh(std::pow(kpar/kc,pc));
-    }
+    double contdistortion;
     if(_noDistortion) {
         contdistortion = 1;
     }
+    else if(_distortionAlt) {
+        //contdistortion = std::tanh(std::pow(kpar/kc,pc));
+        contdistortion = std::pow(kpar/(kpar+kc),4);
+    }
+    else {
+        double k1 = kpar/kc + 1;
+        contdistortion = std::pow((k1-1/k1)/(k1+1/k1),pc);
+    }
     // Calculate non-linear correction (if any)
-    double growth, pecvelocity, pressure, nonlinearcorr(1);
+    double growth, pecvelocity, pressure, nonlinearcorr;
     if(_nlCorrection) {
         double qnl(0.036), kv(0.756), av(0.454), bv(1.52), kp(12.5);
         growth = k*k*k*pk*_growthSq*qnl;
@@ -140,13 +144,16 @@ double local::BaoKSpaceFftCorrelationModel::_evaluateKSpaceDistortion(double k, 
         pressure = (k/kp)*(k/kp);
         nonlinearcorr = std::exp(growth*(1-pecvelocity)-pressure);
     }
-    if(_nlCorrectionAlt) {
+    else if(_nlCorrectionAlt) {
         double knl(6.4), pnl(0.569), kpp(15.3), pp(2.01), kv0(1.22), pv(1.5), kvi(0.923), pvi(0.451);
         double kvel = kv0*std::pow(1+k/kvi,pvi);
         growth = std::pow(k/knl,pnl);
         pressure = std::pow(k/kpp,pp);
         pecvelocity = std::pow(kpar/kvel,pv);
         nonlinearcorr = std::exp(growth-pressure-pecvelocity);
+    }
+    else {
+        nonlinearcorr = 1;
     }
     // Cross-correlation?
     if(_crossCorrelation) {
@@ -183,7 +190,7 @@ bool anyChanged) const {
     double gammaBeta = getParameterValue(3);
     // Calculate effective redshift for each (r,mu) bin if requested
     if(_zcorr0>0) {
-        double rpar = r*std::fabs(mu);
+        double rpar = std::fabs(r*mu);
         z = _zcorr0 + _zcorr1*rpar + _zcorr2*rpar*rpar;
     }
     // Apply redshift evolution
