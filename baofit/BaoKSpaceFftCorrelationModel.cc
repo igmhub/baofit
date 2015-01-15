@@ -129,7 +129,7 @@ double local::BaoKSpaceFftCorrelationModel::_evaluateKSpaceDistortion(double k, 
     }
     else if(_distortionAlt) {
         //contdistortion = std::tanh(std::pow(kpar/kc,pc));
-        contdistortion = std::pow(kpar/(kpar+kc),4);
+        contdistortion = std::pow(kpar/(kpar+kc),pc);
     }
     else {
         double k1 = kpar/kc + 1;
