@@ -123,16 +123,18 @@ double local::BaoKSpaceFftCorrelationModel::_evaluateKSpaceDistortion(double k, 
     double kpar = std::fabs(k*mu_k);
     double kc = getParameterValue(_contBase);
     double pc = getParameterValue(_contBase+1);
-    double contdistortion;
+    double k1, contdistortion;
     if(_noDistortion) {
         contdistortion = 1;
     }
     else if(_distortionAlt) {
         //contdistortion = std::tanh(std::pow(kpar/kc,pc));
-        contdistortion = std::pow(kpar/(kpar+kc),pc);
+        //contdistortion = std::pow(kpar/(kpar+kc),pc);
+        k1 = std::pow(kpar/kc + 1,0.75);
+        contdistortion = std::pow((k1-1/k1)/(k1+1/k1),pc);
     }
     else {
-        double k1 = kpar/kc + 1;
+        k1 = kpar/kc + 1;
         contdistortion = std::pow((k1-1/k1)/(k1+1/k1),pc);
     }
     // Calculate non-linear correction (if any)
