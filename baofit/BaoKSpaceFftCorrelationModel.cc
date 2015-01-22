@@ -3,6 +3,7 @@
 #include "baofit/BaoKSpaceFftCorrelationModel.h"
 #include "baofit/RuntimeError.h"
 #include "baofit/BroadbandModel.h"
+#include "baofit/NonLinearCorrectionModel.h"
 
 #include "likely/function_impl.h"
 
@@ -23,8 +24,8 @@ local::BaoKSpaceFftCorrelationModel::BaoKSpaceFftCorrelationModel(std::string co
     std::string const &fiducialName, std::string const &nowigglesName, double zref,
     double spacing, int nx, int ny, int nz, std::string const &distAdd,
     std::string const &distMul, double distR0, double zcorr0, double zcorr1, double zcorr2,
-    bool anisotropic, bool decoupled,  bool nlBroadband, bool nlCorrection, bool nlCorrectionAlt,
-    bool distortionAlt, bool noDistortion, bool crossCorrelation, bool verbose)
+    double sigma8, bool anisotropic, bool decoupled,  bool nlBroadband, bool nlCorrection,
+    bool nlCorrectionAlt, bool distortionAlt, bool noDistortion, bool crossCorrelation, bool verbose)
 : AbsCorrelationModel("BAO k-Space FFT Correlation Model"),
 _zcorr0(zcorr0), _zcorr1(zcorr1), _zcorr2(zcorr2), _anisotropic(anisotropic), _decoupled(decoupled),
 _nlBroadband(nlBroadband), _nlCorrection(nlCorrection), _nlCorrectionAlt(nlCorrectionAlt),
@@ -106,6 +107,9 @@ _verbose(verbose)
         _distortMul.reset(new baofit::BroadbandModel("Multiplicative broadband distortion",
             "dist mul",distMul,distR0,zref,this));
     }
+    
+    // Define our non-linear correction model
+    _nlcorr.reset(new baofit::NonLinearCorrectionModel(zref,sigma8,nlCorrection,nlCorrectionAlt));
 }
 
 local::BaoKSpaceFftCorrelationModel::~BaoKSpaceFftCorrelationModel() { }
@@ -138,25 +142,7 @@ double local::BaoKSpaceFftCorrelationModel::_evaluateKSpaceDistortion(double k, 
         contdistortion = std::pow((k1-1/k1)/(k1+1/k1),pc);
     }
     // Calculate non-linear correction (if any)
-    double growth, pecvelocity, pressure, nonlinearcorr;
-    if(_nlCorrection) {
-        double qnl(0.036), kv(0.756), av(0.454), bv(1.52), kp(12.5);
-        growth = k*k*k*pk*_growthSq*qnl;
-        pecvelocity = std::pow(k/kv,av)*std::pow(std::fabs(mu_k),bv);
-        pressure = (k/kp)*(k/kp);
-        nonlinearcorr = std::exp(growth*(1-pecvelocity)-pressure);
-    }
-    else if(_nlCorrectionAlt) {
-        double knl(6.4), pnl(0.569), kpp(15.3), pp(2.01), kv0(1.22), pv(1.5), kvi(0.923), pvi(0.451);
-        double kvel = kv0*std::pow(1+k/kvi,pvi);
-        growth = std::pow(k/knl,pnl);
-        pressure = std::pow(k/kpp,pp);
-        pecvelocity = std::pow(kpar/kvel,pv);
-        nonlinearcorr = std::exp(growth-pressure-pecvelocity);
-    }
-    else {
-        nonlinearcorr = 1;
-    }
+    double nonlinearcorr = _nlcorr->_evaluateNLCorrection(k,mu_k,pk,_zeff);
     // Cross-correlation?
     if(_crossCorrelation) {
         contdistortion = std::sqrt(contdistortion);
@@ -195,11 +181,11 @@ bool anyChanged) const {
         double rpar = std::fabs(r*mu);
         z = _zcorr0 + _zcorr1*rpar + _zcorr2*rpar*rpar;
     }
+    _zeff = z;
     // Apply redshift evolution
-    biasSq = _redshiftEvolution(biasSq,gammaBias,z);
-    _betaz = _redshiftEvolution(beta,gammaBeta,z);
-    _growthSq = _redshiftEvolution(1,-2,z);
-    if(_crossCorrelation) _beta2z = _redshiftEvolution(beta2,gammaBeta,z);
+    biasSq = redshiftEvolution(biasSq,gammaBias,z,_getZRef());
+    _betaz = redshiftEvolution(beta,gammaBeta,z,_getZRef());
+    if(_crossCorrelation) _beta2z = redshiftEvolution(beta2,gammaBeta,z,_getZRef());
 
     // Lookup non-linear broadening parameters.
     double snlPerp = getParameterValue(_nlBase);
@@ -235,15 +221,15 @@ bool anyChanged) const {
     // Transform (r,mu) to (rBAO,muBAO) using the scale parameters.
     double rBAO, muBAO;
     if(_anisotropic) {
-        double apar = _redshiftEvolution(scale_parallel,gamma_scale,z);
-        double aperp = _redshiftEvolution(scale_perp,gamma_scale,z);
+        double apar = redshiftEvolution(scale_parallel,gamma_scale,z,_getZRef());
+        double aperp = redshiftEvolution(scale_perp,gamma_scale,z,_getZRef());
         double musq(mu*mu);
         scale = std::sqrt(apar*apar*musq + aperp*aperp*(1-musq));
         rBAO = r*scale;
         muBAO = apar*mu/scale;
     }
     else {
-        scale = _redshiftEvolution(scale,gamma_scale,z);
+        scale = redshiftEvolution(scale,gamma_scale,z,_getZRef());
         rBAO = r*scale;
         muBAO = mu;
     }
@@ -261,7 +247,7 @@ bool anyChanged) const {
     if(_distortAdd) {
         double distortion = _distortAdd->_evaluate(r,mu,z,anyChanged);
         // The additive distortion is multiplied by ((1+z)/(1+z0))^gammaBias
-        xi += _redshiftEvolution(distortion,gammaBias,z);
+        xi += redshiftEvolution(distortion,gammaBias,z,_getZRef());
     }
 
     return xi;
