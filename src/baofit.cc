@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,
         rVetoWidth,rVetoCenter,muMin,muMax,kloSpline,khiSpline,toymcScale,saveICovScale,
         zMin,zMax,llMin,llMax,sepMin,sepMax,distR0,zdump,relerr,abserr,dilmin,dilmax,
-        rperpMin,rperpMax,rparMin,rparMax,gridspacing,zcorr0,zcorr1,zcorr2;
+        rperpMin,rperpMax,rparMin,rparMax,gridspacing,zcorr0,zcorr1,zcorr2,sigma8;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
         mcmcSave,mcmcInterval,toymcSamples,reuseCov,nSpline,splineOrder,bootstrapCovTrials,
         projectModesNKeep,covSampleSize,ellMax,samplesPerDecade,ngridx,ngridy,ngridz;
@@ -93,6 +93,8 @@ int main(int argc, char **argv) {
             "First order correction of the effective redshift for each (r,mu) bin.")
         ("zcorr2", po::value<double>(&zcorr2)->default_value(0),
             "Second order correction of the effective redshift for each (r,mu) bin.")
+        ("sigma8", po::value<double>(&sigma8)->default_value(0.788),
+            "Amplitude of the linear matter power spectrum on the scale of 8 Mpc/h")
         ("n-spline", po::value<int>(&nSpline)->default_value(0),
             "Number of spline knots to use spanning (klo,khi).")
         ("klo-spline", po::value<double>(&kloSpline)->default_value(0.02,"0.02"),
@@ -373,7 +375,7 @@ int main(int argc, char **argv) {
             model.reset(new baofit::BaoKSpaceFftCorrelationModel(
                 modelrootName,fiducialName,nowigglesName,zref,
                 gridspacing,ngridx,ngridy,ngridz,distAdd,distMul,distR0,
-                zcorr0,zcorr1,zcorr2,anisotropic,decoupled,nlBroadband,nlCorrection,
+                zcorr0,zcorr1,zcorr2,sigma8,anisotropic,decoupled,nlBroadband,nlCorrection,
                 nlCorrectionAlt,distortionAlt,noDistortion,crossCorrelation,verbose));
         }
         else {
