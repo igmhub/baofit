@@ -159,9 +159,9 @@ bool anyChanged) const {
     double gammaBias = getParameterValue(2);
     double gammaBeta = getParameterValue(3);
     // Apply redshift evolution
-    biasSq = _redshiftEvolution(biasSq,gammaBias,z);
-    _betaz = _redshiftEvolution(beta,gammaBeta,z);
-    if(_crossCorrelation) _beta2z = _redshiftEvolution(beta2,gammaBeta,z);
+    biasSq = redshiftEvolution(biasSq,gammaBias,z,_getZRef());
+    _betaz = redshiftEvolution(beta,gammaBeta,z,_getZRef());
+    if(_crossCorrelation) _beta2z = redshiftEvolution(beta2,gammaBeta,z,_getZRef());
 
     // Lookup non-linear broadening parameters.
     double snlPerp = getParameterValue(_nlBase);
@@ -228,15 +228,15 @@ bool anyChanged) const {
     // Transform (r,mu) to (rBAO,muBAO) using the scale parameters.
     double rBAO, muBAO;
     if(_anisotropic) {
-        double apar = _redshiftEvolution(scale_parallel,gamma_scale,z);
-        double aperp = _redshiftEvolution(scale_perp,gamma_scale,z);
+        double apar = redshiftEvolution(scale_parallel,gamma_scale,z,_getZRef());
+        double aperp = redshiftEvolution(scale_perp,gamma_scale,z,_getZRef());
         double musq(mu*mu);
         scale = std::sqrt(apar*apar*musq + aperp*aperp*(1-musq));
         rBAO = r*scale;
         muBAO = apar*mu/scale;
     }
     else {
-        scale = _redshiftEvolution(scale,gamma_scale,z);
+        scale = redshiftEvolution(scale,gamma_scale,z,_getZRef());
         rBAO = r*scale;
         muBAO = mu;
     }
@@ -262,7 +262,7 @@ bool anyChanged) const {
     if(_distortAdd) {
         double distortion = _distortAdd->_evaluate(r,mu,z,anyChanged);
         // The additive distortion is multiplied by ((1+z)/(1+z0))^gammaBias
-        xi += _redshiftEvolution(distortion,gammaBias,z);
+        xi += redshiftEvolution(distortion,gammaBias,z,_getZRef());
     }
 
     return xi;

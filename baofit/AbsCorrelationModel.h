@@ -35,7 +35,6 @@ namespace baofit {
         friend class BaoKSpaceCorrelationModel;
         friend class BaoKSpaceFftCorrelationModel;
         friend class BroadbandModel;
-        friend class NonLinearCorrectionModel;
         // The public methods above call these protected methods after making parameter values
         // and changes available via our base class' getParameterValue() and isParameterValueChanged()
         // methods. Any registered changes to parameter values are reset after calling any of these.
@@ -58,9 +57,6 @@ namespace baofit {
         // cosmology to convert from dv in km/s to dpi in Mpc/h at the specified redshift z. The
         // value of dv is obtained from the "delta-v" parameter defined by _defineLinearBiasParameters.
         void _applyVelocityShift(double &r, double &mu, double z);
-        // Evaluates the redshift evolution p(z) of a parameter for which p(zref)=p0 according to
-        // p(z) = p0*((1+z)/(1+zref))^gamma.
-        double _redshiftEvolution(double p0, double gamma, double z) const;
         // Updates the multipole normalization factors b^2(z)*C_ell(beta(z)) returned by getNormFactor(ell).
         double _getNormFactor(cosmo::Multipole multipole, double z) const;
     private:
@@ -74,6 +70,9 @@ namespace baofit {
 
     inline double AbsCorrelationModel::_getZRef() const { return _zref; }
     inline void AbsCorrelationModel::_setDVIndex(int index) { _dvIndex = index; }
+    // Evaluates the redshift evolution p(z) of a parameter for which p(zref)=p0 according to
+    // p(z) = p0*((1+z)/(1+zref))^gamma.
+    double redshiftEvolution(double p0, double gamma, double z, double zref);
 
 } // baofit
 

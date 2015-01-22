@@ -81,9 +81,9 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     double gamma_scale = getParameterValue(_indexBase + 5); //("gamma-scale");
 
     // Calculate redshift evolution of the scale parameters.
-    scale = _redshiftEvolution(scale,gamma_scale,z);
-    scale_parallel = _redshiftEvolution(scale_parallel,gamma_scale,z);
-    scale_perp = _redshiftEvolution(scale_perp,gamma_scale,z);
+    scale = redshiftEvolution(scale,gamma_scale,z,_getZRef());
+    scale_parallel = redshiftEvolution(scale_parallel,gamma_scale,z,_getZRef());
+    scale_perp = redshiftEvolution(scale_perp,gamma_scale,z,_getZRef());
 
     // Transform (r,mu) to (rBAO,muBAO) using the scale parameters.
     double rBAO, muBAO;
@@ -129,7 +129,7 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
         double distortion = _distortAdd->_evaluate(r,mu,z,anyChanged);
         // The additive distortion is multiplied by ((1+z)/(1+z0))^gamma_bias
         double gamma_bias = getParameterValue(_indexBase - 1); //("gamma-bias");
-        xi += _redshiftEvolution(distortion,gamma_bias,z);
+        xi += redshiftEvolution(distortion,gamma_bias,z,_getZRef());
     }
 
     // Lookup radiation parameters, also value by name.
