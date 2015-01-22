@@ -44,12 +44,11 @@ double local::NonLinearCorrectionModel::_evaluateNLCorrection(double k, double m
     double growth, pecvelocity, pressure, nonlinearcorr;
     // Non-linear correction model of http://arxiv.org/abs/xxxx.xxxxx
     if(_nlCorrection) {
-        //double qnl = (*_qnlInterpolator)(z);
-        //double kv = (*_kvInterpolator)(z);
-        //double av = (*_avInterpolator)(z);
-        //double bv = (*_bvInterpolator)(z);
-        //double kp = (*_kpInterpolator)(z);
-        double qnl(0.036), kv(0.756), av(0.454), bv(1.52), kp(12.5);
+        double qnl = (*_qnlInterpolator)(z);
+        double kv = (*_kvInterpolator)(z);
+        double av = (*_avInterpolator)(z);
+        double bv = (*_bvInterpolator)(z);
+        double kp = (*_kpInterpolator)(z);
         pk = pk*(0.88/_sigma8)*(0.88/_sigma8)*redshiftEvolution(1.,-2.,z,_zref);
         growth = k*k*k*pk*qnl;
         pecvelocity = std::pow(k/kv,av)*std::pow(std::fabs(mu_k),bv);
