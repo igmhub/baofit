@@ -132,14 +132,13 @@ double local::BaoKSpaceFftCorrelationModel::_evaluateKSpaceDistortion(double k, 
         contdistortion = 1;
     }
     else if(_distortionAlt) {
-        //contdistortion = std::tanh(std::pow(kpar/kc,pc));
-        //contdistortion = std::pow(kpar/(kpar+kc),pc);
-        k1 = std::pow(kpar/kc + 1,0.75);
-        contdistortion = std::pow((k1-1/k1)/(k1+1/k1),pc);
+        contdistortion = std::tanh(std::pow(kpar/kc,pc));
     }
     else {
-        k1 = kpar/kc + 1;
+        k1 = std::pow(kpar/kc + 1,0.75);
         contdistortion = std::pow((k1-1/k1)/(k1+1/k1),pc);
+        //k1 = kpar/kc + 1;
+        //contdistortion = std::pow((k1-1/k1)/(k1+1/k1),pc);
     }
     // Calculate non-linear correction (if any)
     double nonlinearcorr = _nlcorr->_evaluateNLCorrection(k,mu_k,pk,_zeff);
