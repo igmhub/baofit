@@ -427,6 +427,10 @@ std::string const &refitConfig, std::string const &saveName, int nsave, double z
     }
     SamplingOutput output(fmin,fmin2,saveName,nsave,zsave,*this);
     baofit::AbsCorrelationDataCPtr sample;
+    // Make a copy of the initial parameters.
+    likely::FitParameters initParams = fmin->getFitParameters();
+    likely::FitParameters initParams2;
+    if(fmin2) initParams2 = fmin2->getFitParameters();
     // Initialize the parameter value statistics accumulators we will need.
     likely::FitParameterStatisticsPtr refitStats,
         fitStats(new likely::FitParameterStatistics(fmin->getFitParameters()));
@@ -461,6 +465,8 @@ std::string const &refitConfig, std::string const &saveName, int nsave, double z
         }
         else {
             nInvalid++;
+            // Save the fit results, if requested.
+            output.saveSample(initParams,0,sampleMinRefit ? initParams2 : likely::FitParameters(),0);
         }
         // Print periodic updates while the analysis is running.
         nsamples++;
