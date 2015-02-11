@@ -136,9 +136,7 @@ double local::BaoKSpaceFftCorrelationModel::_evaluateKSpaceDistortion(double k, 
     }
     else {
         k1 = std::pow(kpar/kc + 1,0.75);
-        contdistortion = std::pow((k1-1/k1)/(k1+1/k1),pc);
-        //k1 = kpar/kc + 1;
-        //contdistortion = std::pow((k1-1/k1)/(k1+1/k1),pc);
+        contdistortion = std::pow((k1-1/k1)/(k1+1/k1),1/pc);
     }
     // Calculate non-linear correction (if any)
     double nonlinearcorr = _nlcorr->_evaluateNLCorrection(k,mu_k,pk,_zeff);
