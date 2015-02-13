@@ -51,7 +51,7 @@ _verbose(verbose)
     defineParameter("1+f",2,0.1);
     // Continuum fitting distortion parameters
     _contBase = defineParameter("cont-kc",0.02,0.002);
-    defineParameter("cont-pc",1,0.1);
+    defineParameter("cont-pc",0.3,0.03);
     // BAO peak parameters
     _baoBase = defineParameter("BAO amplitude",1,0.15);
     defineParameter("BAO alpha-iso",1,0.02);
