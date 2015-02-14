@@ -51,7 +51,7 @@ _verbose(verbose)
     defineParameter("1+f",2,0.1);
     // Continuum fitting distortion parameters
     _contBase = defineParameter("cont-kc",0.02,0.002);
-    defineParameter("cont-pc",0.3,0.03);
+    defineParameter("cont-pc",1,0.1);
     // BAO peak parameters
     _baoBase = defineParameter("BAO amplitude",1,0.15);
     defineParameter("BAO alpha-iso",1,0.02);
@@ -136,7 +136,7 @@ double local::BaoKSpaceFftCorrelationModel::_evaluateKSpaceDistortion(double k, 
     }
     else {
         k1 = std::pow(kpar/kc + 1,0.75);
-        contdistortion = std::pow((k1-1/k1)/(k1+1/k1),1/pc);
+        contdistortion = std::pow((k1-1/k1)/(k1+1/k1),pc);
     }
     // Calculate non-linear correction (if any)
     double nonlinearcorr = _nlcorr->_evaluateNLCorrection(k,mu_k,pk,_zeff);
