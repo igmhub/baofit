@@ -25,7 +25,7 @@ namespace baofit {
 	    double _zref, _sigma8;
 	    bool _nlCorrection, _nlCorrectionAlt;
 	    void _initialize();
-	    mutable likely::InterpolatorPtr _qnlInterpolator, _kvInterpolator, _avInterpolator, _bvInterpolator, _kpInterpolator;
+	    mutable likely::InterpolatorPtr _q1Interpolator, _q2Interpolator, _kvInterpolator, _avInterpolator, _bvInterpolator, _kpInterpolator;
     }; // NonLinearCorrectionModel
 } // baofit
 
