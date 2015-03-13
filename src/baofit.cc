@@ -542,6 +542,13 @@ int main(int argc, char **argv) {
             }
             fmin = analyzer.fitSample(combined);
         }
+        // Dump the minimum chisquare.
+        {
+            std::string outName = outputPrefix + "fit.chisq";
+            std::ofstream out(outName.c_str());
+            analyzer.dumpChisquare(out,fmin,combined);
+            out.close();
+        }
         // Dump the fit parameters in model-config format.
         {
             std::string outName = outputPrefix + "fit.config";
@@ -653,6 +660,13 @@ int main(int argc, char **argv) {
             }
             std::cout << "Delta ChiSquare = "
                 << 2*(fmin2->getMinValue() - fmin->getMinValue()) << std::endl;
+            // Dump the minimum chisquare.
+            {
+                std::string outName = outputPrefix + "refit.chisq";
+                std::ofstream out(outName.c_str());
+                analyzer.dumpChisquare(out,fmin2,combined);
+                out.close();
+            }
         }
         // Generate and fit MC samples, if requested.
         if(toymcSamples > 0) {
