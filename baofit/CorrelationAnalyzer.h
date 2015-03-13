@@ -35,12 +35,16 @@ namespace baofit {
         // analyzer, after it has been finalized. If verbose, prints out the number
         // of bins with data before and after finalizing the data.
         AbsCorrelationDataPtr getCombined(bool verbose = false, bool finalized = true) const;
-        // Fits the combined correlation data aadded to this analyzer and returns
+        // Fits the combined correlation data added to this analyzer and returns
         // the estimated function minimum. Use the optional config script to modify
         // the initial parameter configuration used for the fit (any changes do not
         // propagate back to the model or modify subsequent fits).
         likely::FunctionMinimumPtr fitSample(AbsCorrelationDataCPtr sample,
-            std::string const &config = "") const;        
+            std::string const &config = "") const;
+        // Saves the minimum chisquare, nbins, npar and chisquare probability in plain text
+        // to the specified stream, using full double precision.
+        void dumpChisquare(std::ostream &out, likely::FunctionMinimumPtr fmin,
+            AbsCorrelationDataCPtr combined) const;
         // Performs a bootstrap analysis and returns the number of fits to bootstrap
         // samples that failed. Specify a non-zero bootstrapSize to generate trials with
         // a number of observations different than getNData(). Specify a refitConfig script

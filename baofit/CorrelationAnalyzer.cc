@@ -172,6 +172,22 @@ AbsCorrelationDataCPtr sample, std::string const &config) const {
     return fmin;
 }
 
+void local::CorrelationAnalyzer::dumpChisquare(std::ostream &out, likely::FunctionMinimumPtr fmin,
+AbsCorrelationDataCPtr combined) const {
+    double chisq = 2*fmin->getMinValue();
+    int nbins = combined->getNBinsWithData();
+    int npar = fmin->getNParameters(true);
+    if(chisq > 0 && nbins > npar) {
+        double prob = 1 - boost::math::gamma_p((nbins-npar)/2.,chisq/2);
+        out << boost::lexical_cast<std::string>(chisq) << ' ' << boost::lexical_cast<std::string>(nbins) << ' '
+            << boost::lexical_cast<std::string>(npar) << ' ' << boost::lexical_cast<std::string>(prob);
+    }
+    else {
+        out << boost::lexical_cast<std::string>(chisq) << ' ' << boost::lexical_cast<std::string>(nbins) << ' '
+            << boost::lexical_cast<std::string>(npar) << ' ' << boost::lexical_cast<std::string>(-1);
+    }
+}
+
 namespace baofit {
     class CorrelationAnalyzer::AbsSampler {
     public:
