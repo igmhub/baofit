@@ -175,7 +175,7 @@ bool anyChanged) const {
     double gammaBeta = getParameterValue(3);
     // Calculate effective redshift for each (r,mu) bin if requested
     if(_zcorr0>0) {
-        double rpar = std::fabs(r*mu);
+        double rpar = std::fabs(r*mu)/100.;
         z = _zcorr0 + _zcorr1*rpar + _zcorr2*rpar*rpar;
     }
     _zeff = z;
