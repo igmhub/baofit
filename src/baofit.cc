@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
             "First order correction of the effective redshift for each (r,mu) bin.")
         ("zcorr2", po::value<double>(&zcorr2)->default_value(0),
             "Second order correction of the effective redshift for each (r,mu) bin.")
-        ("sigma8", po::value<double>(&sigma8)->default_value(0.878),
+        ("sigma8", po::value<double>(&sigma8)->default_value(0.8338),
             "Amplitude of the linear matter power spectrum on the scale of 8 Mpc/h")
         ("n-spline", po::value<int>(&nSpline)->default_value(0),
             "Number of spline knots to use spanning (klo,khi).")

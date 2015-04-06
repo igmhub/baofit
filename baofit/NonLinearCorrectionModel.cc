@@ -17,24 +17,21 @@ local::NonLinearCorrectionModel::NonLinearCorrectionModel(double zref, double si
 }
 
 void local::NonLinearCorrectionModel::_initialize() {
-    // Interpolation data from Table 6 of http://arxiv.org/abs/xxxx.xxxxx
+    // Interpolation data from Table 7 of http://arxiv.org/abs/xxxx.xxxxx
     double zArray[]      = { 2.2000, 2.4000, 2.6000, 2.8000, 3.0000 };
-    double q1Array[]     = { 0.2000, 0.2300, 0.2600, 0.3700, 0.5000 };
-    double q2Array[]     = { 0.2500, 0.2600, 0.2600, 0.2100, 0.1400 };
-    double kvArray[]     = { 0.0034, 0.0131, 0.0356, 0.1310, 0.3120 };
-    double avArray[]     = { 0.1300, 0.1660, 0.2050, 0.2770, 0.3480 };
-    double bvArray[]     = { 1.5100, 1.5300, 1.5500, 1.5500, 1.5400 };
-    double kpArray[]     = { 9.4200, 9.7900, 10.000, 10.400, 10.500 };
-    std::vector<double> z, q1, q2, kv, av, bv, kp;
+    double qnlArray[]    = { 0.8670, 0.8510, 0.7810, 0.7730, 0.7915 };
+    double kvArray[]     = { 1.0500, 1.0600, 1.1500, 1.1600, 1.1600 };
+    double avArray[]     = { 0.5140, 0.5480, 0.6110, 0.6080, 0.5780 };
+    double bvArray[]     = { 1.6000, 1.6100, 1.6400, 1.6500, 1.6300 };
+    double kpArray[]     = { 19.300, 19.500, 21.000, 19.100, 17.100 };
+    std::vector<double> z, qnl, kv, av, bv, kp;
     z.assign (zArray,zArray+5);
-    q1.assign (q1Array,q1Array+5);
-    q2.assign (q2Array,q2Array+5);
+    qnl.assign (qnlArray,qnlArray+5);
     kv.assign (kvArray,kvArray+5);
     av.assign (avArray,avArray+5);
     bv.assign (bvArray,bvArray+5);
     kp.assign (kpArray,kpArray+5);
-    _q1Interpolator.reset(new likely::Interpolator(z,q1,"linear"));
-    _q2Interpolator.reset(new likely::Interpolator(z,q2,"linear"));
+    _qnlInterpolator.reset(new likely::Interpolator(z,qnl,"linear"));
     _kvInterpolator.reset(new likely::Interpolator(z,kv,"linear"));
     _avInterpolator.reset(new likely::Interpolator(z,av,"linear"));
     _bvInterpolator.reset(new likely::Interpolator(z,bv,"linear"));
@@ -47,17 +44,16 @@ double local::NonLinearCorrectionModel::_evaluateNLCorrection(double k, double m
     double growth, pecvelocity, pressure, nonlinearcorr;
     // Non-linear correction model of http://arxiv.org/abs/xxxx.xxxxx
     if(_nlCorrection) {
-        double q1 = (*_q1Interpolator)(z);
-        double q2 = (*_q2Interpolator)(z);
+        double qnl = (*_qnlInterpolator)(z);
         double kv = (*_kvInterpolator)(z);
         double av = (*_avInterpolator)(z);
         double bv = (*_bvInterpolator)(z);
         double kp = (*_kpInterpolator)(z);
-        double sigma8Sim(0.878);
+        double sigma8Sim(0.8338);
         double pi(4*std::atan(1));
         pk = pk*(sigma8Sim/_sigma8)*(sigma8Sim/_sigma8)*redshiftEvolution(1.,-2.,z,_zref);
-        double dk = k*k*k*pk/(2*pi*pi);
-        growth = q1*dk + q2*dk*dk;
+        double deltaSq = k*k*k*pk/(2*pi*pi);
+        growth = qnl*deltaSq;
         pecvelocity = std::pow(k/kv,av)*std::pow(std::fabs(mu_k),bv);
         pressure = (k/kp)*(k/kp);
         nonlinearcorr = std::exp(growth*(1-pecvelocity)-pressure);
