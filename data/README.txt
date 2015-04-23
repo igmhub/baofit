@@ -22,9 +22,13 @@ baofit -i ../config/BOSSDR9LyaF.ini
 # Font-Ribera 2014
 baofit -i ../config/BOSSDR11QSOLyaF.ini
 
-# Delubac 2014
+# Delubac 2015
 # Start by uncompressing the covariance matrix file ../data/BOSSDR11LyaF.cov.qz using the command 'gunzip --to-stdout ../data/BOSSDR11LyaF.cov.gz > ../data/BOSSDR11LyaF.cov'
 baofit -i ../config/BOSSDR11LyaF_k.ini
+
+# Blomqvist 2015
+# Start by uncompressing the covariance matrix file ../data/BOSSDR11LyaF.cov.qz using the command 'gunzip --to-stdout ../data/BOSSDR11LyaF.cov.gz > ../data/BOSSDR11LyaF.cov'
+baofit -i ../config/BOSSDR11LyaF_fft.ini
 
 All of the resulting output files will be created in your working directory and prefixed with XXX_ (with XXX = BOSSDR9LyaFXi, etc).
 
@@ -32,7 +36,9 @@ All of the resulting output files will be created in your working directory and 
 Chi-Square Scans
 ================
 
-To reproduce the .scan files, add the --parameter-scan option to produce XXX_scan.dat. This file starts with a three-line header that describes the baseline fit, followed by one line per scan point. The scan point lines give each parameter value (including fixed parameters) in the same order that they are normally displayed, followed by the chisq value. The anisotropic BAO scale parameters, alpha-parallel and alpha-perp, are columns 6 and 7 (auto-correlation; r-space model), 8 and 9 (auto-correlation; k-space model) or 9 and 10 (cross-correlation; r-space model) counting from 0.
+To reproduce the .scan files, add the --parameter-scan option to produce XXX_scan.dat. This file starts with a three-line header that describes the baseline fit, followed by one line per scan point.
+The scan point lines give each parameter value (including fixed parameters) in the same order that they are normally displayed, followed by the chisq value.
+The anisotropic BAO scale parameters, alpha-parallel and alpha-perp, are columns 6 and 7 (auto-correlation; r-space model), 8 and 9 (auto-correlation; k-space model), 10 and 11 (auto-correlation; k-space FFT model) or 9 and 10 (cross-correlation; r-space model) counting from 0.
 
 You can use the parsescan.py python script to extract the 3 columns that appear in the .scan files (note that we swap the order of the alphas here):
 
@@ -45,8 +51,11 @@ You can use the parsescan.py python script to extract the 3 columns that appear 
 # Font-Fibera 2014
 ./parsescan.py BOSSDR11QSOLyaF_scan.dat BOSSDR11QSOLyaF.scan 10 9
 
-# Delubac 2014
+# Delubac 2015
 ./parsescan.py BOSSDR11LyaF_k_scan.dat BOSSDR11LyaF_k.scan 9 8
+
+# Blomqvist 2015
+./parsescan.py BOSSDR11LyaF_fft_scan.dat BOSSDR11LyaF_fft.scan 11 10
 
 There is a mathematica package for more sophisticated processing of baofit outputs:
 
