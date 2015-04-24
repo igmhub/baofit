@@ -52,7 +52,7 @@ bool anyChanged) const {
 
 void local::AbsCorrelationModel::_setZRef(double zref) {
     if(zref < 0) throw RuntimeError("AbsCorrelationModel: expected zref >= 0.");
-    _zref = zref;    
+    _zref = zref;
 }
 
 int local::AbsCorrelationModel::_defineLinearBiasParameters(double zref, bool crossCorrelation) {
@@ -96,8 +96,8 @@ void local::AbsCorrelationModel::_applyVelocityShift(double &r, double &mu, doub
     mu = munew;    
 }
 
-double local::AbsCorrelationModel::_redshiftEvolution(double p0, double gamma, double z) const {
-    return p0*std::pow((1+z)/(1+_zref),gamma);
+double local::redshiftEvolution(double p0, double gamma, double z, double zref) {
+    return p0*std::pow((1+z)/(1+zref),gamma);
 }
 
 double local::AbsCorrelationModel::_getNormFactor(cosmo::Multipole multipole, double z) const {
@@ -126,9 +126,9 @@ double local::AbsCorrelationModel::_getNormFactor(cosmo::Multipole multipole, do
     // Calculate redshift evolution of biasSq, betaAvg and betaProd.
     double gammaBias = getParameterValue(_indexBase + GAMMA_BIAS);
     double gammaBeta = getParameterValue(_indexBase + GAMMA_BETA);
-    biasSq = _redshiftEvolution(biasSq,gammaBias,z);
-    betaAvg = _redshiftEvolution(betaAvg,gammaBeta,z);
-    betaProd = _redshiftEvolution(betaProd,2*gammaBeta,z);
+    biasSq = redshiftEvolution(biasSq,gammaBias,z,_zref);
+    betaAvg = redshiftEvolution(betaAvg,gammaBeta,z,_zref);
+    betaProd = redshiftEvolution(betaProd,2*gammaBeta,z,_zref);
     // Return the requested normalization factor.
     switch(multipole) {
     case cosmo::Hexadecapole:
@@ -142,5 +142,5 @@ double local::AbsCorrelationModel::_getNormFactor(cosmo::Multipole multipole, do
 
 void  local::AbsCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
     FitModel::printToStream(out,formatSpec);
-    if(_indexBase >= 0) out << std::endl << "Reference redshift = " << _zref << std::endl;        
+    out << std::endl << "Reference redshift = " << _zref << std::endl;
 }
