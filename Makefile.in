@@ -83,10 +83,11 @@ libbaofit_la_LIBADD =
 am_libbaofit_la_OBJECTS = AbsCorrelationModel.lo \
 	BaoCorrelationModel.lo BaoKSpaceCorrelationModel.lo \
 	BaoKSpaceFftCorrelationModel.lo BroadbandModel.lo \
-	NonLinearCorrectionModel.lo XiCorrelationModel.lo \
-	PkCorrelationModel.lo AbsCorrelationData.lo \
-	QuasarCorrelationData.lo ComovingCorrelationData.lo \
-	CorrelationFitter.lo CorrelationAnalyzer.lo boss.lo
+	MetalCorrelationModel.lo NonLinearCorrectionModel.lo \
+	XiCorrelationModel.lo PkCorrelationModel.lo \
+	AbsCorrelationData.lo QuasarCorrelationData.lo \
+	ComovingCorrelationData.lo CorrelationFitter.lo \
+	CorrelationAnalyzer.lo boss.lo
 libbaofit_la_OBJECTS = $(am_libbaofit_la_OBJECTS)
 PROGRAMS = $(bin_PROGRAMS)
 am_baofit_OBJECTS = baofit.$(OBJEXT)
@@ -278,6 +279,7 @@ libbaofit_la_SOURCES = \
 	baofit/BaoKSpaceCorrelationModel.cc \
 	baofit/BaoKSpaceFftCorrelationModel.cc \
 	baofit/BroadbandModel.cc \
+	baofit/MetalCorrelationModel.cc \
 	baofit/NonLinearCorrectionModel.cc \
 	baofit/XiCorrelationModel.cc \
 	baofit/PkCorrelationModel.cc \
@@ -301,6 +303,7 @@ nobase_include_HEADERS = \
 	baofit/BaoKSpaceCorrelationModel.h \
 	baofit/BaoKSpaceFftCorrelationModel.h \
 	baofit/BroadbandModel.h \
+	baofit/MetalCorrelationModel.h \
 	baofit/NonLinearCorrectionModel.h \
 	baofit/XiCorrelationModel.h \
 	baofit/PkCorrelationModel.h \
@@ -469,6 +472,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ComovingCorrelationData.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/CorrelationAnalyzer.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/CorrelationFitter.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/MetalCorrelationModel.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/NonLinearCorrectionModel.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/PkCorrelationModel.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/QuasarCorrelationData.Plo@am__quote@
@@ -531,6 +535,13 @@ BroadbandModel.lo: baofit/BroadbandModel.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='baofit/BroadbandModel.cc' object='BroadbandModel.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o BroadbandModel.lo `test -f 'baofit/BroadbandModel.cc' || echo '$(srcdir)/'`baofit/BroadbandModel.cc
+
+MetalCorrelationModel.lo: baofit/MetalCorrelationModel.cc
+@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT MetalCorrelationModel.lo -MD -MP -MF $(DEPDIR)/MetalCorrelationModel.Tpo -c -o MetalCorrelationModel.lo `test -f 'baofit/MetalCorrelationModel.cc' || echo '$(srcdir)/'`baofit/MetalCorrelationModel.cc
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/MetalCorrelationModel.Tpo $(DEPDIR)/MetalCorrelationModel.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='baofit/MetalCorrelationModel.cc' object='MetalCorrelationModel.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o MetalCorrelationModel.lo `test -f 'baofit/MetalCorrelationModel.cc' || echo '$(srcdir)/'`baofit/MetalCorrelationModel.cc
 
 NonLinearCorrectionModel.lo: baofit/NonLinearCorrectionModel.cc
 @am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT NonLinearCorrectionModel.lo -MD -MP -MF $(DEPDIR)/NonLinearCorrectionModel.Tpo -c -o NonLinearCorrectionModel.lo `test -f 'baofit/NonLinearCorrectionModel.cc' || echo '$(srcdir)/'`baofit/NonLinearCorrectionModel.cc
