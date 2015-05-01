@@ -3,20 +3,25 @@
 #ifndef BAOFIT_METAL_CORRELATION_MODEL
 #define BAOFIT_METAL_CORRELATION_MODEL
 
-#include "likely/types.h"
+#include "baofit/AbsCorrelationModel.h"
 
 namespace baofit {
-	// Represents a model for metal line correlations
-	class MetalCorrelationModel {
+	// Represents an r-space model for metal line correlations
+	class MetalCorrelationModel : public AbsCorrelationModel {
 	public:
 	    // Creates a metal correlation model.
-	    MetalCorrelationModel(int indexBase);
+	    MetalCorrelationModel(AbsCorrelationModel *base = 0);
 	    virtual ~MetalCorrelationModel();
-	    // Returns the metal correlation in r space at point (r,mu).
-	    double _evaluateMetalCorrelation(double r, double mu) const;
+	    // Prints a multi-line description of this object to the specified output stream.
+        virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
 	protected:
+	    // Returns the correlation function evaluated in redshift space where (r,mu) is
+		// the pair separation and z is their average redshift. The separation r should
+		// be provided in Mpc/h. Uses templates derived from metals added to mock data.
+	    virtual double _evaluate(double r, double mu, double z, bool anyChanged) const;
 	private:
 	int _indexBase;
+	AbsCorrelationModel &_base;
     }; // MetalCorrelationModel
 } // baofit
 
