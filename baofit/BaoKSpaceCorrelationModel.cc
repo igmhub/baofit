@@ -2,6 +2,7 @@
 
 #include "baofit/BaoKSpaceCorrelationModel.h"
 #include "baofit/RuntimeError.h"
+#include "baofit/MetalCorrelationModel.h"
 #include "baofit/BroadbandModel.h"
 
 #include "likely/Interpolator.h"
@@ -25,10 +26,12 @@ local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &m
     double rmin, double rmax, double dilmin, double dilmax,
     double relerr, double abserr, int ellMax, int samplesPerDecade,
     std::string const &distAdd, std::string const &distMul, double distR0,
-    bool anisotropic, bool decoupled,  bool nlBroadband, bool crossCorrelation, bool verbose)
+    bool anisotropic, bool decoupled,  bool nlBroadband, bool metals, bool crossCorrelation,
+    bool verbose)
 : AbsCorrelationModel("BAO k-Space Correlation Model"), _dilmin(dilmin), _dilmax(dilmax),
 _anisotropic(anisotropic), _decoupled(decoupled), _nlBroadband(nlBroadband),
-_crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarnings(10)
+_metals(metals), _crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0),
+_maxWarnings(10)
 {
     _setZRef(zref);
     // Linear bias parameters
@@ -52,7 +55,7 @@ _crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarni
     defineParameter("BAO alpha-iso",1,0.02);
     defineParameter("BAO alpha-parallel",1,0.1);
     defineParameter("BAO alpha-perp",1,0.1);
-    defineParameter("gamma-scale",0,0.5);
+    int last = defineParameter("gamma-scale",0,0.5);
 
     // Load the P(k) interpolation data we will use for each multipole of each model.
     std::string root(modelrootName);
@@ -107,7 +110,12 @@ _crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarni
     // Xinw(r,mu) ~ D(k,mu_k)*Pnw(k)
     _Xinw.reset(new cosmo::DistortedPowerCorrelation(PnwPtr,distortionModelPtr,
         klo,khi,nk,rmin,rmax,nr,ellMax,symmetric,relerr,abserr,abspow));
-
+    
+    // Define our r-space metal correlation model, if any.
+    if(metals) {
+        _metalCorr.reset(new baofit::MetalCorrelationModel(this));
+    }
+    
     // Define our r-space broadband distortion models, if any.
     if(distAdd.length() > 0) {
         _distortAdd.reset(new baofit::BroadbandModel("Additive broadband distortion",
@@ -256,6 +264,9 @@ bool anyChanged) const {
     double smooth = (_decoupled) ? _Xinw->getCorrelation(r,mu) : _Xinw->getCorrelation(rBAO,muBAO);
     // Combine the pieces with the appropriate normalization factors
     double xi = biasSq*(ampl*peak + smooth);
+    
+    // Add r-space metal correlations, if any.
+    if(_metals) xi += _metalCorr->_evaluate(r,mu,z,anyChanged);
     
     // Add r-space broadband distortions, if any.
     if(_distortMul) xi *= 1 + _distortMul->_evaluate(r,mu,z,anyChanged);

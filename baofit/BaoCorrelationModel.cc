@@ -2,6 +2,7 @@
 
 #include "baofit/BaoCorrelationModel.h"
 #include "baofit/RuntimeError.h"
+#include "baofit/MetalCorrelationModel.h"
 #include "baofit/BroadbandModel.h"
 
 #include "likely/Interpolator.h"
@@ -17,8 +18,9 @@ namespace local = baofit;
 local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName,
     std::string const &fiducialName, std::string const &nowigglesName,
     std::string const &distAdd, std::string const &distMul, double distR0,
-    double zref, bool anisotropic, bool decoupled, bool crossCorrelation)
-: AbsCorrelationModel("BAO Correlation Model"), _anisotropic(anisotropic), _decoupled(decoupled)
+    double zref, bool anisotropic, bool decoupled, bool metals, bool crossCorrelation)
+: AbsCorrelationModel("BAO Correlation Model"), _anisotropic(anisotropic), _decoupled(decoupled),
+_metals(metals)
 {
     // Linear bias parameters
     _indexBase = _defineLinearBiasParameters(zref,crossCorrelation);
@@ -57,6 +59,10 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
     }
     catch(likely::RuntimeError const &e) {
         throw RuntimeError("BaoCorrelationModel: error while reading model interpolation data.");
+    }
+    // Define our r-space metal correlation model, if any.
+    if(metals) {
+        _metalCorr.reset(new baofit::MetalCorrelationModel(this));
     }
     // Define our broadband distortion models, if any.
     if(distAdd.length() > 0) {
@@ -123,6 +129,9 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     }
     double xi = peak + smooth;
     
+    // Add r-space metal correlations, if any.
+    if(_metals) xi += _metalCorr->_evaluate(r,mu,z,anyChanged);
+    
     // Add broadband distortions, if any.
     if(_distortMul) xi *= 1 + _distortMul->_evaluate(r,mu,z,anyChanged);
     if(_distortAdd) {
@@ -139,7 +148,7 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     double quasar_lifetime = getParameterValue(_indexBase + 9);
 
     // add quasar radiation effects (for cross-correlations only)
-    // allways works with decoupled
+    // always works with decoupled
     if(rad_strength>0 && r>0.){ 
         // isotropical radiation
         double rad = rad_strength/(r*r);
