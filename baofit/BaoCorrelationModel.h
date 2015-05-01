@@ -21,7 +21,7 @@ namespace baofit {
 		    std::string const &fiducialName, std::string const &nowigglesName,
             std::string const &distAdd, std::string const &distMul, double distR0,
             double zref, bool anisotropic = false, bool decoupled = false,
-            bool crossCorrelation = false);
+            bool metals = false, bool crossCorrelation = false);
 		virtual ~BaoCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
@@ -31,8 +31,8 @@ namespace baofit {
 		// be provided in Mpc/h.
         virtual double _evaluate(double r, double mu, double z, bool anyChanged) const;
 	private:
-        AbsCorrelationModelPtr _distortAdd, _distortMul;
-        bool _anisotropic, _decoupled;
+        AbsCorrelationModelPtr _metalCorr, _distortAdd, _distortMul;
+        bool _anisotropic, _decoupled, _metals;
         int _indexBase;
         cosmo::CorrelationFunctionPtr _fid0, _fid2, _fid4, _nw0, _nw2, _nw4;
 	}; // BaoCorrelationModel

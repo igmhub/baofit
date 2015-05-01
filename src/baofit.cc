@@ -120,6 +120,7 @@ int main(int argc, char **argv) {
         ("nl-correction-alt", "k-space alternative non-linear correction applied in the flux power spectrum model.")
         ("distortion-alt", "Uses alternative model for the continuum fitting broadband distortion.")
         ("no-distortion", "No modeling of the continuum fitting broadband distortion.")
+        ("metals", "Include r-space model of metal line correlations.")
         ("cross-correlation", "Uses independent linear bias parameters for both components.")
         ;
     dataOptions.add_options()
@@ -309,7 +310,7 @@ int main(int argc, char **argv) {
         kspacefft(vm.count("kspace-fft")), calculateGradients(vm.count("calculate-gradients")),
         nlBroadband(vm.count("nl-broadband")), nlCorrection(vm.count("nl-correction")),
         nlCorrectionAlt(vm.count("nl-correction-alt")), distortionAlt(vm.count("distortion-alt")),
-        noDistortion(vm.count("no-distortion"));
+        noDistortion(vm.count("no-distortion")), metals(vm.count("metals"));
 
     // Check that we have a recognized data format.
     if(dataFormat != "comoving-cartesian" && dataFormat != "comoving-polar" &&
@@ -368,7 +369,7 @@ int main(int argc, char **argv) {
             model.reset(new baofit::BaoKSpaceCorrelationModel(
                 modelrootName,fiducialName,nowigglesName,zref,
                 rmin,rmax,dilmin,dilmax,relerr,abserr,ellMax,samplesPerDecade,
-                distAdd,distMul,distR0,anisotropic,decoupled,nlBroadband,crossCorrelation,verbose));
+                distAdd,distMul,distR0,anisotropic,decoupled,nlBroadband,metals,crossCorrelation,verbose));
         }
         else if(kspacefft) {
             // Build our fit model from tabulated P(k) on disk and use a 3D FFT.
@@ -382,7 +383,7 @@ int main(int argc, char **argv) {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
             model.reset(new baofit::BaoCorrelationModel(
                 modelrootName,fiducialName,nowigglesName,distAdd,distMul,distR0,zref,anisotropic,
-                decoupled,crossCorrelation));
+                decoupled,metals,crossCorrelation));
         }
              
         // Configure our fit model parameters by applying all model-config options in turn,
