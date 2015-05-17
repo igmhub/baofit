@@ -82,7 +82,8 @@ LTLIBRARIES = $(lib_LTLIBRARIES)
 libbaofit_la_LIBADD =
 am_libbaofit_la_OBJECTS = AbsCorrelationModel.lo \
 	BaoCorrelationModel.lo BaoKSpaceCorrelationModel.lo \
-	BaoKSpaceFftCorrelationModel.lo BroadbandModel.lo \
+	BaoKSpaceFftCorrelationModel.lo \
+	BaoKSpaceHybridCorrelationModel.lo BroadbandModel.lo \
 	MetalCorrelationModel.lo NonLinearCorrectionModel.lo \
 	XiCorrelationModel.lo PkCorrelationModel.lo \
 	AbsCorrelationData.lo QuasarCorrelationData.lo \
@@ -278,6 +279,7 @@ libbaofit_la_SOURCES = \
 	baofit/BaoCorrelationModel.cc \
 	baofit/BaoKSpaceCorrelationModel.cc \
 	baofit/BaoKSpaceFftCorrelationModel.cc \
+	baofit/BaoKSpaceHybridCorrelationModel.cc \
 	baofit/BroadbandModel.cc \
 	baofit/MetalCorrelationModel.cc \
 	baofit/NonLinearCorrectionModel.cc \
@@ -302,6 +304,7 @@ nobase_include_HEADERS = \
 	baofit/BaoCorrelationModel.h \
 	baofit/BaoKSpaceCorrelationModel.h \
 	baofit/BaoKSpaceFftCorrelationModel.h \
+	baofit/BaoKSpaceHybridCorrelationModel.h \
 	baofit/BroadbandModel.h \
 	baofit/MetalCorrelationModel.h \
 	baofit/NonLinearCorrectionModel.h \
@@ -468,6 +471,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/BaoCorrelationModel.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/BaoKSpaceCorrelationModel.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/BaoKSpaceFftCorrelationModel.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/BaoKSpaceHybridCorrelationModel.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/BroadbandModel.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ComovingCorrelationData.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/CorrelationAnalyzer.Plo@am__quote@
@@ -528,6 +532,13 @@ BaoKSpaceFftCorrelationModel.lo: baofit/BaoKSpaceFftCorrelationModel.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='baofit/BaoKSpaceFftCorrelationModel.cc' object='BaoKSpaceFftCorrelationModel.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o BaoKSpaceFftCorrelationModel.lo `test -f 'baofit/BaoKSpaceFftCorrelationModel.cc' || echo '$(srcdir)/'`baofit/BaoKSpaceFftCorrelationModel.cc
+
+BaoKSpaceHybridCorrelationModel.lo: baofit/BaoKSpaceHybridCorrelationModel.cc
+@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT BaoKSpaceHybridCorrelationModel.lo -MD -MP -MF $(DEPDIR)/BaoKSpaceHybridCorrelationModel.Tpo -c -o BaoKSpaceHybridCorrelationModel.lo `test -f 'baofit/BaoKSpaceHybridCorrelationModel.cc' || echo '$(srcdir)/'`baofit/BaoKSpaceHybridCorrelationModel.cc
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/BaoKSpaceHybridCorrelationModel.Tpo $(DEPDIR)/BaoKSpaceHybridCorrelationModel.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='baofit/BaoKSpaceHybridCorrelationModel.cc' object='BaoKSpaceHybridCorrelationModel.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o BaoKSpaceHybridCorrelationModel.lo `test -f 'baofit/BaoKSpaceHybridCorrelationModel.cc' || echo '$(srcdir)/'`baofit/BaoKSpaceHybridCorrelationModel.cc
 
 BroadbandModel.lo: baofit/BroadbandModel.cc
 @am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT BroadbandModel.lo -MD -MP -MF $(DEPDIR)/BroadbandModel.Tpo -c -o BroadbandModel.lo `test -f 'baofit/BroadbandModel.cc' || echo '$(srcdir)/'`baofit/BroadbandModel.cc
