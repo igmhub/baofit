@@ -34,6 +34,7 @@ namespace baofit {
         friend class BaoCorrelationModel;
         friend class BaoKSpaceCorrelationModel;
         friend class BaoKSpaceFftCorrelationModel;
+        friend class BaoKSpaceHybridCorrelationModel;
         friend class BroadbandModel;
         friend class MetalCorrelationModel;
         // The public methods above call these protected methods after making parameter values

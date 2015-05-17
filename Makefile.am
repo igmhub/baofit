@@ -27,6 +27,7 @@ libbaofit_la_SOURCES = \
 	baofit/BaoCorrelationModel.cc \
 	baofit/BaoKSpaceCorrelationModel.cc \
 	baofit/BaoKSpaceFftCorrelationModel.cc \
+	baofit/BaoKSpaceHybridCorrelationModel.cc \
 	baofit/BroadbandModel.cc \
 	baofit/MetalCorrelationModel.cc \
 	baofit/NonLinearCorrectionModel.cc \
@@ -50,6 +51,7 @@ nobase_include_HEADERS = \
 	baofit/BaoCorrelationModel.h \
 	baofit/BaoKSpaceCorrelationModel.h \
 	baofit/BaoKSpaceFftCorrelationModel.h \
+	baofit/BaoKSpaceHybridCorrelationModel.h \
 	baofit/BroadbandModel.h \
 	baofit/MetalCorrelationModel.h \
 	baofit/NonLinearCorrectionModel.h \
