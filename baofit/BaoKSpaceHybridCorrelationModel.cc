@@ -21,12 +21,12 @@
 namespace local = baofit;
 
 local::BaoKSpaceHybridCorrelationModel::BaoKSpaceHybridCorrelationModel(std::string const &modelrootName,
-    std::string const &fiducialName, std::string const &nowigglesName, double zref,
-    double kxmax, int nx, double spacing, int ny, double rmax, int nr, std::string const &distAdd,
+    std::string const &fiducialName, std::string const &nowigglesName, double zref, double kxmax,
+    int nx, double spacing, int ny, double rmax, double dilmax, int nr, std::string const &distAdd,
     std::string const &distMul, double distR0, double zcorr0, double zcorr1, double zcorr2,
     double sigma8, bool anisotropic, bool decoupled,  bool nlBroadband, bool nlCorrection,
     bool nlCorrectionAlt, bool distortionAlt, bool noDistortion, bool crossCorrelation, bool verbose)
-: AbsCorrelationModel("BAO k-Space Hybrid Correlation Model"),
+: AbsCorrelationModel("BAO k-Space Hybrid Correlation Model"), _dilmax(dilmax),
 _zcorr0(zcorr0), _zcorr1(zcorr1), _zcorr2(zcorr2), _anisotropic(anisotropic), _decoupled(decoupled),
 _nlBroadband(nlBroadband), _nlCorrection(nlCorrection), _nlCorrectionAlt(nlCorrectionAlt),
 _distortionAlt(distortionAlt), _noDistortion(noDistortion), _crossCorrelation(crossCorrelation),
@@ -88,12 +88,13 @@ _verbose(verbose)
     // Create a smart pointer to our k-space distortion model D(k,mu_k)
     cosmo::KMuPkFunctionCPtr distortionModelPtr(new cosmo::KMuPkFunction(boost::bind(
         &BaoKSpaceHybridCorrelationModel::_evaluateKSpaceDistortion,this,_1,_2,_3)));
-
-    double rgridmax = rmax + rmax/(nr-1.);
+    
+    // Expand the radial ranges needed for transforms to allow for the max dilation.
+    rmax *= dilmax;
     // Xipk(r,mu) ~ D(k,mu_k)*Ppk(k)
-    _Xipk.reset(new cosmo::DistortedPowerCorrelationHybrid(PpkPtr,distortionModelPtr,kxmax,nx,spacing,ny,rgridmax,nr));
+    _Xipk.reset(new cosmo::DistortedPowerCorrelationHybrid(PpkPtr,distortionModelPtr,kxmax,nx,spacing,ny,rmax,nr));
     // Xinw(r,mu) ~ D(k,mu_k)*Pnw(k)
-    _Xinw.reset(new cosmo::DistortedPowerCorrelationHybrid(PnwPtr,distortionModelPtr,kxmax,nx,spacing,ny,rgridmax,nr));
+    _Xinw.reset(new cosmo::DistortedPowerCorrelationHybrid(PnwPtr,distortionModelPtr,kxmax,nx,spacing,ny,rmax,nr));
 	if(verbose) {
         std::cout << "Hybrid transformation memory size = "
             << boost::format("%.1f Mb") % (_Xipk->getMemorySize()/1048576.) << std::endl;
@@ -230,6 +231,11 @@ bool anyChanged) const {
         scale = redshiftEvolution(scale,gamma_scale,z,_getZRef());
         rBAO = r*scale;
         muBAO = mu;
+    }
+
+    // Check dilation limit
+    if(scale > _dilmax) {
+        throw RuntimeError("BaoKSpaceHybridCorrelationModel: hit max dilation limit.");
     }
 
     // Calculate the cosmological predictions...

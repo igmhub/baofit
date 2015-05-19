@@ -26,7 +26,7 @@ namespace baofit {
         // be re-normalized appropriately when the model is evaluated at any different z.
 		BaoKSpaceHybridCorrelationModel(std::string const &modelrootName,
 		    std::string const &fiducialName, std::string const &nowigglesName, double zref,
-            double kxmax, int nx, double spacing, int ny, double rmax, int nr,
+            double kxmax, int nx, double spacing, int ny, double rmax, double dilmax, int nr,
             std::string const &distAdd, std::string const &distMul, double distR0,
             double zcorr0, double zcorr1, double zcorr2, double sigma8,
             bool anisotropic = false, bool decoupled = false, bool nlBroadband = false,
@@ -41,7 +41,7 @@ namespace baofit {
 		// be provided in Mpc/h.
         virtual double _evaluate(double r, double mu, double z, bool anyChanged) const;
 	private:
-        double _zcorr0, _zcorr1, _zcorr2;
+        double _dilmax, _zcorr0, _zcorr1, _zcorr2;
         AbsCorrelationModelPtr _distortAdd, _distortMul;
         NonLinearCorrectionModelPtr _nlcorr;
         bool _anisotropic, _decoupled, _nlBroadband, _nlCorrection, _nlCorrectionAlt, _distortionAlt,

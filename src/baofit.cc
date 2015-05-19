@@ -397,7 +397,7 @@ int main(int argc, char **argv) {
             // Build our fit model from tabulated P(k) on disk and use a hybrid transformation.
             model.reset(new baofit::BaoKSpaceHybridCorrelationModel(
                 modelrootName,fiducialName,nowigglesName,zref,
-                kxmax,ngridx,gridspacing,ngridy,rmax,nrgrid,distAdd,distMul,distR0,
+                kxmax,ngridx,gridspacing,ngridy,rmax,dilmax,nrgrid,distAdd,distMul,distR0,
                 zcorr0,zcorr1,zcorr2,sigma8,anisotropic,decoupled,nlBroadband,nlCorrection,
                 nlCorrectionAlt,distortionAlt,noDistortion,crossCorrelation,verbose));
         }
