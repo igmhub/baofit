@@ -22,7 +22,7 @@ namespace local = baofit;
 
 local::BaoKSpaceHybridCorrelationModel::BaoKSpaceHybridCorrelationModel(std::string const &modelrootName,
     std::string const &fiducialName, std::string const &nowigglesName, double zref, double kxmax,
-    int nx, double spacing, int ny, double rmax, double dilmax, int nr, std::string const &distAdd,
+    int nx, double spacing, int ny, double rmax, double dilmax, std::string const &distAdd,
     std::string const &distMul, double distR0, double zcorr0, double zcorr1, double zcorr2,
     double sigma8, bool anisotropic, bool decoupled,  bool nlBroadband, bool nlCorrection,
     bool nlCorrectionAlt, bool distortionAlt, bool noDistortion, bool crossCorrelation, bool verbose)
@@ -89,12 +89,14 @@ _verbose(verbose)
     cosmo::KMuPkFunctionCPtr distortionModelPtr(new cosmo::KMuPkFunction(boost::bind(
         &BaoKSpaceHybridCorrelationModel::_evaluateKSpaceDistortion,this,_1,_2,_3)));
     
-    // Expand the radial ranges needed for transforms to allow for the max dilation.
+    // Expand the r-space ranges to allow for the max dilation.
     rmax *= dilmax;
+    // Use the lower k limit of our tabulated P(k) for the k-space grid.
+    double kxmin = Ppk->getKMin();
     // Xipk(r,mu) ~ D(k,mu_k)*Ppk(k)
-    _Xipk.reset(new cosmo::DistortedPowerCorrelationHybrid(PpkPtr,distortionModelPtr,kxmax,nx,spacing,ny,rmax,nr));
+    _Xipk.reset(new cosmo::DistortedPowerCorrelationHybrid(PpkPtr,distortionModelPtr,kxmin,kxmax,nx,spacing,ny,rmax));
     // Xinw(r,mu) ~ D(k,mu_k)*Pnw(k)
-    _Xinw.reset(new cosmo::DistortedPowerCorrelationHybrid(PnwPtr,distortionModelPtr,kxmax,nx,spacing,ny,rmax,nr));
+    _Xinw.reset(new cosmo::DistortedPowerCorrelationHybrid(PnwPtr,distortionModelPtr,kxmin,kxmax,nx,spacing,ny,rmax));
 	if(verbose) {
         std::cout << "Hybrid transformation memory size = "
             << boost::format("%.1f Mb") % (_Xipk->getMemorySize()/1048576.) << std::endl;

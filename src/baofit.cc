@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
         rperpMin,rperpMax,rparMin,rparMax,gridspacing,kxmax,zcorr0,zcorr1,zcorr2,sigma8;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
         mcmcSave,mcmcInterval,toymcSamples,reuseCov,nSpline,splineOrder,bootstrapCovTrials,
-        projectModesNKeep,covSampleSize,ellMax,samplesPerDecade,ngridx,ngridy,ngridz,nrgrid;
+        projectModesNKeep,covSampleSize,ellMax,samplesPerDecade,ngridx,ngridy,ngridz;
     std::string modelrootName,fiducialName,nowigglesName,dataName,xiPoints,toymcConfig,
         platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig,
         fixModeScales,distAdd,distMul,dataFormat,axis1Bins,axis2Bins,axis3Bins,metalrootName,metalName;
@@ -80,10 +80,8 @@ int main(int argc, char **argv) {
         ("ngridz", po::value<int>(&ngridz)->default_value(0),
             "Grid size along z-axis for 3D FFT (or zero for ngridz=ngridy).")
         ("kspace-hybrid", "Use a k-space model with hybrid transformation (default is r-space)")
-        ("kxmax", po::value<double>(&kxmax)->default_value(2),
+        ("kxmax", po::value<double>(&kxmax)->default_value(4),
             "Maximum wavenumber in h/Mpc along x axis for hybrid transformation.")
-        ("nrgrid", po::value<int>(&nrgrid)->default_value(50),
-            "Grid size for r-space bicubic interpolation for hybrid transformation.")
         ("zref", po::value<double>(&zref)->default_value(2.25),
             "Reference redshift used by model correlation functions.")
         ("dist-add", po::value<std::string>(&distAdd)->default_value(""),
@@ -397,7 +395,7 @@ int main(int argc, char **argv) {
             // Build our fit model from tabulated P(k) on disk and use a hybrid transformation.
             model.reset(new baofit::BaoKSpaceHybridCorrelationModel(
                 modelrootName,fiducialName,nowigglesName,zref,
-                kxmax,ngridx,gridspacing,ngridy,rmax,dilmax,nrgrid,distAdd,distMul,distR0,
+                kxmax,ngridx,gridspacing,ngridy,rmax,dilmax,distAdd,distMul,distR0,
                 zcorr0,zcorr1,zcorr2,sigma8,anisotropic,decoupled,nlBroadband,nlCorrection,
                 nlCorrectionAlt,distortionAlt,noDistortion,crossCorrelation,verbose));
         }

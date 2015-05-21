@@ -20,13 +20,13 @@ namespace baofit {
 	    // Creates a new model using the specified tabulated power spectra at the specified
 	    // reference redshift. The hybrid transformation k-space grid is set by the parameters
         // kxmax and nx for the transverse axis, and the parameters spacing and ny for the 1D
-        // FFTs along the radial axis. The parameters rmax and nr set the grid for bicubic
-        // interpolation in the (rpar,rperp) plane. The input tabulated power spectra specified
-        // by the model names provided are assumed to be normalized for redshift zref and will
-        // be re-normalized appropriately when the model is evaluated at any different z.
+        // FFTs along the radial axis. The parameters spacing and rmax*dilmax set the grid for
+        // bicubic interpolation in the (rpar,rperp) plane. The input tabulated power spectra
+        // specified by the model names provided are assumed to be normalized for redshift zref
+        //  and will be re-normalized appropriately when the model is evaluated at any different z.
 		BaoKSpaceHybridCorrelationModel(std::string const &modelrootName,
 		    std::string const &fiducialName, std::string const &nowigglesName, double zref,
-            double kxmax, int nx, double spacing, int ny, double rmax, double dilmax, int nr,
+            double kxmax, int nx, double spacing, int ny, double rmax, double dilmax,
             std::string const &distAdd, std::string const &distMul, double distR0,
             double zcorr0, double zcorr1, double zcorr2, double sigma8,
             bool anisotropic = false, bool decoupled = false, bool nlBroadband = false,
