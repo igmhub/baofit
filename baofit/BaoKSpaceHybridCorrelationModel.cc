@@ -93,6 +93,7 @@ _verbose(verbose)
     rmax *= dilmax;
     // Use the lower k limit of our tabulated P(k) for the k-space grid.
     double kxmin = Ppk->getKMin();
+    //std::cout << kxmin << " " << kxmax << " " << nx << " " << spacing << " " << ny << " " << rmax << std::endl;
     // Xipk(r,mu) ~ D(k,mu_k)*Ppk(k)
     _Xipk.reset(new cosmo::DistortedPowerCorrelationHybrid(PpkPtr,distortionModelPtr,kxmin,kxmax,nx,spacing,ny,rmax));
     // Xinw(r,mu) ~ D(k,mu_k)*Pnw(k)
@@ -200,6 +201,7 @@ bool anyChanged) const {
         bool contChanged = isParameterValueChanged(_contBase) || isParameterValueChanged(_contBase+1);
         bool otherChanged = isParameterValueChanged(0);
         if(nlChanged || contChanged || otherChanged) {
+        	std::cout << beta << " " << bias << " " << getParameterValue(_baoBase+2) << " " << getParameterValue(_baoBase+3) << std::endl;
         	_Xipk->transform();
         }
         // Are we only applying non-linear broadening to the peak?
