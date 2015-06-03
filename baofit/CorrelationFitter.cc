@@ -13,6 +13,7 @@
 #include "boost/ref.hpp"
 
 #include <iostream>
+#include <iomanip>
 #include <cmath>
 
 namespace local = baofit;
@@ -83,7 +84,7 @@ double local::CorrelationFitter::operator()(likely::Parameters const &params) co
     // Add any model priors on the parameters. The additional factor of _errorScale
     // is to allow arbitrary error contours to be calculated a la MNCONTOUR.
     double chisq = (0.5*_icovScale*_data->chiSquare(pred) + _model->evaluatePriors())/_errorScale;
-    std::cout << 2*chisq << std::endl;
+    std::cout << std::setprecision(10) << 2*chisq << std::endl;
     return chisq;
     //return (0.5*_icovScale*_data->chiSquare(pred) + _model->evaluatePriors())/_errorScale;
 }
