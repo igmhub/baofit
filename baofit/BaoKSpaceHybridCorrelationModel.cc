@@ -201,7 +201,6 @@ bool anyChanged) const {
         bool contChanged = isParameterValueChanged(_contBase) || isParameterValueChanged(_contBase+1);
         bool otherChanged = isParameterValueChanged(0);
         if(nlChanged || contChanged || otherChanged) {
-        	std::cout << beta << " " << bb << " " << getParameterValue(_contBase) << " " << getParameterValue(_baoBase+2) << " " << getParameterValue(_baoBase+3) << std::endl;
         	_Xipk->transform();
         }
         // Are we only applying non-linear broadening to the peak?
