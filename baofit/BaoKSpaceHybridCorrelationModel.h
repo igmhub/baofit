@@ -27,8 +27,8 @@ namespace baofit {
 		BaoKSpaceHybridCorrelationModel(std::string const &modelrootName,
 		    std::string const &fiducialName, std::string const &nowigglesName, double zref,
             double kxmax, int nx, double spacing, int ny, double rmax, double dilmax,
-            std::string const &distAdd, std::string const &distMul, double distR0,
-            double zcorr0, double zcorr1, double zcorr2, double sigma8,
+            double epsAbs, double epsRel, std::string const &distAdd, std::string const &distMul,
+            double distR0, double zcorr0, double zcorr1, double zcorr2, double sigma8,
             bool anisotropic = false, bool decoupled = false, bool nlBroadband = false,
             bool nlCorrection = false, bool nlCorrectionAlt = false, bool distortionAlt = false,
             bool noDistortion = false, bool crossCorrelation = false, bool verbose = false);

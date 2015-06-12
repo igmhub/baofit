@@ -29,7 +29,8 @@ int main(int argc, char **argv) {
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,
         rVetoWidth,rVetoCenter,muMin,muMax,kloSpline,khiSpline,toymcScale,saveICovScale,
         zMin,zMax,llMin,llMax,sepMin,sepMax,distR0,zdump,relerr,abserr,dilmin,dilmax,
-        rperpMin,rperpMax,rparMin,rparMax,gridspacing,kxmax,zcorr0,zcorr1,zcorr2,sigma8;
+        rperpMin,rperpMax,rparMin,rparMax,gridspacing,kxmax,relerrHybrid,abserrHybrid,
+        zcorr0,zcorr1,zcorr2,sigma8;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
         mcmcSave,mcmcInterval,toymcSamples,reuseCov,nSpline,splineOrder,bootstrapCovTrials,
         projectModesNKeep,covSampleSize,ellMax,samplesPerDecade,ngridx,ngridy,ngridz;
@@ -82,6 +83,10 @@ int main(int argc, char **argv) {
         ("kspace-hybrid", "Use a k-space model with hybrid transformation (default is r-space)")
         ("kxmax", po::value<double>(&kxmax)->default_value(4),
             "Maximum wavenumber in h/Mpc along x axis for hybrid transformation.")
+        ("relerr-hybrid", po::value<double>(&relerrHybrid)->default_value(1e-5),
+            "Relative error target for 1D integral in hybrid transformation.")
+        ("abserr-hybrid", po::value<double>(&abserrHybrid)->default_value(1e-8),
+            "Absolute error target for 1D integral in hybrid transformation.")
         ("zref", po::value<double>(&zref)->default_value(2.25),
             "Reference redshift used by model correlation functions.")
         ("dist-add", po::value<std::string>(&distAdd)->default_value(""),
@@ -395,9 +400,9 @@ int main(int argc, char **argv) {
             // Build our fit model from tabulated P(k) on disk and use a hybrid transformation.
             model.reset(new baofit::BaoKSpaceHybridCorrelationModel(
                 modelrootName,fiducialName,nowigglesName,zref,
-                kxmax,ngridx,gridspacing,ngridy,rmax,dilmax,distAdd,distMul,distR0,
-                zcorr0,zcorr1,zcorr2,sigma8,anisotropic,decoupled,nlBroadband,nlCorrection,
-                nlCorrectionAlt,distortionAlt,noDistortion,crossCorrelation,verbose));
+                kxmax,ngridx,gridspacing,ngridy,rmax,dilmax,abserrHybrid,relerrHybrid,
+                distAdd,distMul,distR0,zcorr0,zcorr1,zcorr2,sigma8,anisotropic,decoupled,
+                nlBroadband,nlCorrection,nlCorrectionAlt,distortionAlt,noDistortion,crossCorrelation,verbose));
         }
         else {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
