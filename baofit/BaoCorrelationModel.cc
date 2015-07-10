@@ -4,6 +4,7 @@
 #include "baofit/RuntimeError.h"
 #include "baofit/MetalCorrelationModel.h"
 #include "baofit/BroadbandModel.h"
+#include "baofit/RadiationModel.h"
 
 #include "likely/Interpolator.h"
 #include "likely/function.h"
@@ -18,9 +19,10 @@ namespace local = baofit;
 local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName,
     std::string const &fiducialName, std::string const &nowigglesName,
     std::string const &distAdd, std::string const &distMul, double distR0,
-    double zref, bool anisotropic, bool decoupled, bool metals, bool crossCorrelation)
+    double zref, bool anisotropic, bool decoupled, bool metals, bool radiation,
+    bool crossCorrelation)
 : AbsCorrelationModel("BAO Correlation Model"), _anisotropic(anisotropic), _decoupled(decoupled),
-_metals(metals)
+_metals(metals),_radiation(radiation)
 {
     // Linear bias parameters
     _indexBase = _defineLinearBiasParameters(zref,crossCorrelation);
@@ -30,13 +32,13 @@ _metals(metals)
     defineParameter("BAO alpha-parallel",1,0.1);
     defineParameter("BAO alpha-perp",1,0.1);
     defineParameter("gamma-scale",0,0.5);
-    // quasar radiation parameters 
-    defineParameter("Rad strength",0.,0.1); 
+    /*// quasar radiation parameters
+    defineParameter("Rad strength",0.,0.1);
     defineParameter("Rad anisotropy",0.,0.1);
     defineParameter("Rad mean free path",200.,10.); // in Mpc/h
     defineParameter("Rad quasar lifetime",10.,0.1); // in Myr
     // by default, the radiation parameters are fixed
-    configureFitParameters("fix[Rad*]=0");
+    configureFitParameters("fix[Rad*]=0");*/
 
     // Load the interpolation data we will use for each multipole of each model.
     std::string root(modelrootName);
@@ -63,6 +65,10 @@ _metals(metals)
     // Define our r-space metal correlation model, if any.
     if(metals) {
         _metalCorr.reset(new baofit::MetalCorrelationModel(this));
+    }
+    // Define our r-space radiation model, if any.
+    if(radiation) {
+        _radiationAdd.reset(new baofit::RadiationModel(this));
     }
     // Define our broadband distortion models, if any.
     if(distAdd.length() > 0) {
@@ -131,6 +137,9 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     
     // Add r-space metal correlations, if any.
     if(_metals) xi += _metalCorr->_evaluate(r,mu,z,anyChanged);
+
+    // Add r-space radiation, if any.
+    if(_radiation) xi += _radiationAdd->_evaluate(r,mu,z,anyChanged);
     
     // Add broadband distortions, if any.
     if(_distortMul) xi *= 1 + _distortMul->_evaluate(r,mu,z,anyChanged);
@@ -141,7 +150,7 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
         xi += redshiftEvolution(distortion,gamma_bias,z,_getZRef());
     }
 
-    // Lookup radiation parameters, also value by name.
+    /*// Lookup radiation parameters, also value by name.
     double rad_strength = getParameterValue(_indexBase + 6);
     double rad_aniso = getParameterValue(_indexBase + 7);
     double mean_free_path = getParameterValue(_indexBase + 8);
@@ -160,7 +169,7 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
         double ctd = r*(1-mu)/(1+z);
         rad *= std::exp(-ctd/quasar_lifetime);
         xi += rad;
-    }
+    }*/
 
     return xi;
 }

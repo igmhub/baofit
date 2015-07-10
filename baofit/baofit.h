@@ -10,6 +10,7 @@
 #include "baofit/BaoKSpaceFftCorrelationModel.h"
 #include "baofit/BroadbandModel.h"
 #include "baofit/MetalCorrelationModel.h"
+#include "baofit/RadiationModel.h"
 #include "baofit/PkCorrelationModel.h"
 #include "baofit/XiCorrelationModel.h"
 

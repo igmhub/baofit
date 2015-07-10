@@ -4,6 +4,7 @@
 #include "baofit/RuntimeError.h"
 #include "baofit/MetalCorrelationModel.h"
 #include "baofit/BroadbandModel.h"
+#include "baofit/RadiationModel.h"
 
 #include "likely/Interpolator.h"
 #include "likely/function_impl.h"
@@ -26,12 +27,12 @@ local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &m
     double rmin, double rmax, double dilmin, double dilmax,
     double relerr, double abserr, int ellMax, int samplesPerDecade,
     std::string const &distAdd, std::string const &distMul, double distR0,
-    bool anisotropic, bool decoupled,  bool nlBroadband, bool metals, bool crossCorrelation,
-    bool verbose)
+    bool anisotropic, bool decoupled,  bool nlBroadband, bool metals, bool radiation,
+    bool crossCorrelation, bool verbose)
 : AbsCorrelationModel("BAO k-Space Correlation Model"), _dilmin(dilmin), _dilmax(dilmax),
 _anisotropic(anisotropic), _decoupled(decoupled), _nlBroadband(nlBroadband),
-_metals(metals), _crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0),
-_maxWarnings(10)
+_metals(metals), _radiation(radiation), _crossCorrelation(crossCorrelation), _verbose(verbose),
+_nWarnings(0), _maxWarnings(10)
 {
     _setZRef(zref);
     // Linear bias parameters
@@ -114,6 +115,11 @@ _maxWarnings(10)
     // Define our r-space metal correlation model, if any.
     if(metals) {
         _metalCorr.reset(new baofit::MetalCorrelationModel(this));
+    }
+
+    // Define our r-space radiation model, if any.
+    if(radiation) {
+        _radiationAdd.reset(new baofit::RadiationModel(this));
     }
     
     // Define our r-space broadband distortion models, if any.
@@ -267,6 +273,9 @@ bool anyChanged) const {
     
     // Add r-space metal correlations, if any.
     if(_metals) xi += _metalCorr->_evaluate(r,mu,z,anyChanged);
+    
+    // Add r-space radiation, if any.
+    if(_radiation) xi += _radiationAdd->_evaluate(r,mu,z,anyChanged);
     
     // Add r-space broadband distortions, if any.
     if(_distortMul) xi *= 1 + _distortMul->_evaluate(r,mu,z,anyChanged);

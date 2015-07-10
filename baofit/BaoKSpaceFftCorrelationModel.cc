@@ -4,6 +4,7 @@
 #include "baofit/RuntimeError.h"
 #include "baofit/BroadbandModel.h"
 #include "baofit/NonLinearCorrectionModel.h"
+#include "baofit/RadiationModel.h"
 
 #include "likely/function_impl.h"
 
@@ -25,12 +26,13 @@ local::BaoKSpaceFftCorrelationModel::BaoKSpaceFftCorrelationModel(std::string co
     double spacing, int nx, int ny, int nz, std::string const &distAdd,
     std::string const &distMul, double distR0, double zcorr0, double zcorr1, double zcorr2,
     double sigma8, bool anisotropic, bool decoupled,  bool nlBroadband, bool nlCorrection,
-    bool nlCorrectionAlt, bool distortionAlt, bool noDistortion, bool crossCorrelation, bool verbose)
+    bool nlCorrectionAlt, bool distortionAlt, bool noDistortion, bool radiation,
+    bool crossCorrelation, bool verbose)
 : AbsCorrelationModel("BAO k-Space FFT Correlation Model"),
 _zcorr0(zcorr0), _zcorr1(zcorr1), _zcorr2(zcorr2), _anisotropic(anisotropic), _decoupled(decoupled),
 _nlBroadband(nlBroadband), _nlCorrection(nlCorrection), _nlCorrectionAlt(nlCorrectionAlt),
-_distortionAlt(distortionAlt), _noDistortion(noDistortion), _crossCorrelation(crossCorrelation),
-_verbose(verbose)
+_distortionAlt(distortionAlt), _noDistortion(noDistortion), _radiation(radiation),
+_crossCorrelation(crossCorrelation), _verbose(verbose)
 {
     _setZRef(zref);
     // Linear bias parameters
@@ -97,6 +99,11 @@ _verbose(verbose)
         std::cout << "3D FFT memory size = "
             << boost::format("%.1f Mb") % (_Xipk->getMemorySize()/1048576.) << std::endl;
     }
+    
+    // Define our k-space radiation model, if any.
+    if(radiation) {
+        _radiationAdd.reset(new baofit::RadiationModel(this));
+    }
 
     // Define our r-space broadband distortion models, if any.
     if(distAdd.length() > 0) {
@@ -145,8 +152,13 @@ double local::BaoKSpaceFftCorrelationModel::_evaluateKSpaceDistortion(double k, 
         contdistortion = std::sqrt(contdistortion);
         nonlinearcorr = std::sqrt(nonlinearcorr);
     }
+    
+    // Add radiation model if any
+    double rad;
+    if(_radiation) rad += _radiationAdd->_evaluateRadiation(k,mu_k,_zeff);
+    
     // Put the pieces together
-    return contdistortion*nonlinear*nonlinearcorr*linear;
+    return contdistortion*nonlinear*nonlinearcorr*linear+rad;
 }
 
 double local::BaoKSpaceFftCorrelationModel::_evaluate(double r, double mu, double z,
