@@ -18,7 +18,8 @@ local::RadiationModel::~RadiationModel() { }
 
 double local::RadiationModel::_evaluateRadiation(double k, double mu_k, double z) const {
     std::complex<double> I;
-    I = sqrt(-1);
+    I = -1.0;
+    I = sqrt(I);
     
     double rad_aniso = _base.getParameterValue(_indexBase);
     double quasar_lifetime = _base.getParameterValue(_indexBase+1);
