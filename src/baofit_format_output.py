@@ -153,11 +153,15 @@ def makeContourPlots(residuals_file, fig_name, pi_bins, sigma_bins, args):
             vmin = min(np.amin(residuals["best_fit_model"]*residuals["r"]*residuals["r"]), np.amin(residuals["data"]*residuals["r"]*residuals["r"]))
         else:
             vmin = min(np.amin(residuals["best_fit_model"]), np.amin(residuals["data"]))
+    else:
+        vmin = args.vmin
     if args.vmax == None:
         if args.r_squared_weighting:
             vmax = max(np.amax(residuals["best_fit_model"]*residuals["r"]*residuals["r"]), np.amax(residuals["data"]*residuals["r"]*residuals["r"]))
         else:
             vmax = max(np.amax(residuals["best_fit_model"]),  np.amax(residuals["data"]))
+    else:
+        vmax = args.vmax
     step = (vmax - vmin)/num_colors
     levels = np.arange(vmin, vmax + step, step)
     if args.vmin_res == None:
@@ -165,11 +169,15 @@ def makeContourPlots(residuals_file, fig_name, pi_bins, sigma_bins, args):
             vmin_res = np.amin((residuals["data"]-residuals["best_fit_model"])*residuals["r"]*residuals["r"])
         else:
             vmin_res = np.amin(residuals["data"]-residuals["best_fit_model"])
+    else:
+        vmin_res = args.vmin_res
     if args.vmax_res == None:
         if args.r_squared_weighting:
             vmax_res = np.amax((residuals["data"]-residuals["best_fit_model"])*residuals["r"]*residuals["r"])
         else:
             vmax_res = np.amax(residuals["data"]-residuals["best_fit_model"])
+    else:
+        vmax_res = args.vmax_res
     step_res = (vmax_res - vmin_res)/num_colors
     levels_res = np.arange(vmin_res, vmax_res + step_res, step_res)
 
@@ -311,16 +319,16 @@ def tabulateResults(results, results_dict):
     results.write("\\begin{table}\n")
     results.write("    \\centering\n")
     results.write("    \\begin{tabular}{c|cccccc}\n")
-    results.write("        & $\\beta_{F}$ & ${\\rm b_{q}}$ & ${\\rm a}$ & ${\\rm t_{q}}$ & ${\\rm b}_{\\Gamma}{\\rm r_{p}}^{2}$ & $\\lambda$ \\\\ \\hline \n")
+    results.write("        & $\\beta_{F}$ & ${\\rm b_{q}}$ & ${\\rm a}$ & ${\\rm t_{q}}$ & ${\\rm b}_{\\Gamma}{\\rm r_{p}^{2}}$ & $\\lambda$ \\\\ \\hline \n")
     results.write("        fit ")
 
     for param in ["beta", "bias2", "Rad anisotropy", "Rad quasar lifetime", "Rad strength", "Rad mean free path"]:
         value = results_dict.get(param, ("-"))
         try:
             if value[2]:
-                results.write("& $" + "{:.5F}".format(value[0]) + "$ ")
+                results.write("& $" + "{:.2F}".format(value[0]) + "$ ")
             else:
-                results.write("& $" + "{:.5F}".format(value[0]) + " \\pm " + "{:.5F}".format(value[1]) + "$ ")
+                results.write("& $" + "{:.2F}".format(value[0]) + " \\pm " + "{:.2F}".format(value[1]) + "$ ")
         except IndexError:
             results.write("& " + value[0]+" ")
 
