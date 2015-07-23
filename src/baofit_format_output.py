@@ -1,17 +1,22 @@
 """
-Translates baofit results into readable files.
+Transforms baofit output into readable outputs
 In order to get the script working from any directory paste the following into your .bash_profile or .profile  
 and reset the shell
     alias baofit_format_output='python $(PATH_TO_BAOFIT)/src/baofit_format_output.py'
 Note that you should change $(PATH_TO_BAOFIT) for the actual path to baofit
-INPUTS:
-    file - ini file used to run baofit
+USAGE:
+    baofit_format_output BOSSDR11QSOLyaF.ini
+    baofit_format_output -r BOSSDR11QSOLyaF.ini
+    baofit_format_output --vmin="-18" --vmax=20 -r BOSSDR11QSOLyaF.ini
+    baofit_format_output --vmin="-22" --vmax=25 --vmax-res=6 -r BOSSDR11QSOLyaF_k_no_rad_all_fixed.ini
+    
 OUTPUTS:
     *_results.tex - tex file containing the baofit results
     *_results.pdf - compiled pdf of *_results.tex
 
 created 22 Jul 2015 by Ignasi Perez-Rafols <iprafols at icc.ub.edu>
 """
+import argparse
 import sys
 import os
 
@@ -22,16 +27,20 @@ import matplotlib.pyplot as plt
 
 
 #------------------------------------------------------------------------
-def __main__(input_file):
-    try:
-        assert type(input_file) == str
-        assert input_file[-4:] == ".ini"
-    except AssertionError:
-        print "Assert Error: incorrect input file"
-        return
+def main():
+    
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter, description="transforms baofit output into readable outputs")
+    parser.add_argument('input', type=str, default=None, help='input file, required')
+    parser.add_argument('-r', '--r-squared-weighting', action="store_true", help='plots r^2-weighted cross-correlation')
+    parser.add_argument('--vmin', type=float, default=None, help='minimum value in contour plots')
+    parser.add_argument('--vmax', type=float, default=None, help='maximum value in contour plots')
+    parser.add_argument('--vmin-res', type=float, default=None, help='minimum value in residuals contour plots')
+    parser.add_argument('--vmax-res', type=float, default=None, help='maximum value in residuals contour plots')
+    args = parser.parse_args()
+
 
     # locate baofit output prefix
-    output_prefix, pi_bins, sigma_bins = readIniFile(input_file)
+    output_prefix, pi_bins, sigma_bins = readIniFile(args.input)
 
     # initialize result file
     fit_results = output_prefix + "results.tex"
@@ -48,7 +57,7 @@ def __main__(input_file):
     # make contour plots
     residuals_file = output_prefix + "residuals.dat"
     fig_name = output_prefix + "residuals.eps"
-    makeContourPlots(residuals_file, fig_name, pi_bins, sigma_bins)
+    makeContourPlots(residuals_file, fig_name, pi_bins, sigma_bins, args)
 
     # add plots to tex file
     includeFigureToTex(results, fig_name)
@@ -96,7 +105,7 @@ def initializeTexFile(results):
     return
 
 #------------------------------------------------------------------------
-def makeContourPlots(residuals_file, fig_name, pi_bins, sigma_bins):
+def makeContourPlots(residuals_file, fig_name, pi_bins, sigma_bins, args):
     try:
         assert type(residuals_file) == str
         assert type(fig_name) == str
@@ -138,43 +147,75 @@ def makeContourPlots(residuals_file, fig_name, pi_bins, sigma_bins):
 
     # contour settings
     cmap = plt.cm.get_cmap('RdYlBu')
-    num_colors = 40
-    vmin = min(np.amin(residuals["best_fit_model"]),np.amin(residuals["data"]))
-    vmax = max(np.amax(residuals["best_fit_model"]),np.amax(residuals["data"]))
-    levels = np.arange(vmin, vmax, (vmax - vmin)/num_colors)
-    vmin_res = np.amin(residuals["data"]-residuals["best_fit_model"])
-    vmax_res = np.amax(residuals["data"]-residuals["best_fit_model"])
-    levels_res = np.arange(vmin_res, vmax_res, (vmax_res - vmin_res)/num_colors)
+    num_colors = 40.0
+    if args.vmin == None:
+        if args.r_squared_weighting:
+            vmin = min(np.amin(residuals["best_fit_model"]*residuals["r"]*residuals["r"]), np.amin(residuals["data"]*residuals["r"]*residuals["r"]))
+        else:
+            vmin = min(np.amin(residuals["best_fit_model"]), np.amin(residuals["data"]))
+    if args.vmax == None:
+        if args.r_squared_weighting:
+            vmax = max(np.amax(residuals["best_fit_model"]*residuals["r"]*residuals["r"]), np.amax(residuals["data"]*residuals["r"]*residuals["r"]))
+        else:
+            vmax = max(np.amax(residuals["best_fit_model"]),  np.amax(residuals["data"]))
+    step = (vmax - vmin)/num_colors
+    levels = np.arange(vmin, vmax + step, step)
+    if args.vmin_res == None:
+        if args.r_squared_weighting:
+            vmin_res = np.amin((residuals["data"]-residuals["best_fit_model"])*residuals["r"]*residuals["r"])
+        else:
+            vmin_res = np.amin(residuals["data"]-residuals["best_fit_model"])
+    if args.vmax_res == None:
+        if args.r_squared_weighting:
+            vmax_res = np.amax((residuals["data"]-residuals["best_fit_model"])*residuals["r"]*residuals["r"])
+        else:
+            vmax_res = np.amax(residuals["data"]-residuals["best_fit_model"])
+    step_res = (vmax_res - vmin_res)/num_colors
+    levels_res = np.arange(vmin_res, vmax_res + step_res, step_res)
 
 
 
     fig = plt.figure(figsize=(21, 7))
     # plot data
     ax = fig.add_subplot(1, 3, 1)
-    ax.set_title(r"$\xi_{\rm data}{\rm \left(h^{-2}Mpc^{2}\right)}$", fontsize=20)
+
     ax.set_xlabel(r"$\sigma {\rm \left(h^{-1}Mpc\right)}$", fontsize=20)
     ax.set_ylabel(r"$\pi {\rm \left(h^{-1}Mpc\right)}$", fontsize=20)
     ax.tick_params(axis='both',which='major',labelsize=20,length=6,width=2)
     ax.tick_params(axis='both',which='minor',labelsize=0,length=4,width=1)
-    cs = ax.contourf(sigma_bins, pi_bins, data, levels, cmap = cmap, vmin = vmin, vmax = vmax, fontsize=20)
+    if args.r_squared_weighting:
+        ax.set_title(r"$r^{2}\xi_{\rm data}{\rm \left(h^{-2}Mpc^{2}\right)}$", fontsize=20)
+        cs = ax.contourf(sigma_bins, pi_bins, data*r*r, levels, cmap = cmap, vmin = vmin, vmax = vmax, fontsize=20)
+    else:
+        ax.set_title(r"$\xi_{\rm data}{\rm \left(h^{-2}Mpc^{2}\right)}$", fontsize=20)
+        cs = ax.contourf(sigma_bins, pi_bins, data, levels, cmap = cmap, vmin = vmin, vmax = vmax, fontsize=20)
     cbar = fig.colorbar(cs, ax = ax, shrink = 0.9, format="%.1e")
 
     # plot model
     ax2 = fig.add_subplot(1, 3, 2)
-    ax2.set_title(r"$\xi_{\rm model}{\rm \left(h^{-2}Mpc^{2}\right)}$", fontsize=20)
     ax2.set_xlabel(r"$\sigma {\rm \left(h^{-1}Mpc\right)}$", fontsize=20)
     ax2.tick_params(axis='both',which='major',labelsize=20,length=6,width=2)
     ax2.tick_params(axis='both',which='minor',labelsize=0,length=4,width=1)
-    cs2 = ax2.contourf(sigma_bins, pi_bins, model, levels, cmap = cmap, vmin = vmin, vmax = vmax, fontsize=20)
+    if args.r_squared_weighting:
+        cs2 = ax2.contourf(sigma_bins, pi_bins, model*r*r, levels, cmap = cmap, vmin = vmin, vmax = vmax, fontsize=20)
+        ax2.set_title(r"$r^{2}\xi_{\rm model}{\rm \left(h^{-2}Mpc^{2}\right)}$", fontsize=20)
+    else:
+        cs2 = ax2.contourf(sigma_bins, pi_bins, model, levels, cmap = cmap, vmin = vmin, vmax = vmax, fontsize=20)
+        ax2.set_title(r"$\xi_{\rm model}{\rm \left(h^{-2}Mpc^{2}\right)}$", fontsize=20)
     cbar2 = fig.colorbar(cs2, ax = ax2, shrink = 0.9, format="%.1e")
 
     # plot residuals
     ax3 = fig.add_subplot(1, 3, 3)
-    ax3.set_title(r"$\xi_{\rm data}-\xi_{\rm model}{\rm \left(h^{-2}Mpc^{2}\right)}$", fontsize=20)
+    ax3.set_title(r"$r^{2}\left(\xi_{\rm data}-\xi_{\rm model}\right){\rm \left(h^{-2}Mpc^{2}\right)}$", fontsize=20)
     ax3.set_xlabel(r"$\sigma {\rm \left(h^{-1}Mpc\right)}$", fontsize=20)
     ax3.tick_params(axis='both',which='major',labelsize=20,length=6,width=2)
     ax3.tick_params(axis='both',which='minor',labelsize=0,length=4,width=1)
-    cs3 = ax3.contourf(sigma_bins, pi_bins, data-model, levels_res, cmap = cmap, vmin = vmin_res, vmax = vmax_res, fontsize=20)
+    if args.r_squared_weighting:
+        ax3.set_title(r"$r^{2}\left(\xi_{\rm data}-\xi_{\rm model}\right){\rm \left(h^{-2}Mpc^{2}\right)}$", fontsize=20)
+        cs3 = ax3.contourf(sigma_bins, pi_bins, (data-model)*r*r, levels_res, cmap = cmap, vmin = vmin_res, vmax = vmax_res, fontsize=20)
+    else:
+        ax3.set_title(r"$\xi_{\rm data}-\xi_{\rm model}{\rm \left(h^{-2}Mpc^{2}\right)}$", fontsize=20)
+        cs3 = ax3.contourf(sigma_bins, pi_bins, data-model, levels_res, cmap = cmap, vmin = vmin_res, vmax = vmax_res, fontsize=20)
     cbar3 = fig.colorbar(cs3, ax = ax3, shrink = 0.9, format="%.1e")
 
 
@@ -198,7 +239,7 @@ def readFitResults(fit_file):
         for line in open(fit_file).readlines():
             cols = line.split(";")
             # check if the parameter was fixed
-            if len(cols) == 4:
+            if "fix" in line:
                 fixed = True
             else:
                 fixed = False
@@ -215,6 +256,7 @@ def readFitResults(fit_file):
 def readIniFile(input_file):
     try:
         assert type(input_file) == str
+        assert input_file[-4:] == ".ini"
     except AssertionError:
         print "could not read ini file"
         return "", np.array(0), np.array(0)
@@ -234,7 +276,7 @@ def readIniFile(input_file):
                 axis1 = line.split("=")[-1]
                 try:
                     pi = np.array(axis1.split("{")[1].split("}")[0].split(","), dtype=float)
-                except ValueError:
+                except IndexError:
                     min_pi = float(axis1.split("[")[1].split(":")[0])
                     max_pi = float(axis1.split("[")[1].split(":")[1].split("]")[0])
                     num_pi_bins = int(axis1.split("[")[1].split(":")[1].split("*")[1])
@@ -244,7 +286,7 @@ def readIniFile(input_file):
                 axis2 = line.split("=")[-1]
                 try:
                     sigma = np.array(axis2.split("{")[1].split("}")[0].split(","), dtype=float)
-                except ValueError:
+                except IndexError:
                     min_sigma = float(axis2.split("[")[1].split(":")[0])
                     max_sigma = float(axis2.split("[")[1].split(":")[1].split("]")[0])
                     num_sigma_bins = int(axis2.split("[")[1].split(":")[1].split("*")[1])
@@ -276,9 +318,9 @@ def tabulateResults(results, results_dict):
         value = results_dict.get(param, ("-"))
         try:
             if value[2]:
-                results.write("& $" + "{:.2F}".format(value[0]) + "$ ")
+                results.write("& $" + "{:.5F}".format(value[0]) + "$ ")
             else:
-                results.write("& $" + "{:.2F}".format(value[0]) + " \\pm " + "{:.2F}".format(value[1]) + "$ ")
+                results.write("& $" + "{:.5F}".format(value[0]) + " \\pm " + "{:.5F}".format(value[1]) + "$ ")
         except IndexError:
             results.write("& " + value[0]+" ")
 
@@ -291,5 +333,6 @@ def tabulateResults(results, results_dict):
     return
 
 
-input_file = sys.argv[1]
-__main__(input_file)
+__name__ = "__main__"
+if __name__ == "__main__":
+    main()
