@@ -66,7 +66,7 @@ double local::RadiationModel::_evaluate(double r, double mu, double z, bool anyC
     double Fv = std::exp(-r*(1.0-mu)/quasar_lifetime);
     
     // Add the contributions
-    return rad_strength*Fa*Fv*std::exp(-r/rad_mean_free_path);
+    return rad_strength/r/r*Fa*Fv*std::exp(-r/rad_mean_free_path);
 
 }
 
