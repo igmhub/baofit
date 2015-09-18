@@ -21,6 +21,7 @@ import sys
 import os
 
 import numpy as np
+import math
 
 import matplotlib.pyplot as plt
 
@@ -195,7 +196,7 @@ def makeContourPlots(residuals_file, fig_name, pi_bins, sigma_bins, args):
         ax.set_title(r"$r^{2}\xi_{\rm data}{\rm \left(h^{-2}Mpc^{2}\right)}$", fontsize=20)
         cs = ax.contourf(sigma_bins, pi_bins, data*r*r, levels, cmap = cmap, vmin = vmin, vmax = vmax, fontsize=20)
     else:
-        ax.set_title(r"$\xi_{\rm data}{\rm \left(h^{-2}Mpc^{2}\right)}$", fontsize=20)
+        ax.set_title(r"$\xi_{\rm data}$", fontsize=20)
         cs = ax.contourf(sigma_bins, pi_bins, data, levels, cmap = cmap, vmin = vmin, vmax = vmax, fontsize=20)
     cbar = fig.colorbar(cs, ax = ax, shrink = 0.9, format="%.1e")
 
@@ -209,12 +210,11 @@ def makeContourPlots(residuals_file, fig_name, pi_bins, sigma_bins, args):
         ax2.set_title(r"$r^{2}\xi_{\rm model}{\rm \left(h^{-2}Mpc^{2}\right)}$", fontsize=20)
     else:
         cs2 = ax2.contourf(sigma_bins, pi_bins, model, levels, cmap = cmap, vmin = vmin, vmax = vmax, fontsize=20)
-        ax2.set_title(r"$\xi_{\rm model}{\rm \left(h^{-2}Mpc^{2}\right)}$", fontsize=20)
+        ax2.set_title(r"$\xi_{\rm model}$", fontsize=20)
     cbar2 = fig.colorbar(cs2, ax = ax2, shrink = 0.9, format="%.1e")
 
     # plot residuals
     ax3 = fig.add_subplot(1, 3, 3)
-    ax3.set_title(r"$r^{2}\left(\xi_{\rm data}-\xi_{\rm model}\right){\rm \left(h^{-2}Mpc^{2}\right)}$", fontsize=20)
     ax3.set_xlabel(r"$\sigma {\rm \left(h^{-1}Mpc\right)}$", fontsize=20)
     ax3.tick_params(axis='both',which='major',labelsize=20,length=6,width=2)
     ax3.tick_params(axis='both',which='minor',labelsize=0,length=4,width=1)
@@ -222,7 +222,7 @@ def makeContourPlots(residuals_file, fig_name, pi_bins, sigma_bins, args):
         ax3.set_title(r"$r^{2}\left(\xi_{\rm data}-\xi_{\rm model}\right){\rm \left(h^{-2}Mpc^{2}\right)}$", fontsize=20)
         cs3 = ax3.contourf(sigma_bins, pi_bins, (data-model)*r*r, levels_res, cmap = cmap, vmin = vmin_res, vmax = vmax_res, fontsize=20)
     else:
-        ax3.set_title(r"$\xi_{\rm data}-\xi_{\rm model}{\rm \left(h^{-2}Mpc^{2}\right)}$", fontsize=20)
+        ax3.set_title(r"$\xi_{\rm data}-\xi_{\rm model}$", fontsize=20)
         cs3 = ax3.contourf(sigma_bins, pi_bins, data-model, levels_res, cmap = cmap, vmin = vmin_res, vmax = vmax_res, fontsize=20)
     cbar3 = fig.colorbar(cs3, ax = ax3, shrink = 0.9, format="%.1e")
 
@@ -305,6 +305,17 @@ def readIniFile(input_file):
         print "could not read ini file"
         return "", np.array(0), np.array(0)
 
+#------------------------------------------------------------------------
+def significantPlaces(x):
+    # finds the position of the first significant digit
+    try:
+        if x == 0.0:
+            return -2
+        else:
+            return int(math.floor(math.log10(math.fabs(x))))
+    except ValueError:
+        print "significantPlaces: the specified variable is not a number, returning -2"
+        return -2
 
 #------------------------------------------------------------------------
 def tabulateResults(results, results_dict):
@@ -315,30 +326,51 @@ def tabulateResults(results, results_dict):
         print "could not tabulate results"
         return
 
+    params = ["beta", "(1+beta)*bias", "gamma-bias", "gamma-beta", "delta-v", "bias2", "beta2*bias2", "SigmaNL-perp", "1+f", "cont-kc", "cont-pc", "BAO amplitude", "BAO alpha-iso", "BAO alpha-parallel", "BAO alpha-perp", "gamma-scale", "Rad anisotropy", "Rad quasar lifetime", "Rad strength", "Rad mean free path"]
+
     results.write("\n")
     results.write("\\begin{table}\n")
     results.write("    \\centering\n")
-    results.write("    \\begin{tabular}{c|cccccc}\n")
-    results.write("        & $\\beta_{F}$ & ${\\rm b_{q}}$ & ${\\rm a}$ & ${\\rm t_{q}}$ & ${\\rm b}_{\\Gamma}{\\rm r_{p}^{2}}$ & $\\lambda$ \\\\ \\hline \n")
-    results.write("        fit ")
 
-    for param in ["beta", "bias2", "Rad anisotropy", "Rad quasar lifetime", "Rad strength", "Rad mean free path"]:
-        value = results_dict.get(param, ("-"))
-        try:
+    results.write("    \\begin{tabular}{c|c|c}\n")
+    results.write("     name & value & error \\\\ \\hline \n")
+    for name in params:
+        value = results_dict.get(name, ("-"))
+        # check whether the parameter was included in the model
+        # if it was not then write an empty line
+        if len(value) == 1:
+            results.write("    " + name + " & - & - \\\\ \n")
+        # if it was then write the found values
+        else:
+            # check if the parameter was fixed
+            # if it was then do not write an error value
             if value[2]:
-                results.write("& $" + "{:.2F}".format(value[0]) + "$ ")
+                # check the number of decimal places required
+                if (significantPlaces(value[0]) > 0):
+                    format_template = "{:.0f}"
+                    value = [round(v, -significantPlaces(value[0])) for v in value]
+                else:
+                    format_template =  "{:."+str(-significantPlaces(value[0])+1)+"f}"
+                
+                results.write("    " + name + " & " + format_template.format(value[0]) + " & - \\\\ \n")
+            # if it wasn't then fill the error
             else:
-                results.write("& $" + "{:.2F}".format(value[0]) + " \\pm " + "{:.2F}".format(value[1]) + "$ ")
-        except IndexError:
-            results.write("& " + value[0]+" ")
+                # check the number of decimal places required
+                if (significantPlaces(value[1]) > 0):
+                    format_template = "{:.0f}"
+                    value = [round(v, -significantPlaces(value[1])) for v in value]
+                else:
+                    format_template =  "{:."+str(-significantPlaces(value[1])+1)+"f}"
 
-    results.write("\\\\ \n")
+                results.write("    " + name + " & " + format_template.format(value[0]) + " & " + format_template.format(value[1]) + " \\\\ \n")
+
     results.write("    \\end{tabular}\n")
-    results.write("    \\caption{Fit values. Values without error correspond to those parameters that were fixed during the fitting process.}\n")
+    results.write("    \\caption{Fit values. Parameters without values correspond to those parameters not used in the modelling. Parameters without error correspond to those parameters that were fixed during the fitting process.}\n")
     results.write("\\end{table}\n")
     results.write("\n")
 
     return
+
 
 
 __name__ = "__main__"
