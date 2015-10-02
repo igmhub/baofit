@@ -31,8 +31,8 @@ double local::RadiationModel::_evaluateRadiation(double k, double mu_k, double z
     std::complex<double> aux = (inv_rad_mean_free_path+inv_quasar_lifetime)+ 0.*I; // (1/rad_mean_free_path+1/quasar_lifetime)
     
     std::complex<double> alpha = aux*aux+k*k*(1.0-mu_k*mu_k)+ 0.*I;
-    std::complex<double> beta = -2.0*inv_quasar_lifetime*aux + 2.0*k*mu_k*aux*I;
-    std::complex<double> gamma = inv_quasar_lifetime*inv_quasar_lifetime-k*k + 2*k*mu_k*inv_quasar_lifetime*I;
+    std::complex<double> beta = 2.0*inv_quasar_lifetime*aux + 2.0*k*mu_k*aux*I;
+    std::complex<double> gamma = inv_quasar_lifetime*inv_quasar_lifetime-k*k*(1.0-mu_k*mu_k) + 2*k*mu_k*inv_quasar_lifetime*I;
     
     // auxiliar variables
     std::complex<double> sqrt_pos = sqrt(alpha+beta+gamma);
@@ -63,7 +63,7 @@ double local::RadiationModel::_evaluate(double r, double mu, double z, bool anyC
     double rad_mean_free_path = _base.getParameterValue(_indexBase+3);
     
     double Fa = 1.0+rad_aniso*(1.0-mu*mu);
-    double Fv = std::exp(-r*(1.0-mu)/quasar_lifetime);
+    double Fv = std::exp(-r*(1.0+mu)/quasar_lifetime);
     
     // Add the contributions
     return rad_strength/r/r*Fa*Fv*std::exp(-r/rad_mean_free_path);
