@@ -52,8 +52,26 @@ namespace baofit {
         double _getZRef() const;
         // Sets the reference redshift
         void _setZRef(double zref);
+        // Sets the index of the Lya beta parameter to use.
+        void _setBetaIndex(int betaIndex);
+        // Sets the index of the Lya bias*(1+beta) parameter to use.
+        void _setBbIndex(int bbIndex);
+        // Sets the index of the bias power-law evolution parameter to use.
+        void _setGammaBiasIndex(int gammabiasIndex);
+        // Sets the index of the beta power-law evolution parameter to use.
+        void _setGammaBetaIndex(int gammabetaIndex);
         // Sets the index of the velocity shift parameter to use.
         void _setDVIndex(int index);
+        // Updates the internal parameters.
+        void _updateInternalParameters();
+        // Returns the Lya beta parameter.
+        double _getBeta() const;
+        // Returns the Lya bias parameter.
+        double _getBias() const;
+        // Returns the bias power-law evolution parameter.
+        double _getGammaBias() const;
+        // Returns the beta power-law evolution parameter.
+        double _getGammaBeta() const;
         // Applies a shift dpi in the parallel direction to the separation (r,mu) using a fiducial
         // cosmology to convert from dv in km/s to dpi in Mpc/h at the specified redshift z. The
         // value of dv is obtained from the "delta-v" parameter defined by _defineLinearBiasParameters.
@@ -61,16 +79,24 @@ namespace baofit {
         // Updates the multipole normalization factors b^2(z)*C_ell(beta(z)) returned by getNormFactor(ell).
         double _getNormFactor(cosmo::Multipole multipole, double z) const;
     private:
-        int _indexBase, _dvIndex;
+        int _indexBase, _dvIndex, _betaIndex, _bbIndex, _gammabiasIndex, _gammabetaIndex;
         bool _crossCorrelation;
         enum IndexOffset {
             BETA = 0, BB = 1, GAMMA_BIAS = 2, GAMMA_BETA = 3, DELTA_V = 4, BIAS2 = 5, BB2 = 6
         };
-        double _zref;
+        double _zref, _beta, _bias, _gammaBias, _gammaBeta;
 	}; // AbsCorrelationModel
 
     inline double AbsCorrelationModel::_getZRef() const { return _zref; }
     inline void AbsCorrelationModel::_setDVIndex(int index) { _dvIndex = index; }
+    inline void AbsCorrelationModel::_setBetaIndex(int betaIndex) { _betaIndex = betaIndex; }
+    inline void AbsCorrelationModel::_setBbIndex(int bbIndex) { _bbIndex = bbIndex; }
+    inline void AbsCorrelationModel::_setGammaBiasIndex(int gammabiasIndex) { _gammabiasIndex = gammabiasIndex; }
+    inline void AbsCorrelationModel::_setGammaBetaIndex(int gammabetaIndex) { _gammabetaIndex = gammabetaIndex; }
+    inline double AbsCorrelationModel::_getBeta() const { return _beta; }
+    inline double AbsCorrelationModel::_getBias() const { return _bias; }
+    inline double AbsCorrelationModel::_getGammaBias() const { return _gammaBias; }
+    inline double AbsCorrelationModel::_getGammaBeta() const { return _gammaBeta; }
     // Evaluates the redshift evolution p(z) of a parameter for which p(zref)=p0 according to
     // p(z) = p0*((1+z)/(1+zref))^gamma.
     double redshiftEvolution(double p0, double gamma, double z, double zref);
