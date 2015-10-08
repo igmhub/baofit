@@ -17,10 +17,12 @@ namespace local = baofit;
 
 local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName,
     std::string const &fiducialName, std::string const &nowigglesName,
+    std::string const &metalrootName, std::string const &metalName,
     std::string const &distAdd, std::string const &distMul, double distR0,
-    double zref, bool anisotropic, bool decoupled, bool metals, bool crossCorrelation)
+    double zref, bool anisotropic, bool decoupled, bool metalModel, bool metalTemplate,
+    bool crossCorrelation)
 : AbsCorrelationModel("BAO Correlation Model"), _anisotropic(anisotropic), _decoupled(decoupled),
-_metals(metals)
+_metalModel(metalModel), _metalTemplate(metalTemplate)
 {
     // Linear bias parameters
     _indexBase = _defineLinearBiasParameters(zref,crossCorrelation);
@@ -61,8 +63,8 @@ _metals(metals)
         throw RuntimeError("BaoCorrelationModel: error while reading model interpolation data.");
     }
     // Define our r-space metal correlation model, if any.
-    if(metals) {
-        _metalCorr.reset(new baofit::MetalCorrelationModel(this));
+    if(metalModel || metalTemplate) {
+        _metalCorr.reset(new baofit::MetalCorrelationModel(metalrootName,metalName,metalModel,metalTemplate,this));
     }
     // Define our broadband distortion models, if any.
     if(distAdd.length() > 0) {
@@ -130,7 +132,7 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     double xi = peak + smooth;
     
     // Add r-space metal correlations, if any.
-    if(_metals) xi += _metalCorr->_evaluate(r,mu,z,anyChanged);
+    if(_metalModel || _metalTemplate) xi += _metalCorr->_evaluate(r,mu,z,anyChanged);
     
     // Add broadband distortions, if any.
     if(_distortMul) xi *= 1 + _distortMul->_evaluate(r,mu,z,anyChanged);
@@ -169,4 +171,5 @@ void  local::BaoCorrelationModel::printToStream(std::ostream &out, std::string c
     AbsCorrelationModel::printToStream(out,formatSpec);
     out << "Using " << (_anisotropic ? "anisotropic":"isotropic") << " BAO scales." << std::endl;
     out << "Scales apply to BAO peak " << (_decoupled ? "only." : "and cosmological broadband.") << std::endl;
+    out << "Metal correlations are switched " << (_metalModel || _metalTemplate ? "on." : "off.") << std::endl;
 }

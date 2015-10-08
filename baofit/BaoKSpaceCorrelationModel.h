@@ -26,12 +26,14 @@ namespace baofit {
         // the model names provided are assumed to be normalized for redshift zref and will
         // be re-normalized appropriately when the model is evaluated at any different z.
 		BaoKSpaceCorrelationModel(std::string const &modelrootName,
-		    std::string const &fiducialName, std::string const &nowigglesName, double zref,
-            double rmin, double rmax, double dilmin, double dilmax,
+		    std::string const &fiducialName, std::string const &nowigglesName,
+		    std::string const &metalrootName, std::string const &metalName,
+            double zref, double rmin, double rmax, double dilmin, double dilmax,
             double relerr, double abserr, int ellMax, int samplesPerDecade,
             std::string const &distAdd, std::string const &distMul, double distR0,
             bool anisotropic = false, bool decoupled = false, bool nlBroadband = false,
-            bool metals = false, bool crossCorrelation = false, bool verbose = false);
+            bool metalModel = false, bool metalTemplate = false,
+            bool crossCorrelation = false, bool verbose = false);
 		virtual ~BaoKSpaceCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
@@ -43,7 +45,7 @@ namespace baofit {
 	private:
         double _dilmin, _dilmax;
         AbsCorrelationModelPtr _metalCorr, _distortAdd, _distortMul;
-        bool _anisotropic, _decoupled, _nlBroadband, _metals, _crossCorrelation, _verbose;
+        bool _anisotropic, _decoupled, _nlBroadband, _metalModel, _metalTemplate, _crossCorrelation, _verbose;
         int _nlBase, _baoBase, _maxWarnings;
         mutable int _nWarnings;
         cosmo::DistortedPowerCorrelationPtr _Xipk, _Xinw;

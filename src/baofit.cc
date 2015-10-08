@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
         projectModesNKeep,covSampleSize,ellMax,samplesPerDecade,ngridx,ngridy,ngridz;
     std::string modelrootName,fiducialName,nowigglesName,dataName,xiPoints,toymcConfig,
         platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig,
-        fixModeScales,distAdd,distMul,dataFormat,axis1Bins,axis2Bins,axis3Bins;
+        fixModeScales,distAdd,distMul,dataFormat,axis1Bins,axis2Bins,axis3Bins,metalrootName,metalName;
     std::vector<std::string> modelConfig;
 
     // Default values in quotes below are to avoid roundoff errors leading to ugly --help
@@ -120,7 +120,12 @@ int main(int argc, char **argv) {
         ("nl-correction-alt", "k-space alternative non-linear correction applied in the flux power spectrum model.")
         ("distortion-alt", "Uses alternative model for the continuum fitting broadband distortion.")
         ("no-distortion", "No modeling of the continuum fitting broadband distortion.")
-        ("metals", "Include r-space model of metal line correlations.")
+        ("metal-model", "Include r-space model of metal line correlations.")
+        ("metalroot", po::value<std::string>(&metalrootName)->default_value(""),
+            "Common path to prepend to all metal model filenames.")
+        ("metalname", po::value<std::string>(&metalName)->default_value(""),
+            "Metal correlation functions will be read from <name>.<ell>.dat with ell=0,2,4.")
+        ("metal-template", "Include r-space template for metal line correlations derived from mock data.")
         ("cross-correlation", "Uses independent linear bias parameters for both components.")
         ;
     dataOptions.add_options()
@@ -310,7 +315,8 @@ int main(int argc, char **argv) {
         kspacefft(vm.count("kspace-fft")), calculateGradients(vm.count("calculate-gradients")),
         nlBroadband(vm.count("nl-broadband")), nlCorrection(vm.count("nl-correction")),
         nlCorrectionAlt(vm.count("nl-correction-alt")), distortionAlt(vm.count("distortion-alt")),
-        noDistortion(vm.count("no-distortion")), metals(vm.count("metals"));
+        noDistortion(vm.count("no-distortion")), metalModel(vm.count("metal-model")),
+        metalTemplate(vm.count("metal-template"));
 
     // Check that we have a recognized data format.
     if(dataFormat != "comoving-cartesian" && dataFormat != "comoving-polar" &&
@@ -367,9 +373,10 @@ int main(int argc, char **argv) {
         else if(kspace) {
             // Build our fit model from tabulated P(k) on disk.
             model.reset(new baofit::BaoKSpaceCorrelationModel(
-                modelrootName,fiducialName,nowigglesName,zref,
-                rmin,rmax,dilmin,dilmax,relerr,abserr,ellMax,samplesPerDecade,
-                distAdd,distMul,distR0,anisotropic,decoupled,nlBroadband,metals,crossCorrelation,verbose));
+                modelrootName,fiducialName,nowigglesName,metalrootName,metalName,
+                zref,rmin,rmax,dilmin,dilmax,relerr,abserr,ellMax,samplesPerDecade,
+                distAdd,distMul,distR0,anisotropic,decoupled,nlBroadband,metalModel,
+                metalTemplate,crossCorrelation,verbose));
         }
         else if(kspacefft) {
             // Build our fit model from tabulated P(k) on disk and use a 3D FFT.
@@ -382,8 +389,8 @@ int main(int argc, char **argv) {
         else {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
             model.reset(new baofit::BaoCorrelationModel(
-                modelrootName,fiducialName,nowigglesName,distAdd,distMul,distR0,zref,anisotropic,
-                decoupled,metals,crossCorrelation));
+                modelrootName,fiducialName,nowigglesName,metalrootName,metalName,distAdd,distMul,
+                distR0,zref,anisotropic,decoupled,metalModel,metalTemplate,crossCorrelation));
         }
              
         // Configure our fit model parameters by applying all model-config options in turn,
