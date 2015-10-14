@@ -4,6 +4,7 @@
 #include "baofit/RuntimeError.h"
 
 #include <cmath>
+#include <iostream>
 
 namespace local = baofit;
 
@@ -33,7 +34,12 @@ void local::ComovingCorrelationData::finalize() {
 
 void local::ComovingCorrelationData::_setIndex(int index) const {
     if(index == _lastIndex) return;
-    getGrid().getBinCenters(index,_binCenter);
+    if(useCustomGrid()) {
+        getCustomBinCenters(index,_binCenter);
+    }
+    else {
+        getGrid().getBinCenters(index,_binCenter);
+    }
     _lastIndex = index;
 }
 

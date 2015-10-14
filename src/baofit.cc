@@ -143,6 +143,7 @@ int main(int argc, char **argv) {
             "Comma separated list of bin centers for axis 2.")
         ("axis3-bins", po::value<std::string>(&axis3Bins)->default_value(""),
             "Comma separated list of bin centers for axis 3.")
+        ("custom-grid", "Uses bin centers read from the specified file.")
         ("load-icov", "Load inverse covariance (.icov) instead of covariance (.cov)")
         ("load-wdata", "Load inverse covariance weighed data (.wdata) instead of unweighted (.data)")
         ("max-plates", po::value<int>(&maxPlates)->default_value(0),
@@ -316,7 +317,7 @@ int main(int argc, char **argv) {
         nlBroadband(vm.count("nl-broadband")), nlCorrection(vm.count("nl-correction")),
         nlCorrectionAlt(vm.count("nl-correction-alt")), distortionAlt(vm.count("distortion-alt")),
         noDistortion(vm.count("no-distortion")), metalModel(vm.count("metal-model")),
-        metalTemplate(vm.count("metal-template"));
+        metalTemplate(vm.count("metal-template")), customGrid(vm.count("custom-grid"));
 
     // Check that we have a recognized data format.
     if(dataFormat != "comoving-cartesian" && dataFormat != "comoving-polar" &&
@@ -498,7 +499,7 @@ int main(int argc, char **argv) {
         for(std::vector<std::string>::const_iterator filename = filelist.begin();
         filename != filelist.end(); ++filename) {
             baofit::AbsCorrelationDataPtr data =
-                baofit::loadCorrelationData(*filename,prototype,verbose,loadICov,loadWData);
+                baofit::loadCorrelationData(*filename,prototype,verbose,loadICov,loadWData,customGrid);
             if(checkPosDef && !data->getCovarianceMatrix()->isPositiveDefinite()) {
                 std::cerr << "!!! Covariance matrix not positive-definite for "
                     << *filename << std::endl;
@@ -521,6 +522,7 @@ int main(int argc, char **argv) {
             }
             analyzer.addData(data,reuseCovIndex);
         }
+        
         // Initialize combined as a read-only pointer to the finalized data to fit...
         if(projectModesNKeep != 0) {
             // Project onto eigenmodes before finalizing.

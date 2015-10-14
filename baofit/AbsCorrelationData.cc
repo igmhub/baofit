@@ -154,7 +154,7 @@ namespace ascii = boost::spirit::ascii;
 namespace phoenix = boost::phoenix;
 
 baofit::AbsCorrelationDataPtr local::loadCorrelationData(std::string const &dataName,
-baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted) {
+baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted, bool customGrid) {
 
     // Create the new AbsCorrelationData that we will fill.
     baofit::AbsCorrelationDataPtr binnedData(dynamic_cast<AbsCorrelationData*>(prototype->clone(true)));
@@ -240,5 +240,38 @@ baofit::AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted
             << " covariance values from " << covName << std::endl;
     }
 
+    if(customGrid) {
+        // Loop over lines in the custom grid file.
+        std::string gridName = dataName + ".grid";
+        std::ifstream gridIn(gridName.c_str());
+        if(!gridIn.good()) throw RuntimeError("loadCorrelationData: Unable to open " + gridName);
+        lines = 0;
+        double bincenter1, bincenter2, bincenter3;
+        while(std::getline(gridIn,line)) {
+            lines++;
+            bool ok = qi::phrase_parse(line.begin(),line.end(),
+                (
+                    int_[ref(index) = _1] >> double_[ref(bincenter1) = _1] >> double_[ref(bincenter2) = _1] >> double_[ref(bincenter3) = _1]
+                ),
+                ascii::space);
+            if(!ok) {
+                throw RuntimeError("loadCorrelationData: error reading line " +
+                    boost::lexical_cast<std::string>(lines) + " of " + gridName);
+            }
+            // Check for invalid index.
+            if(index < 0 || index >= nbins) {
+                throw RuntimeError("loadCorrelationData: invalid bin index on line " +
+                    boost::lexical_cast<std::string>(lines) + " of " + gridName);
+            }
+            binnedData->setCustomBinCenters(index,bincenter1,bincenter2,bincenter3,customGrid);
+        }
+        gridIn.close();
+        int ncustombins = binnedData->getNCustomBins();
+        if(ncustombins != nbins) throw RuntimeError("loadCorrelationData: number of custom bins must match the number of default bins.");
+        if(verbose) {
+            std::cout << "Read " << ncustombins << " custom bins from " << gridName << std::endl;
+        }
+    }
+    
     return binnedData;
 }

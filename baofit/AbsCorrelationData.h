@@ -74,7 +74,8 @@ namespace baofit {
     // and returns a BinnedData object. Set icov true to read .icov files instead of .cov.
     // Set weighted true to read .wdata files instead of .data.
     AbsCorrelationDataPtr loadCorrelationData(std::string const &dataName,
-        AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted);
+        AbsCorrelationDataCPtr prototype, bool verbose, bool icov, bool weighted,
+        bool customGrid);
 
 } // baofit
 
