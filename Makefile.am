@@ -37,6 +37,7 @@ libbaofit_la_SOURCES = \
 	baofit/ComovingCorrelationData.cc \
 	baofit/CorrelationFitter.cc \
 	baofit/CorrelationAnalyzer.cc \
+	baofit/RadiationModel.cc \
 	baofit/boss.cc
 
 # library headers to install (nobase prefix preserves any subdirectories)
@@ -60,6 +61,7 @@ nobase_include_HEADERS = \
 	baofit/ComovingCorrelationData.h \
 	baofit/CorrelationFitter.h \
 	baofit/CorrelationAnalyzer.h \
+	baofit/RadiationModel.h \
 	baofit/boss.h
 
 # instructions for building each program

@@ -17,7 +17,12 @@ namespace baofit {
     
     class AbsCorrelationData;
     typedef boost::shared_ptr<AbsCorrelationData> AbsCorrelationDataPtr;    
-    typedef boost::shared_ptr<const AbsCorrelationData> AbsCorrelationDataCPtr;    
+    typedef boost::shared_ptr<const AbsCorrelationData> AbsCorrelationDataCPtr;
+    
+    class RadiationModel;
+    typedef boost::shared_ptr<RadiationModel> RadiationModelPtr;
+    typedef boost::shared_ptr<const RadiationModel> RadiationModelCPtr;
+    
 
 } // baofit
 

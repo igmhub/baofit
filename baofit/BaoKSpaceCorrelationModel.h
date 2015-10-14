@@ -31,7 +31,8 @@ namespace baofit {
             double relerr, double abserr, int ellMax, int samplesPerDecade,
             std::string const &distAdd, std::string const &distMul, double distR0,
             bool anisotropic = false, bool decoupled = false, bool nlBroadband = false,
-            bool metals = false, bool crossCorrelation = false, bool verbose = false);
+            bool metals = false, bool radiation = false, bool crossCorrelation = false,
+            bool verbose = false);
 		virtual ~BaoKSpaceCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
@@ -42,8 +43,9 @@ namespace baofit {
         virtual double _evaluate(double r, double mu, double z, bool anyChanged) const;
 	private:
         double _dilmin, _dilmax;
-        AbsCorrelationModelPtr _metalCorr, _distortAdd, _distortMul;
-        bool _anisotropic, _decoupled, _nlBroadband, _metals, _crossCorrelation, _verbose;
+        AbsCorrelationModelPtr _metalCorr, _radiationAdd, _distortAdd, _distortMul;
+        bool _anisotropic, _decoupled, _nlBroadband, _metals, _radiation, _crossCorrelation,
+        _verbose;
         int _nlBase, _baoBase, _maxWarnings;
         mutable int _nWarnings;
         cosmo::DistortedPowerCorrelationPtr _Xipk, _Xinw;
