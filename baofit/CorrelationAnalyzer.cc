@@ -596,7 +596,12 @@ AbsCorrelationDataCPtr combined, std::string const &script, bool dumpGradients) 
     for(likely::BinnedData::IndexIterator iter = combined->begin(); iter != combined->end(); ++iter) {
         int index(*iter);
         out << index;
-        grid.getBinCenters(index,centers);
+        if(combined->useCustomGrid()) {
+            combined->getCustomBinCenters(index,centers);
+        }
+        else {
+            grid.getBinCenters(index,centers);
+        }
         BOOST_FOREACH(double center, centers) {
             out << ' ' << center;
         }

@@ -20,6 +20,7 @@ local::AbsCorrelationModel::~AbsCorrelationModel() { }
 double local::AbsCorrelationModel::evaluate(double r, double mu, double z,
 likely::Parameters const &params) {
     bool anyChanged = updateParameterValues(params);
+    _updateInternalParameters();
     if(_dvIndex >= 0) _applyVelocityShift(r,mu,z);
     double result = _evaluate(r,mu,z,anyChanged);
     resetParameterValuesChanged();
@@ -60,10 +61,14 @@ int local::AbsCorrelationModel::_defineLinearBiasParameters(double zref, bool cr
     _setZRef(zref);
     // Linear bias parameters
     _indexBase = defineParameter("beta",1.4,0.1);
+    _setBetaIndex(_indexBase + BETA);
     defineParameter("(1+beta)*bias",-0.336,0.03);
+    _setBbIndex(_indexBase + BB);
     // Redshift evolution parameters
     defineParameter("gamma-bias",3.8,0.3);
-    int last = defineParameter("gamma-beta",0,0.1);    
+    _setGammaBiasIndex(_indexBase + GAMMA_BIAS);
+    int last = defineParameter("gamma-beta",0,0.1);
+    _setGammaBetaIndex(_indexBase + GAMMA_BETA);
     if(crossCorrelation) {
         _crossCorrelation = true;
         // Amount to shift each separation's line of sight velocity in km/s
@@ -83,6 +88,13 @@ int local::AbsCorrelationModel::_defineLinearBiasParameters(double zref, bool cr
     return last;
 }
 
+void local::AbsCorrelationModel::_updateInternalParameters() {
+    _beta = getParameterValue(_betaIndex);
+    _bias = getParameterValue(_bbIndex)/(1+_beta);
+    _gammaBias = getParameterValue(_gammabiasIndex);
+    _gammaBeta = getParameterValue(_gammabetaIndex);
+}
+
 void local::AbsCorrelationModel::_applyVelocityShift(double &r, double &mu, double z) {
     // Lookup value of delta_v
     double dv = getParameterValue(_dvIndex);
@@ -93,7 +105,7 @@ void local::AbsCorrelationModel::_applyVelocityShift(double &r, double &mu, doub
     double rnew = std::sqrt(r*r + 2*r*mu*dpi + dpi*dpi);
     double munew = (r*mu+dpi)/rnew;
     r = rnew;
-    mu = munew;    
+    mu = munew;
 }
 
 double local::redshiftEvolution(double p0, double gamma, double z, double zref) {

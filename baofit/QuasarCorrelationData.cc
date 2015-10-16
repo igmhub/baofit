@@ -70,7 +70,14 @@ void local::QuasarCorrelationData::fixCovariance(double ll0, double c0, double c
         getGrid().getBinIndices(i1,bin);
         int sepIndex(bin[1]), zIndex(bin[2]);
         // Calculate and save the value of ll - ll0 at the center of this bin.
-        double ll(llBins->getBinCenter(bin[0]));
+        double ll;
+        if(useCustomGrid()) {
+            getCustomBinCenters(i1,_binCenter);
+            ll = _binCenter[0];
+        }
+        else{
+            ll = llBins->getBinCenter(bin[0]);
+        }
         dll.push_back(ll - ll0);
         // Loop over unique pairs (iter1,iter2) with iter2 <= iter1 (which does not
         // necessarily imply that i2 <= i1).
@@ -107,7 +114,12 @@ void local::QuasarCorrelationData::finalize() {
         int index(*iter);
         if(0 == keep.count(index)) continue;        
         // Lookup the value of ll at the center of this bin.
-        getGrid().getBinCenters(index,_binCenter);
+        if(useCustomGrid()) {
+            getCustomBinCenters(index,_binCenter);
+        }
+        else {
+            getGrid().getBinCenters(index,_binCenter);
+        }
         double ll(_binCenter[0]),sep(_binCenter[1]);
         // Keep this bin in our pruned dataset?
         if(ll < _llMin || ll > _llMax || sep < _sepMin || sep > _sepMax) {
@@ -141,8 +153,14 @@ double &r, double &mu) const {
 
 void local::QuasarCorrelationData::_setIndex(int index) const {
     if(index == _lastIndex) return;
-    getGrid().getBinCenters(index,_binCenter);
-    getGrid().getBinWidths(index,_binWidth);
+    if(useCustomGrid()) {
+        getCustomBinCenters(index,_binCenter);
+        getCustomBinWidths(index,_binWidth);
+    }
+    else {
+        getGrid().getBinCenters(index,_binCenter);
+        getGrid().getBinWidths(index,_binWidth);
+    }
     _zLast = _binCenter[2];
     transform(_binCenter[0],_binCenter[1],_binWidth[1],_zLast,_rLast,_muLast);
     _lastIndex = index;
