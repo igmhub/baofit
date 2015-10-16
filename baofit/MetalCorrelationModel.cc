@@ -20,7 +20,7 @@ local::MetalCorrelationModel::MetalCorrelationModel(std::string const &metalroot
     if(metalModel && metalTemplate) throw RuntimeError("MetalCorrelationModel: illegal option specification.");
     // Initialize metal correlation model
     if(metalModel) {
-        // Define parameters
+        // Define parameters for metal lines Si II 1190.42 Å ("Si2a"), 1193.29 Å ("Si2b"), 1260.42 Å ("Si2c"), and Si III 1206.50 Å ("Si3").
         _indexBase = _base.defineParameter("beta Si2a",1,0.1);
         _base.defineParameter("bias Si2a",-0.01,0.001);
         _base.defineParameter("beta Si2b",1,0.1);
