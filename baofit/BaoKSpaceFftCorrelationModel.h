@@ -31,7 +31,7 @@ namespace baofit {
             bool anisotropic = false, bool decoupled = false, bool nlBroadband = false,
             bool nlCorrection = false, bool nlCorrectionAlt = false, bool distortionAlt = false,
             bool noDistortion = false, bool radiation = false, bool crossCorrelation = false,
-            bool verbose = false);
+            bool imaginaryPart = false, bool verbose = false);
 		virtual ~BaoKSpaceFftCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
@@ -46,7 +46,7 @@ namespace baofit {
         RadiationModelPtr _radiationAdd;
         NonLinearCorrectionModelPtr _nlcorr;
         bool _anisotropic, _decoupled, _nlBroadband, _nlCorrection, _nlCorrectionAlt, _distortionAlt,
-            _noDistortion, _radiation, _crossCorrelation, _verbose;
+            _noDistortion, _radiation, _crossCorrelation, _imaginaryPart, _verbose;
         int _nlBase, _contBase, _baoBase;
         cosmo::DistortedPowerCorrelationFftPtr _Xipk, _Xinw;
         // Evaluates our k-space distortion model D(k,mu_k) using our current parameter values.

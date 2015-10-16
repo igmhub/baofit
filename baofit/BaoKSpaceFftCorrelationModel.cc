@@ -27,12 +27,12 @@ local::BaoKSpaceFftCorrelationModel::BaoKSpaceFftCorrelationModel(std::string co
     std::string const &distMul, double distR0, double zcorr0, double zcorr1, double zcorr2,
     double sigma8, bool anisotropic, bool decoupled,  bool nlBroadband, bool nlCorrection,
     bool nlCorrectionAlt, bool distortionAlt, bool noDistortion, bool radiation,
-    bool crossCorrelation, bool verbose)
+    bool crossCorrelation, bool imaginaryPart, bool verbose)
 : AbsCorrelationModel("BAO k-Space FFT Correlation Model"),
 _zcorr0(zcorr0), _zcorr1(zcorr1), _zcorr2(zcorr2), _anisotropic(anisotropic), _decoupled(decoupled),
 _nlBroadband(nlBroadband), _nlCorrection(nlCorrection), _nlCorrectionAlt(nlCorrectionAlt),
 _distortionAlt(distortionAlt), _noDistortion(noDistortion), _radiation(radiation),
-_crossCorrelation(crossCorrelation), _verbose(verbose)
+_crossCorrelation(crossCorrelation), _imaginaryPart(imaginaryPart), _verbose(verbose)
 {
     _setZRef(zref);
     // Linear bias parameters
@@ -95,9 +95,9 @@ _crossCorrelation(crossCorrelation), _verbose(verbose)
         &BaoKSpaceFftCorrelationModel::_evaluateKSpaceImDistortion,this,_1,_2,_3)));
 
     // Xipk(r,mu) ~ D(k,mu_k)*Ppk(k)
-    _Xipk.reset(new cosmo::DistortedPowerCorrelationFft(PpkPtr,distortionModelPtr,imDistortionModelPtr,spacing,nx,ny,nz));
+    _Xipk.reset(new cosmo::DistortedPowerCorrelationFft(PpkPtr,distortionModelPtr,imDistortionModelPtr,_imaginaryPart,spacing,nx,ny,nz));
     // Xinw(r,mu) ~ D(k,mu_k)*Pnw(k)
-    _Xinw.reset(new cosmo::DistortedPowerCorrelationFft(PnwPtr,distortionModelPtr,imDistortionModelPtr,spacing,nx,ny,nz));
+    _Xinw.reset(new cosmo::DistortedPowerCorrelationFft(PnwPtr,distortionModelPtr,imDistortionModelPtr,_imaginaryPart,spacing,nx,ny,nz));
 	if(verbose) {
         std::cout << "3D FFT memory size = "
             << boost::format("%.1f Mb") % (_Xipk->getMemorySize()/1048576.) << std::endl;
@@ -143,11 +143,21 @@ double local::BaoKSpaceFftCorrelationModel::_evaluateKSpaceDistortion(double k, 
         contdistortion = 1;
     }
     else if(_distortionAlt) {
-        contdistortion = std::tanh(std::pow(kpar/kc,pc))*std::cos(cont_phase);
+        if (_imaginaryPart){
+            contdistortion = std::tanh(std::pow(kpar/kc,pc))*std::cos(cont_phase);
+        }
+        else{
+            contdistortion = std::tanh(std::pow(kpar/kc,pc));
+        }
     }
     else {
         k1 = std::pow(kpar/kc + 1,0.75);
-        contdistortion = std::pow((k1-1/k1)/(k1+1/k1),pc)*std::cos(cont_phase);
+        if (_imaginaryPart){
+            contdistortion = std::pow((k1-1/k1)/(k1+1/k1),pc)*std::cos(cont_phase);
+        }
+        else{
+            contdistortion = std::pow((k1-1/k1)/(k1+1/k1),pc);
+        }
     }
     // Calculate non-linear correction (if any)
     double nonlinearcorr = _nlcorr->_evaluateNLCorrection(k,mu_k,pk,_zeff);
