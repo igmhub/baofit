@@ -54,6 +54,7 @@ _crossCorrelation(crossCorrelation), _verbose(verbose)
     // Continuum fitting distortion parameters
     _contBase = defineParameter("cont-kc",0.02,0.002);
     defineParameter("cont-pc",1,0.1);
+    defineParameter("cont-phase",0,0.1);
     // BAO peak parameters
     _baoBase = defineParameter("BAO amplitude",1,0.15);
     defineParameter("BAO alpha-iso",1,0.02);
@@ -90,11 +91,13 @@ _crossCorrelation(crossCorrelation), _verbose(verbose)
     // Create a smart pointer to our k-space distortion model D(k,mu_k)
     cosmo::KMuPkFunctionCPtr distortionModelPtr(new cosmo::KMuPkFunction(boost::bind(
         &BaoKSpaceFftCorrelationModel::_evaluateKSpaceDistortion,this,_1,_2,_3)));
+    cosmo::KMuPkFunctionCPtr imDistortionModelPtr(new cosmo::KMuPkFunction(boost::bind(
+        &BaoKSpaceFftCorrelationModel::_evaluateKSpaceImDistortion,this,_1,_2,_3)));
 
     // Xipk(r,mu) ~ D(k,mu_k)*Ppk(k)
-    _Xipk.reset(new cosmo::DistortedPowerCorrelationFft(PpkPtr,distortionModelPtr,spacing,nx,ny,nz));
+    _Xipk.reset(new cosmo::DistortedPowerCorrelationFft(PpkPtr,distortionModelPtr,imDistortionModelPtr,spacing,nx,ny,nz));
     // Xinw(r,mu) ~ D(k,mu_k)*Pnw(k)
-    _Xinw.reset(new cosmo::DistortedPowerCorrelationFft(PnwPtr,distortionModelPtr,spacing,nx,ny,nz));
+    _Xinw.reset(new cosmo::DistortedPowerCorrelationFft(PnwPtr,distortionModelPtr,imDistortionModelPtr,spacing,nx,ny,nz));
 	if(verbose) {
         std::cout << "3D FFT memory size = "
             << boost::format("%.1f Mb") % (_Xipk->getMemorySize()/1048576.) << std::endl;
@@ -134,16 +137,17 @@ double local::BaoKSpaceFftCorrelationModel::_evaluateKSpaceDistortion(double k, 
     double kpar = std::fabs(k*mu_k);
     double kc = getParameterValue(_contBase);
     double pc = getParameterValue(_contBase+1);
+    double cont_phase = getParameterValue(_contBase+2);
     double k1, contdistortion;
     if(_noDistortion) {
         contdistortion = 1;
     }
     else if(_distortionAlt) {
-        contdistortion = std::tanh(std::pow(kpar/kc,pc));
+        contdistortion = std::tanh(std::pow(kpar/kc,pc))*std::cos(cont_phase);
     }
     else {
         k1 = std::pow(kpar/kc + 1,0.75);
-        contdistortion = std::pow((k1-1/k1)/(k1+1/k1),pc);
+        contdistortion = std::pow((k1-1/k1)/(k1+1/k1),pc)*std::cos(cont_phase);
     }
     // Calculate non-linear correction (if any)
     double nonlinearcorr = _nlcorr->_evaluateNLCorrection(k,mu_k,pk,_zeff);
@@ -155,7 +159,48 @@ double local::BaoKSpaceFftCorrelationModel::_evaluateKSpaceDistortion(double k, 
     
     // Add radiation model if any
     double rad;
-    if(_radiation) rad += _radiationAdd->_evaluateRadiation(k,mu_k,_zeff);
+    if(_radiation) rad += _radiationAdd->_evaluateRadiation(k,mu_k,_zeff,true);
+    
+    // Put the pieces together
+    return contdistortion*nonlinear*nonlinearcorr*linear+rad;
+}
+
+double local::BaoKSpaceFftCorrelationModel::_evaluateKSpaceImDistortion(double k, double mu_k, double pk) const {
+    double mu2(mu_k*mu_k);
+    // Calculate linear bias model
+    double tracer1 = 1 + _betaz*mu2;
+    double tracer2 = _crossCorrelation ? 1 + _beta2z*mu2 : tracer1;
+    double linear = tracer1*tracer2;
+    // Calculate non-linear broadening
+    double snl2 = _snlPar2*mu2 + _snlPerp2*(1-mu2);
+    double nonlinear = std::exp(-0.5*snl2*k*k);
+    // Calculate continuum fitting distortion
+    double kpar = std::fabs(k*mu_k);
+    double kc = getParameterValue(_contBase);
+    double pc = getParameterValue(_contBase+1);
+    double cont_phase = getParameterValue(_contBase+2);
+    double k1, contdistortion;
+    if(_noDistortion) {
+        contdistortion = 1;
+    }
+    else if(_distortionAlt) {
+        contdistortion = std::tanh(std::pow(kpar/kc,pc))*std::sin(cont_phase);
+    }
+    else {
+        k1 = std::pow(kpar/kc + 1,0.75);
+        contdistortion = std::pow((k1-1/k1)/(k1+1/k1),pc)*std::sin(cont_phase);
+    }
+    // Calculate non-linear correction (if any)
+    double nonlinearcorr = _nlcorr->_evaluateNLCorrection(k,mu_k,pk,_zeff);
+    // Cross-correlation?
+    if(_crossCorrelation) {
+        contdistortion = std::sqrt(contdistortion);
+        nonlinearcorr = std::sqrt(nonlinearcorr);
+    }
+    
+    // Add radiation model if any
+    double rad;
+    if(_radiation) rad += _radiationAdd->_evaluateRadiation(k,mu_k,_zeff,false);
     
     // Put the pieces together
     return contdistortion*nonlinear*nonlinearcorr*linear+rad;
@@ -205,7 +250,7 @@ bool anyChanged) const {
     // Redo the 3D FFT transform from k-space to r-space if necessary
     if(anyChanged) {
         bool nlChanged = isParameterValueChanged(_nlBase) || isParameterValueChanged(_nlBase+1);
-        bool contChanged = isParameterValueChanged(_contBase) || isParameterValueChanged(_contBase+1);
+        bool contChanged = isParameterValueChanged(_contBase) || isParameterValueChanged(_contBase+1) || isParameterValueChanged(_contBase+2);
         bool otherChanged = isParameterValueChanged(0);
         if(nlChanged || contChanged || otherChanged) {
         	_Xipk->transform();

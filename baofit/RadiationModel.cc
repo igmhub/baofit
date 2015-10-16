@@ -16,7 +16,7 @@ local::RadiationModel::RadiationModel(AbsCorrelationModel *base)
 
 local::RadiationModel::~RadiationModel() { }
 
-double local::RadiationModel::_evaluateRadiation(double k, double mu_k, double z) const {
+double local::RadiationModel::_evaluateRadiation(double k, double mu_k, double z, bool flag_real) const {
     std::complex<double> I;
     I = -1.0;
     I = sqrt(I);
@@ -47,12 +47,14 @@ double local::RadiationModel::_evaluateRadiation(double k, double mu_k, double z
     // power spectrum
     std::complex<double> prad = rad_strength*((1.0+rad_aniso)*i_1-rad_aniso*i_2);
     
-    // results
-    double realpart = real(prad);
-    double imagpart = imag(prad);
-    
     // Add the contributions
-    return realpart;
+    if (flag_real){
+        return real(prad);
+    }
+    else{
+        return imag(prad);
+    }
+    
 
 }
 double local::RadiationModel::_evaluate(double r, double mu, double z, bool anyChanged) const {

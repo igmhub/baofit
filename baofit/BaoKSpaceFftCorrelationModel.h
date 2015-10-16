@@ -51,6 +51,8 @@ namespace baofit {
         cosmo::DistortedPowerCorrelationFftPtr _Xipk, _Xinw;
         // Evaluates our k-space distortion model D(k,mu_k) using our current parameter values.
         double _evaluateKSpaceDistortion(double k, double mu_k, double pk) const;
+        double _evaluateKSpaceImDistortion(double k, double mu_k, double pk) const;
+
         // Parameters initialized in _evaluate that are needed by _evaluateKSpaceDistortion
         mutable double _betaz, _beta2z, _snlPar2, _snlPerp2, _growthSq, _zeff;
 	}; // BaoKSpaceFftCorrelationModel

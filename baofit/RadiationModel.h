@@ -20,7 +20,7 @@ namespace baofit {
             // Returns the correlation function evaluated in k-space where (k,mu_k) is
             // the pair separation and z is their average redshift. The separation k should
             // be provided in Mpc/h.            
-            double _evaluateRadiation(double k, double mu_k, double z) const;
+            double _evaluateRadiation(double k, double mu_k, double z, bool flag_real) const;
 	protected:
 	    // Returns the correlation function evaluated in redshift space where (r,mu) is
 	    // the pair separation and z is their average redshift. The separation k should
