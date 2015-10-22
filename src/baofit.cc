@@ -123,6 +123,7 @@ int main(int argc, char **argv) {
         ("metals", "Include r-space model of metal line correlations.")
         ("radiation", "Include quasar radiation effects. To be used with cross-correlation only")
         ("cross-correlation", "Uses independent linear bias parameters for both components.")
+        ("imaginary-part", "Uses imaginary part of the power spectrum.")
         ;
     dataOptions.add_options()
         ("data", po::value<std::string>(&dataName)->default_value(""),
@@ -307,6 +308,7 @@ int main(int argc, char **argv) {
         compareEach(vm.count("compare-each")), compareEachFinal(vm.count("compare-each-final")),
         decoupled(vm.count("decoupled")), loadICov(vm.count("load-icov")),
         loadWData(vm.count("load-wdata")), crossCorrelation(vm.count("cross-correlation")),
+        imaginaryPart(vm.count("imaginary-part")),
         parameterScan(vm.count("parameter-scan")), kspace(vm.count("kspace")),
         kspacefft(vm.count("kspace-fft")), calculateGradients(vm.count("calculate-gradients")),
         nlBroadband(vm.count("nl-broadband")), nlCorrection(vm.count("nl-correction")),
