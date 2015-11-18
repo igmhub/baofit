@@ -21,8 +21,8 @@
 namespace local = baofit;
 
 local::BaoKSpaceHybridCorrelationModel::BaoKSpaceHybridCorrelationModel(std::string const &modelrootName,
-    std::string const &fiducialName, std::string const &nowigglesName, double zref, double kxmax,
-    int nx, double spacing, int ny, double rmax, double dilmax, double epsAbs, double epsRel,
+    std::string const &fiducialName, std::string const &nowigglesName, double zref, double kxmax, int nx,
+    double spacing, int ny, int gridscaling, double rmax, double dilmax, double epsAbs, double epsRel,
     std::string const &distAdd, std::string const &distMul, double distR0, double zcorr0, double zcorr1,
     double zcorr2, double sigma8, bool anisotropic, bool decoupled,  bool nlBroadband, bool nlCorrection,
     bool nlCorrectionAlt, bool distortionAlt, bool noDistortion, bool crossCorrelation, bool verbose)
@@ -34,10 +34,10 @@ _verbose(verbose)
 {
     _setZRef(zref);
     // Linear bias parameters
-    defineParameter("beta",1.4,0.1);
-    defineParameter("(1+beta)*bias",-0.336,0.03);
-    defineParameter("gamma-bias",3.8,0.3);
-    defineParameter("gamma-beta",0,0.1);
+    _setBetaIndex(defineParameter("beta",1.4,0.1));
+    _setBbIndex(defineParameter("(1+beta)*bias",-0.336,0.03));
+    _setGammaBiasIndex(defineParameter("gamma-bias",3.8,0.3));
+    _setGammaBetaIndex(defineParameter("gamma-beta",0,0.1));
     if(crossCorrelation) {
         // Amount to shift each separation's line of sight velocity in km/s
         _setDVIndex(defineParameter("delta-v",0,10));
@@ -94,9 +94,9 @@ _verbose(verbose)
     // Use the lower k limit of our tabulated P(k) for the k-space grid.
     double kxmin = Ppk->getKMin();
     // Xipk(r,mu) ~ D(k,mu_k)*Ppk(k)
-    _Xipk.reset(new cosmo::DistortedPowerCorrelationHybrid(PpkPtr,distortionModelPtr,kxmin,kxmax,nx,spacing,ny,rmax,epsAbs,epsRel));
+    _Xipk.reset(new cosmo::DistortedPowerCorrelationHybrid(PpkPtr,distortionModelPtr,kxmin,kxmax,nx,spacing,ny,gridscaling,rmax,epsAbs,epsRel));
     // Xinw(r,mu) ~ D(k,mu_k)*Pnw(k)
-    _Xinw.reset(new cosmo::DistortedPowerCorrelationHybrid(PnwPtr,distortionModelPtr,kxmin,kxmax,nx,spacing,ny,rmax,epsAbs,epsRel));
+    _Xinw.reset(new cosmo::DistortedPowerCorrelationHybrid(PnwPtr,distortionModelPtr,kxmin,kxmax,nx,spacing,ny,gridscaling,rmax,epsAbs,epsRel));
 	if(verbose) {
         std::cout << "Hybrid transformation memory size = "
             << boost::format("%.1f Mb") % (_Xipk->getMemorySize()/1048576.) << std::endl;

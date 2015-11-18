@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
         zcorr0,zcorr1,zcorr2,sigma8;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
         mcmcSave,mcmcInterval,toymcSamples,reuseCov,nSpline,splineOrder,bootstrapCovTrials,
-        projectModesNKeep,covSampleSize,ellMax,samplesPerDecade,ngridx,ngridy,ngridz;
+        projectModesNKeep,covSampleSize,ellMax,samplesPerDecade,ngridx,ngridy,ngridz,gridscaling;
     std::string modelrootName,fiducialName,nowigglesName,dataName,xiPoints,toymcConfig,
         platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig,
         fixModeScales,distAdd,distMul,dataFormat,axis1Bins,axis2Bins,axis3Bins,metalrootName,metalName;
@@ -83,6 +83,8 @@ int main(int argc, char **argv) {
         ("kspace-hybrid", "Use a k-space model with hybrid transformation (default is r-space)")
         ("kxmax", po::value<double>(&kxmax)->default_value(4),
             "Maximum wavenumber in h/Mpc along x axis for hybrid transformation.")
+        ("gridscaling", po::value<int>(&gridscaling)->default_value(1),
+            "Scaling factor from grid spacing to interpolation grid.")
         ("relerr-hybrid", po::value<double>(&relerrHybrid)->default_value(1e-5),
             "Relative error target for 1D integral in hybrid transformation.")
         ("abserr-hybrid", po::value<double>(&abserrHybrid)->default_value(1e-8),
@@ -400,7 +402,7 @@ int main(int argc, char **argv) {
             // Build our fit model from tabulated P(k) on disk and use a hybrid transformation.
             model.reset(new baofit::BaoKSpaceHybridCorrelationModel(
                 modelrootName,fiducialName,nowigglesName,zref,
-                kxmax,ngridx,gridspacing,ngridy,rmax,dilmax,abserrHybrid,relerrHybrid,
+                kxmax,ngridx,gridspacing,ngridy,gridscaling,rmax,dilmax,abserrHybrid,relerrHybrid,
                 distAdd,distMul,distR0,zcorr0,zcorr1,zcorr2,sigma8,anisotropic,decoupled,
                 nlBroadband,nlCorrection,nlCorrectionAlt,distortionAlt,noDistortion,crossCorrelation,verbose));
         }
