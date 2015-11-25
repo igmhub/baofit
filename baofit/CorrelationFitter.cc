@@ -13,7 +13,6 @@
 #include "boost/ref.hpp"
 
 #include <iostream>
-//#include <iomanip>
 #include <cmath>
 
 namespace local = baofit;
@@ -83,9 +82,6 @@ double local::CorrelationFitter::operator()(likely::Parameters const &params) co
     // Scale chiSquare by 0.5 since the likely minimizer expects a -log(likelihood).
     // Add any model priors on the parameters. The additional factor of _errorScale
     // is to allow arbitrary error contours to be calculated a la MNCONTOUR.
-    //double chisq = (0.5*_icovScale*_data->chiSquare(pred) + _model->evaluatePriors())/_errorScale;
-    //std::cout << std::setprecision(10) << _model->getParameterValue("beta") << " " << _model->getParameterValue("(1+beta)*bias") << " " << _model->getParameterValue("cont-kc") << " " << _model->getParameterValue("BAO alpha-parallel") << " " << _model->getParameterValue("BAO alpha-perp") << " " << 2*chisq << std::endl;
-    //return chisq;
     return (0.5*_icovScale*_data->chiSquare(pred) + _model->evaluatePriors())/_errorScale;
 }
 
