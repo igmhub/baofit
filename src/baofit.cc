@@ -29,10 +29,11 @@ int main(int argc, char **argv) {
     double OmegaMatter,hubbleConstant,zref,minll,maxll,dll,dll2,minsep,dsep,minz,dz,rmin,rmax,
         rVetoWidth,rVetoCenter,muMin,muMax,kloSpline,khiSpline,toymcScale,saveICovScale,
         zMin,zMax,llMin,llMax,sepMin,sepMax,distR0,zdump,relerr,abserr,dilmin,dilmax,
-        rperpMin,rperpMax,rparMin,rparMax,gridspacing,zcorr0,zcorr1,zcorr2,sigma8;
+        rperpMin,rperpMax,rparMin,rparMax,gridspacing,kxmax,relerrHybrid,abserrHybrid,
+        zcorr0,zcorr1,zcorr2,sigma8;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
         mcmcSave,mcmcInterval,toymcSamples,reuseCov,nSpline,splineOrder,bootstrapCovTrials,
-        projectModesNKeep,covSampleSize,ellMax,samplesPerDecade,ngridx,ngridy,ngridz;
+        projectModesNKeep,covSampleSize,ellMax,samplesPerDecade,ngridx,ngridy,ngridz,gridscaling;
     std::string modelrootName,fiducialName,nowigglesName,dataName,xiPoints,toymcConfig,
         platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig,
         fixModeScales,distAdd,distMul,dataFormat,axis1Bins,axis2Bins,axis3Bins,metalrootName,metalName;
@@ -79,6 +80,15 @@ int main(int argc, char **argv) {
             "Grid size along line-of-sight y-axis for 3D FFT (or zero for ngridy=ngridx).")
         ("ngridz", po::value<int>(&ngridz)->default_value(0),
             "Grid size along z-axis for 3D FFT (or zero for ngridz=ngridy).")
+        ("kspace-hybrid", "Use a k-space model with hybrid transformation (default is r-space)")
+        ("kxmax", po::value<double>(&kxmax)->default_value(4),
+            "Maximum wavenumber in h/Mpc along x axis for hybrid transformation.")
+        ("gridscaling", po::value<int>(&gridscaling)->default_value(1),
+            "Scaling factor from grid spacing to interpolation grid.")
+        ("relerr-hybrid", po::value<double>(&relerrHybrid)->default_value(1e-5),
+            "Relative error target for 1D integral in hybrid transformation.")
+        ("abserr-hybrid", po::value<double>(&abserrHybrid)->default_value(1e-8),
+            "Absolute error target for 1D integral in hybrid transformation.")
         ("zref", po::value<double>(&zref)->default_value(2.25),
             "Reference redshift used by model correlation functions.")
         ("dist-add", po::value<std::string>(&distAdd)->default_value(""),
@@ -313,7 +323,8 @@ int main(int argc, char **argv) {
         decoupled(vm.count("decoupled")), loadICov(vm.count("load-icov")),
         loadWData(vm.count("load-wdata")), crossCorrelation(vm.count("cross-correlation")),
         parameterScan(vm.count("parameter-scan")), kspace(vm.count("kspace")),
-        kspacefft(vm.count("kspace-fft")), calculateGradients(vm.count("calculate-gradients")),
+        kspacefft(vm.count("kspace-fft")), kspacehybrid(vm.count("kspace-hybrid")),
+        calculateGradients(vm.count("calculate-gradients")),
         nlBroadband(vm.count("nl-broadband")), nlCorrection(vm.count("nl-correction")),
         nlCorrectionAlt(vm.count("nl-correction-alt")), distortionAlt(vm.count("distortion-alt")),
         noDistortion(vm.count("no-distortion")), metalModel(vm.count("metal-model")),
@@ -386,6 +397,14 @@ int main(int argc, char **argv) {
                 gridspacing,ngridx,ngridy,ngridz,distAdd,distMul,distR0,
                 zcorr0,zcorr1,zcorr2,sigma8,anisotropic,decoupled,nlBroadband,nlCorrection,
                 nlCorrectionAlt,distortionAlt,noDistortion,crossCorrelation,verbose));
+        }
+        else if(kspacehybrid) {
+            // Build our fit model from tabulated P(k) on disk and use a hybrid transformation.
+            model.reset(new baofit::BaoKSpaceHybridCorrelationModel(
+                modelrootName,fiducialName,nowigglesName,zref,
+                kxmax,ngridx,gridspacing,ngridy,gridscaling,rmax,dilmax,abserrHybrid,relerrHybrid,
+                distAdd,distMul,distR0,zcorr0,zcorr1,zcorr2,sigma8,anisotropic,decoupled,
+                nlBroadband,nlCorrection,nlCorrectionAlt,distortionAlt,noDistortion,crossCorrelation,verbose));
         }
         else {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.

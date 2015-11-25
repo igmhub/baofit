@@ -8,6 +8,7 @@
 #include "baofit/BaoCorrelationModel.h"
 #include "baofit/BaoKSpaceCorrelationModel.h"
 #include "baofit/BaoKSpaceFftCorrelationModel.h"
+#include "baofit/BaoKSpaceHybridCorrelationModel.h"
 #include "baofit/BroadbandModel.h"
 #include "baofit/MetalCorrelationModel.h"
 #include "baofit/PkCorrelationModel.h"
