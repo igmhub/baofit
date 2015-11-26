@@ -31,7 +31,9 @@ namespace baofit {
             double zref, double rmin, double rmax, double dilmin, double dilmax,
             double relerr, double abserr, int ellMax, int samplesPerDecade,
             std::string const &distAdd, std::string const &distMul, double distR0,
+            double zcorr0, double zcorr1, double zcorr2, double sigma8,
             bool anisotropic = false, bool decoupled = false, bool nlBroadband = false,
+            bool nlCorrection = false, bool nlCorrectionAlt = false,
             bool metalModel = false, bool metalTemplate = false,
             bool crossCorrelation = false, bool verbose = false);
 		virtual ~BaoKSpaceCorrelationModel();
@@ -43,16 +45,18 @@ namespace baofit {
 		// be provided in Mpc/h.
         virtual double _evaluate(double r, double mu, double z, bool anyChanged) const;
 	private:
-        double _dilmin, _dilmax;
+        double _dilmin, _dilmax, _zcorr0, _zcorr1, _zcorr2;;
         AbsCorrelationModelPtr _metalCorr, _distortAdd, _distortMul;
-        bool _anisotropic, _decoupled, _nlBroadband, _metalModel, _metalTemplate, _crossCorrelation, _verbose;
+        NonLinearCorrectionModelPtr _nlcorr;
+        bool _anisotropic, _decoupled, _nlBroadband, _nlCorrection, _nlCorrectionAlt,
+            _metalModel, _metalTemplate, _crossCorrelation, _verbose;
         int _nlBase, _baoBase, _maxWarnings;
         mutable int _nWarnings;
         cosmo::DistortedPowerCorrelationPtr _Xipk, _Xinw;
         // Evaluates our k-space distortion model D(k,mu_k) using our current parameter values.
-        double _evaluateKSpaceDistortion(double k, double mu_k) const;
+        double _evaluateKSpaceDistortion(double k, double mu_k, double pk) const;
         // Parameters initialized in _evaluate that are needed by _evaluateKSpaceDistortion
-        mutable double _betaz, _beta2z, _snlPar2, _snlPerp2;
+        mutable double _betaz, _beta2z, _snlPar2, _snlPerp2, _zeff;
 	}; // BaoKSpaceCorrelationModel
 } // baofit
 

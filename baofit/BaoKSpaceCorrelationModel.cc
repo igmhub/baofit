@@ -2,8 +2,9 @@
 
 #include "baofit/BaoKSpaceCorrelationModel.h"
 #include "baofit/RuntimeError.h"
-#include "baofit/MetalCorrelationModel.h"
 #include "baofit/BroadbandModel.h"
+#include "baofit/NonLinearCorrectionModel.h"
+#include "baofit/MetalCorrelationModel.h"
 
 #include "likely/Interpolator.h"
 #include "likely/function_impl.h"
@@ -27,11 +28,13 @@ local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &m
     double zref, double rmin, double rmax, double dilmin, double dilmax,
     double relerr, double abserr, int ellMax, int samplesPerDecade,
     std::string const &distAdd, std::string const &distMul, double distR0,
-    bool anisotropic, bool decoupled,  bool nlBroadband, bool metalModel, bool metalTemplate,
-    bool crossCorrelation,
-    bool verbose)
+    double zcorr0, double zcorr1, double zcorr2, double sigma8,
+    bool anisotropic, bool decoupled,  bool nlBroadband, bool nlCorrection,
+    bool nlCorrectionAlt, bool metalModel, bool metalTemplate,
+    bool crossCorrelation, bool verbose)
 : AbsCorrelationModel("BAO k-Space Correlation Model"), _dilmin(dilmin), _dilmax(dilmax),
-_anisotropic(anisotropic), _decoupled(decoupled), _nlBroadband(nlBroadband),
+_zcorr0(zcorr0), _zcorr1(zcorr1), _zcorr2(zcorr2), _anisotropic(anisotropic), _decoupled(decoupled),
+_nlBroadband(nlBroadband), _nlCorrection(nlCorrection), _nlCorrectionAlt(nlCorrectionAlt),
 _metalModel(metalModel), _metalTemplate(metalTemplate), _crossCorrelation(crossCorrelation),
 _verbose(verbose), _nWarnings(0), _maxWarnings(10)
 {
@@ -89,8 +92,8 @@ _verbose(verbose), _nWarnings(0), _maxWarnings(10)
         likely::createFunctionPtr<const cosmo::TabulatedPower>(Pnw);
 
     // Create a smart pointer to our k-space distortion model D(k,mu_k)
-    cosmo::RMuFunctionCPtr distortionModelPtr(new cosmo::RMuFunction(boost::bind(
-        &BaoKSpaceCorrelationModel::_evaluateKSpaceDistortion,this,_1,_2)));
+    cosmo::KMuPkFunctionCPtr distortionModelPtr(new cosmo::KMuPkFunction(boost::bind(
+        &BaoKSpaceCorrelationModel::_evaluateKSpaceDistortion,this,_1,_2,_3)));
 
     // Create our fiducial and no-wiggles models. We don't initialize our models
     // yet, and instead wait until we are first evaluated and have values for
@@ -127,11 +130,14 @@ _verbose(verbose), _nWarnings(0), _maxWarnings(10)
         _distortMul.reset(new baofit::BroadbandModel("Multiplicative broadband distortion",
             "dist mul",distMul,distR0,zref,this));
     }
+    
+    // Define our non-linear correction model.
+    _nlcorr.reset(new baofit::NonLinearCorrectionModel(zref,sigma8,nlCorrection,nlCorrectionAlt));
 }
 
 local::BaoKSpaceCorrelationModel::~BaoKSpaceCorrelationModel() { }
 
-double local::BaoKSpaceCorrelationModel::_evaluateKSpaceDistortion(double k, double mu_k) const {
+double local::BaoKSpaceCorrelationModel::_evaluateKSpaceDistortion(double k, double mu_k, double pk) const {
     double mu2(mu_k*mu_k);
     // Calculate linear bias model
     double tracer1 = 1 + _betaz*mu2;
@@ -140,8 +146,11 @@ double local::BaoKSpaceCorrelationModel::_evaluateKSpaceDistortion(double k, dou
     // Calculate non-linear broadening
     double snl2 = _snlPar2*mu2 + _snlPerp2*(1-mu2);
     double nonlinear = std::exp(-0.5*snl2*k*k);
+    // Calculate non-linear correction, if any
+    double nonlinearcorr = _nlcorr->_evaluateNLCorrection(k,mu_k,pk,_zeff);
+    if(_crossCorrelation) nonlinearcorr = std::sqrt(nonlinearcorr);
     // Put the pieces together
-    return nonlinear*linear;
+    return nonlinear*nonlinearcorr*linear;
 }
 
 double local::BaoKSpaceCorrelationModel::_evaluate(double r, double mu, double z,
@@ -168,6 +177,12 @@ bool anyChanged) const {
     // Lookup linear bias redshift evolution parameters.
     double gammaBias = getParameterValue(2);
     double gammaBeta = getParameterValue(3);
+    // Calculate effective redshift for each (r,mu) bin, if requested
+    if(_zcorr0>0) {
+        double rpar = std::fabs(r*mu)/100.;
+        z = _zcorr0 + _zcorr1*rpar + _zcorr2*rpar*rpar;
+    }
+    _zeff = z;
     // Apply redshift evolution
     biasSq = redshiftEvolution(biasSq,gammaBias,z,_getZRef());
     _betaz = redshiftEvolution(beta,gammaBeta,z,_getZRef());
@@ -179,7 +194,7 @@ bool anyChanged) const {
     _snlPerp2 = snlPerp*snlPerp;
     _snlPar2 = snlPar*snlPar;
 
-    // Redo the transforms from (k,mu_k) to (r,mu) if necessary
+    // Redo the transforms from (k,mu_k) to (r,mu), if necessary
     if(anyChanged) {
         bool nlChanged = isParameterValueChanged(_nlBase) || isParameterValueChanged(_nlBase+1);
         bool otherChanged = isParameterValueChanged(0);
@@ -285,5 +300,7 @@ void  local::BaoKSpaceCorrelationModel::printToStream(std::ostream &out, std::st
     AbsCorrelationModel::printToStream(out,formatSpec);
     out << "Using " << (_anisotropic ? "anisotropic":"isotropic") << " BAO scales." << std::endl;
     out << "Scales apply to BAO peak " << (_decoupled ? "only." : "and cosmological broadband.") << std::endl;
+    out << "Anisotropic non-linear broadening applies to peak " << (!_nlBroadband ? "only." : "and cosmological broadband.") << std::endl;
+    out << "Non-linear correction is switched " << (_nlCorrection || _nlCorrectionAlt ? "on." : "off.") << std::endl;
     out << "Metal correlations are switched " << (_metalModel || _metalTemplate ? "on." : "off.") << std::endl;
 }
