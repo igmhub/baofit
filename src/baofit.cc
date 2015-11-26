@@ -387,8 +387,9 @@ int main(int argc, char **argv) {
             model.reset(new baofit::BaoKSpaceCorrelationModel(
                 modelrootName,fiducialName,nowigglesName,metalrootName,metalName,
                 zref,rmin,rmax,dilmin,dilmax,relerr,abserr,ellMax,samplesPerDecade,
-                distAdd,distMul,distR0,anisotropic,decoupled,nlBroadband,metalModel,
-                metalTemplate,crossCorrelation,verbose));
+                distAdd,distMul,distR0,zcorr0,zcorr1,zcorr2,sigma8,anisotropic,decoupled,
+                nlBroadband,nlCorrection,nlCorrectionAlt,metalModel,metalTemplate,
+                crossCorrelation,verbose));
         }
         else if(kspacefft) {
             // Build our fit model from tabulated P(k) on disk and use a 3D FFT.
