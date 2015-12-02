@@ -22,7 +22,7 @@ likely::Parameters const &params, int index) {
     bool anyChanged = updateParameterValues(params);
     _updateInternalParameters();
     if(_dvIndex >= 0) _applyVelocityShift(r,mu,z);
-    double result = _evaluate(r,mu,z,anyChanged);
+    double result = _evaluate(r,mu,z,anyChanged,index);
     resetParameterValuesChanged();
     return result;
 }
@@ -30,7 +30,7 @@ likely::Parameters const &params, int index) {
 double local::AbsCorrelationModel::evaluate(double r, cosmo::Multipole multipole, double z,
 likely::Parameters const &params, int index) {
     bool anyChanged = updateParameterValues(params);
-    double result = _evaluate(r,multipole,z,anyChanged);
+    double result = _evaluate(r,multipole,z,anyChanged,index);
     resetParameterValuesChanged();
     return result;
 }
@@ -44,17 +44,17 @@ std::vector<double> zbin, int nbins) {
 }
 
 double local::AbsCorrelationModel::_evaluate(double r, cosmo::Multipole multipole, double z,
-bool anyChanged) const {
+bool anyChanged, int index) const {
     // Get a pointer to our (r,mu,z) evaluator. We need a typedef here to disambiguate the two
     // overloaded _evaluate methods.
-    typedef double (AbsCorrelationModel::*fOfRMuZ)(double, double, double, bool) const;
+    typedef double (AbsCorrelationModel::*fOfRMuZ)(double, double, double, bool, int) const;
     fOfRMuZ fptr(&AbsCorrelationModel::_evaluate);
     // Call our (r,mu,z) evaluator once with mu=0 and the input value of anyChanged so it can
     // do any necessary one-time calculations. Subsequent calls will use anyChanged = false.
-    (this->*fptr)(r,0,z,anyChanged);
-    // Create a smart pointer to a function object of mu with the other args (r,z,anyChanged) bound.
+    (this->*fptr)(r,0,z,anyChanged,index);
+    // Create a smart pointer to a function object of mu with the other args (r,z,anyChanged,index) bound.
     likely::GenericFunctionPtr fOfMuPtr(
-        new likely::GenericFunction(boost::bind(fptr,this,r,_1,z,false)));
+        new likely::GenericFunction(boost::bind(fptr,this,r,_1,z,false,index)));
     // Finally we have something we can pass to the generic multipole projection integrator.
     return cosmo::getMultipole(fOfMuPtr,(int)multipole);
 }

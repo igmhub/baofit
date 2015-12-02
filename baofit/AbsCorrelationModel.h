@@ -44,10 +44,10 @@ namespace baofit {
         // The public methods above call these protected methods after making parameter values
         // and changes available via our base class' getParameterValue() and isParameterValueChanged()
         // methods. Any registered changes to parameter values are reset after calling any of these.
-        virtual double _evaluate(double r, double mu, double z, bool changed) const = 0;
+        virtual double _evaluate(double r, double mu, double z, bool changed, int index) const = 0;
         // We provide a default implementation of the (r,ell,z) evaluator that performs the
         // projection integral over mu weighted with LegendreP(ell) numerically.
-        virtual double _evaluate(double r, cosmo::Multipole multipole, double z, bool changed) const;
+        virtual double _evaluate(double r, cosmo::Multipole multipole, double z, bool changed, int index) const;
         // Defines the standard set of linear bias parameters used by _getNormFactor below, in
         // addition to a parameter "delta-v" used by _applyVelocityShift below. Adds a second set
         // of bias and beta parameters if crossCorrelation is true. Returns the index

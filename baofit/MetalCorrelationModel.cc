@@ -98,7 +98,7 @@ local::MetalCorrelationModel::MetalCorrelationModel(std::string const &metalroot
 
 local::MetalCorrelationModel::~MetalCorrelationModel() { }
 
-double local::MetalCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
+double local::MetalCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged, int index) const {
     double xi(0);
     double rperp = r*std::sqrt(1-mu*mu);
     if(rperp<_rperpMin) rperp = _rperpMin;

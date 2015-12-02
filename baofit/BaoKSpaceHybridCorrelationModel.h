@@ -39,7 +39,7 @@ namespace baofit {
 		// Returns the correlation function evaluated in redshift space where (r,mu) is
 		// the pair separation and z is their average redshift. The separation r should
 		// be provided in Mpc/h.
-        virtual double _evaluate(double r, double mu, double z, bool anyChanged) const;
+        virtual double _evaluate(double r, double mu, double z, bool anyChanged, int index) const;
 	private:
         double _dilmax, _zcorr0, _zcorr1, _zcorr2;
         AbsCorrelationModelPtr _distortAdd, _distortMul;

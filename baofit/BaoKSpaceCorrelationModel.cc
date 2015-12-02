@@ -156,7 +156,7 @@ double local::BaoKSpaceCorrelationModel::_evaluateKSpaceDistortion(double k, dou
 }
 
 double local::BaoKSpaceCorrelationModel::_evaluate(double r, double mu, double z,
-bool anyChanged) const {
+bool anyChanged, int index) const {
 
     // Lookup linear bias parameters.
     double beta = getParameterValue(0);
@@ -285,7 +285,7 @@ bool anyChanged) const {
     double xi = biasSqz*(ampl*peak + smooth);
     
     // Add r-space metal correlations, if any.
-    if(_metalModel || _metalTemplate) xi += _metalCorr->_evaluate(r,mu,z,anyChanged);
+    if(_metalModel || _metalTemplate) xi += _metalCorr->_evaluate(r,mu,z,anyChanged,index);
     
     // Apply distortion matrix, if any.
     if(_distMatrix) {
@@ -326,7 +326,7 @@ bool anyChanged) const {
                 smooth = (_decoupled) ? _Xinw->getCorrelation(rbin,mubin) : _Xinw->getCorrelation(rBAO,muBAO);
                 xiUndist[i] = biasSqz*(ampl*peak + smooth);
                 // Add r-space metal correlations, if any.
-                if(_metalModel || _metalTemplate) xiUndist[i] += _metalCorr->_evaluate(rbin,mubin,zbin,anyChanged);
+                if(_metalModel || _metalTemplate) xiUndist[i] += _metalCorr->_evaluate(rbin,mubin,zbin,anyChanged,index);
             }
         }
         // Multiply undistorted xi by distortion matrix.
@@ -337,9 +337,9 @@ bool anyChanged) const {
     }
     
     // Add r-space broadband distortions, if any.
-    if(_distortMul) xi *= 1 + _distortMul->_evaluate(r,mu,z,anyChanged);
+    if(_distortMul) xi *= 1 + _distortMul->_evaluate(r,mu,z,anyChanged,index);
     if(_distortAdd) {
-        double distortion = _distortAdd->_evaluate(r,mu,z,anyChanged);
+        double distortion = _distortAdd->_evaluate(r,mu,z,anyChanged,index);
         // The additive distortion is multiplied by ((1+z)/(1+z0))^gammaBias
         xi += redshiftEvolution(distortion,gammaBias,z,_getZRef());
     }

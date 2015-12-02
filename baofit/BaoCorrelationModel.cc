@@ -79,7 +79,7 @@ _metalModel(metalModel), _metalTemplate(metalTemplate)
 
 local::BaoCorrelationModel::~BaoCorrelationModel() { }
 
-double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
+double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged, int index) const {
 
     // Lookup parameter values by name.
     double ampl = getParameterValue(_indexBase + 1); //("BAO amplitude");
@@ -132,12 +132,12 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     double xi = peak + smooth;
     
     // Add r-space metal correlations, if any.
-    if(_metalModel || _metalTemplate) xi += _metalCorr->_evaluate(r,mu,z,anyChanged);
+    if(_metalModel || _metalTemplate) xi += _metalCorr->_evaluate(r,mu,z,anyChanged,index);
     
     // Add broadband distortions, if any.
-    if(_distortMul) xi *= 1 + _distortMul->_evaluate(r,mu,z,anyChanged);
+    if(_distortMul) xi *= 1 + _distortMul->_evaluate(r,mu,z,anyChanged,index);
     if(_distortAdd) {
-        double distortion = _distortAdd->_evaluate(r,mu,z,anyChanged);
+        double distortion = _distortAdd->_evaluate(r,mu,z,anyChanged,index);
         // The additive distortion is multiplied by ((1+z)/(1+z0))^gamma_bias
         double gamma_bias = getParameterValue(_indexBase - 1); //("gamma-bias");
         xi += redshiftEvolution(distortion,gamma_bias,z,_getZRef());

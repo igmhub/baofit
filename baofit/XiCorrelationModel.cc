@@ -152,7 +152,7 @@ void local::XiCorrelationModel::_initializeInterpolators() const {
     }
 }
 
-double local::XiCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
+double local::XiCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged, int index) const {
     // Rebuild our interpolators, if necessary.
     if(anyChanged) _initializeInterpolators();
     // Calculate the Legendre weights.
@@ -167,7 +167,7 @@ double local::XiCorrelationModel::_evaluate(double r, double mu, double z, bool 
 }
 
 double local::XiCorrelationModel::_evaluate(double r, cosmo::Multipole multipole, double z,
-bool anyChanged) const {
+bool anyChanged, int index) const {
     // Rebuild our interpolators, if necessary.
     if(anyChanged) _initializeInterpolators();
     // Return the appropriately normalized multipole.

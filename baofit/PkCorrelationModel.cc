@@ -225,7 +225,7 @@ double local::PkCorrelationModel::_xi(double r, cosmo::Multipole multipole) cons
     return xi;
 }
 
-double local::PkCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
+double local::PkCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged, int index) const {
     // Cache expensive sine integrals.
     _fillCache(r);
     // Calculate the Legendre weights.
@@ -239,7 +239,7 @@ double local::PkCorrelationModel::_evaluate(double r, double mu, double z, bool 
 }
 
 double local::PkCorrelationModel::_evaluate(double r, cosmo::Multipole multipole, double z,
-bool anyChanged) const {
+bool anyChanged, int index) const {
     // Cache expensive sine integrals.
     _fillCache(r);
     return _getNormFactor(multipole,z)*_xi(r,multipole);
