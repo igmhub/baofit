@@ -23,11 +23,15 @@ namespace baofit {
 		// delta-v is non-zero, the separation triangle defined by (r,mu) will be modified
 		// by displacing the edge along the line of sight by an amount dpi = (dv/100)(1+z)/H(z)
 		// in Mpc/h, where dv = delta-v is in km/s.
-        double evaluate(double r, double mu, double z, likely::Parameters const &params);
+        double evaluate(double r, double mu, double z, likely::Parameters const &params, int index);
         // Returns the correlation function for the specified multipole at co-moving pair separation
         // r and average pair redshift z. Updates our current parameter values. The value of
         // delta-v has no effect.
-        double evaluate(double r, cosmo::Multipole multipole, double z, likely::Parameters const &params);
+        double evaluate(double r, cosmo::Multipole multipole, double z, likely::Parameters const &params,
+            int index);
+        // Set coordinates.
+        void setCoordinates(std::vector<double> rbin, std::vector<double> mubin,
+            std::vector<double> zbin, int nbins);
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
     protected:
@@ -79,13 +83,22 @@ namespace baofit {
         void _applyVelocityShift(double &r, double &mu, double z);
         // Updates the multipole normalization factors b^2(z)*C_ell(beta(z)) returned by getNormFactor(ell).
         double _getNormFactor(cosmo::Multipole multipole, double z) const;
+        // Returns the radius in Mpc/h for the specified bin.
+        double _getRBin(int index) const;
+        // Returns the cosine of angle for the specified bin.
+        double _getMuBin(int index) const;
+        // Returns the redshift for the specified bin.
+        double _getZBin(int index) const;
+        // Returns the number of bins for the coordinate grid.
+        int _getNBins() const;
     private:
-        int _indexBase, _dvIndex, _betaIndex, _bbIndex, _gammabiasIndex, _gammabetaIndex;
+        int _indexBase, _dvIndex, _betaIndex, _bbIndex, _gammabiasIndex, _gammabetaIndex, _nbins;
         bool _crossCorrelation;
         enum IndexOffset {
             BETA = 0, BB = 1, GAMMA_BIAS = 2, GAMMA_BETA = 3, DELTA_V = 4, BIAS2 = 5, BB2 = 6
         };
         double _zref, _beta, _bias, _gammaBias, _gammaBeta;
+        std::vector<double> _rbin, _mubin, _zbin;
 	}; // AbsCorrelationModel
 
     inline double AbsCorrelationModel::_getZRef() const { return _zref; }
@@ -98,6 +111,7 @@ namespace baofit {
     inline double AbsCorrelationModel::_getBias() const { return _bias; }
     inline double AbsCorrelationModel::_getGammaBias() const { return _gammaBias; }
     inline double AbsCorrelationModel::_getGammaBeta() const { return _gammaBeta; }
+    inline int AbsCorrelationModel::_getNBins() const { return _nbins; }
     // Evaluates the redshift evolution p(z) of a parameter for which p(zref)=p0 according to
     // p(z) = p0*((1+z)/(1+zref))^gamma.
     double redshiftEvolution(double p0, double gamma, double z, double zref);

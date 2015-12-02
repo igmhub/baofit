@@ -18,7 +18,7 @@ local::AbsCorrelationModel::AbsCorrelationModel(std::string const &name)
 local::AbsCorrelationModel::~AbsCorrelationModel() { }
 
 double local::AbsCorrelationModel::evaluate(double r, double mu, double z,
-likely::Parameters const &params) {
+likely::Parameters const &params, int index) {
     bool anyChanged = updateParameterValues(params);
     _updateInternalParameters();
     if(_dvIndex >= 0) _applyVelocityShift(r,mu,z);
@@ -28,11 +28,19 @@ likely::Parameters const &params) {
 }
 
 double local::AbsCorrelationModel::evaluate(double r, cosmo::Multipole multipole, double z,
-likely::Parameters const &params) {
+likely::Parameters const &params, int index) {
     bool anyChanged = updateParameterValues(params);
     double result = _evaluate(r,multipole,z,anyChanged);
     resetParameterValuesChanged();
     return result;
+}
+
+void local::AbsCorrelationModel::setCoordinates(std::vector<double> rbin, std::vector<double> mubin,
+std::vector<double> zbin, int nbins) {
+    _rbin = rbin;
+    _mubin = mubin;
+    _zbin = zbin;
+    _nbins = nbins;
 }
 
 double local::AbsCorrelationModel::_evaluate(double r, cosmo::Multipole multipole, double z,
@@ -150,6 +158,27 @@ double local::AbsCorrelationModel::_getNormFactor(cosmo::Multipole multipole, do
     default:
         return biasSq*(1 + (2./3.)*betaAvg + (1./5.)*betaProd);
     }
+}
+
+double local::AbsCorrelationModel::_getRBin(int index) const {
+    if(index < 0 || index >= _nbins) {
+        throw RuntimeError("AbsCorrelationModel::getRBin: invalid index.");
+    }
+    return _rbin[index];
+}
+
+double local::AbsCorrelationModel::_getMuBin(int index) const {
+    if(index < 0 || index >= _nbins) {
+        throw RuntimeError("AbsCorrelationModel::getMuBin: invalid index.");
+    }
+    return _mubin[index];
+}
+
+double local::AbsCorrelationModel::_getZBin(int index) const {
+    if(index < 0 || index >= _nbins) {
+        throw RuntimeError("AbsCorrelationModel::getZBin: invalid index.");
+    }
+    return _zbin[index];
 }
 
 void  local::AbsCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
