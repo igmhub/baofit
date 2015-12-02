@@ -33,7 +33,7 @@ namespace baofit {
             std::string const &distAdd, std::string const &distMul, double distR0,
             double zcorr0, double zcorr1, double zcorr2, double sigma8,
             bool anisotropic = false, bool decoupled = false, bool nlBroadband = false,
-            bool nlCorrection = false, bool nlCorrectionAlt = false,
+            bool nlCorrection = false, bool nlCorrectionAlt = false, bool distMatrix = false,
             bool metalModel = false, bool metalTemplate = false,
             bool crossCorrelation = false, bool verbose = false);
 		virtual ~BaoKSpaceCorrelationModel();
@@ -45,11 +45,11 @@ namespace baofit {
 		// be provided in Mpc/h.
         virtual double _evaluate(double r, double mu, double z, bool anyChanged) const;
 	private:
-        double _dilmin, _dilmax, _zcorr0, _zcorr1, _zcorr2;;
+        double _dilmin, _dilmax, _zcorr0, _zcorr1, _zcorr2, _rmin, _rmax;
         AbsCorrelationModelPtr _metalCorr, _distortAdd, _distortMul;
         NonLinearCorrectionModelPtr _nlcorr;
         bool _anisotropic, _decoupled, _nlBroadband, _nlCorrection, _nlCorrectionAlt,
-            _metalModel, _metalTemplate, _crossCorrelation, _verbose;
+            _distMatrix, _metalModel, _metalTemplate, _crossCorrelation, _verbose;
         int _nlBase, _baoBase, _maxWarnings;
         mutable int _nWarnings;
         cosmo::DistortedPowerCorrelationPtr _Xipk, _Xinw;

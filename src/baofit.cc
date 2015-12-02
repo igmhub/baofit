@@ -130,6 +130,7 @@ int main(int argc, char **argv) {
         ("nl-correction-alt", "k-space alternative non-linear correction applied in the flux power spectrum model.")
         ("distortion-alt", "Uses alternative model for the continuum fitting broadband distortion.")
         ("no-distortion", "No modeling of the continuum fitting broadband distortion.")
+        ("dist-matrix", "Uses distortion matrix to model continuum fitting broadband distortion.")
         ("metal-model", "Include r-space model of metal line correlations.")
         ("metalroot", po::value<std::string>(&metalrootName)->default_value(""),
             "Common path to prepend to all metal model filenames.")
@@ -327,8 +328,9 @@ int main(int argc, char **argv) {
         calculateGradients(vm.count("calculate-gradients")),
         nlBroadband(vm.count("nl-broadband")), nlCorrection(vm.count("nl-correction")),
         nlCorrectionAlt(vm.count("nl-correction-alt")), distortionAlt(vm.count("distortion-alt")),
-        noDistortion(vm.count("no-distortion")), metalModel(vm.count("metal-model")),
-        metalTemplate(vm.count("metal-template")), customGrid(vm.count("custom-grid"));
+        noDistortion(vm.count("no-distortion")), distMatrix(vm.count("dist-matrix")),
+        metalModel(vm.count("metal-model")), metalTemplate(vm.count("metal-template")),
+        customGrid(vm.count("custom-grid"));
 
     // Check that we have a recognized data format.
     if(dataFormat != "comoving-cartesian" && dataFormat != "comoving-polar" &&
@@ -388,7 +390,7 @@ int main(int argc, char **argv) {
                 modelrootName,fiducialName,nowigglesName,metalrootName,metalName,
                 zref,rmin,rmax,dilmin,dilmax,relerr,abserr,ellMax,samplesPerDecade,
                 distAdd,distMul,distR0,zcorr0,zcorr1,zcorr2,sigma8,anisotropic,decoupled,
-                nlBroadband,nlCorrection,nlCorrectionAlt,metalModel,metalTemplate,
+                nlBroadband,nlCorrection,nlCorrectionAlt,distMatrix,metalModel,metalTemplate,
                 crossCorrelation,verbose));
         }
         else if(kspacefft) {
@@ -541,6 +543,12 @@ int main(int argc, char **argv) {
                 }
             }
             analyzer.addData(data,reuseCovIndex);
+        }
+        
+        // Forward the grid coordinates of our binned data to the correlation model,
+        // if using a distortion matrix.
+        if(distMatrix) {
+            analyzer.setCoordinates();
         }
         
         // Initialize combined as a read-only pointer to the finalized data to fit...

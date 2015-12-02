@@ -30,13 +30,13 @@ local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &m
     std::string const &distAdd, std::string const &distMul, double distR0,
     double zcorr0, double zcorr1, double zcorr2, double sigma8,
     bool anisotropic, bool decoupled,  bool nlBroadband, bool nlCorrection,
-    bool nlCorrectionAlt, bool metalModel, bool metalTemplate,
+    bool nlCorrectionAlt, bool distMatrix, bool metalModel, bool metalTemplate,
     bool crossCorrelation, bool verbose)
 : AbsCorrelationModel("BAO k-Space Correlation Model"), _dilmin(dilmin), _dilmax(dilmax),
 _zcorr0(zcorr0), _zcorr1(zcorr1), _zcorr2(zcorr2), _anisotropic(anisotropic), _decoupled(decoupled),
 _nlBroadband(nlBroadband), _nlCorrection(nlCorrection), _nlCorrectionAlt(nlCorrectionAlt),
-_metalModel(metalModel), _metalTemplate(metalTemplate), _crossCorrelation(crossCorrelation),
-_verbose(verbose), _nWarnings(0), _maxWarnings(10)
+_distMatrix(distMatrix), _metalModel(metalModel), _metalTemplate(metalTemplate),
+_crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarnings(10)
 {
     _setZRef(zref);
     // Linear bias parameters
@@ -105,8 +105,10 @@ _verbose(verbose), _nWarnings(0), _maxWarnings(10)
     // Expand the radial ranges needed for transforms to allow for the min/max dilation.
     rmin *= dilmin;
     rmax *= dilmax;
+    _rmin = rmin;
+    _rmax = rmax;
     // Space interpolation points at ~1 Mpc/h.
-    int nr = (int)std::ceil(rmax-rmin); 
+    int nr = (int)std::ceil(rmax-rmin);
     double abspow(0);
     bool symmetric(true);
     // Xipk(r,mu) ~ D(k,mu_k)*Ppk(k)
@@ -184,7 +186,7 @@ bool anyChanged) const {
     }
     _zeff = z;
     // Apply redshift evolution
-    biasSq = redshiftEvolution(biasSq,gammaBias,z,_getZRef());
+    double biasSqz = redshiftEvolution(biasSq,gammaBias,z,_getZRef());
     _betaz = redshiftEvolution(beta,gammaBeta,z,_getZRef());
     if(_crossCorrelation) _beta2z = redshiftEvolution(beta2,gammaBeta,z,_getZRef());
 
@@ -251,39 +253,88 @@ bool anyChanged) const {
     double gamma_scale = getParameterValue(_baoBase + 4);
 
     // Transform (r,mu) to (rBAO,muBAO) using the scale parameters.
-    double rBAO, muBAO;
+    double rBAO, muBAO, scalez;
     if(_anisotropic) {
         double apar = redshiftEvolution(scale_parallel,gamma_scale,z,_getZRef());
         double aperp = redshiftEvolution(scale_perp,gamma_scale,z,_getZRef());
         double musq(mu*mu);
-        scale = std::sqrt(apar*apar*musq + aperp*aperp*(1-musq));
-        rBAO = r*scale;
-        muBAO = apar*mu/scale;
+        scalez = std::sqrt(apar*apar*musq + aperp*aperp*(1-musq));
+        rBAO = r*scalez;
+        muBAO = apar*mu/scalez;
     }
     else {
-        scale = redshiftEvolution(scale,gamma_scale,z,_getZRef());
-        rBAO = r*scale;
+        scalez = redshiftEvolution(scale,gamma_scale,z,_getZRef());
+        rBAO = r*scalez;
         muBAO = mu;
     }
 
     // Check dilation limits
-    if(scale < _dilmin) {
+    if(scalez < _dilmin) {
         throw RuntimeError("BaoKSpaceCorrelationModel: hit min dilation limit.");
     }
-    else if(scale > _dilmax) {
+    else if(scalez > _dilmax) {
         throw RuntimeError("BaoKSpaceCorrelationModel: hit max dilation limit.");
     }
 
-    // Calculate the cosmological predictions...
+    // Calculate the cosmological predictions.
     // the peak model is always evaluated at (rBAO,muBAO)
     double peak = _Xipk->getCorrelation(rBAO,muBAO);
     // the decoupled option determines where we evaluate the smooth model
     double smooth = (_decoupled) ? _Xinw->getCorrelation(r,mu) : _Xinw->getCorrelation(rBAO,muBAO);
     // Combine the pieces with the appropriate normalization factors
-    double xi = biasSq*(ampl*peak + smooth);
+    double xi = biasSqz*(ampl*peak + smooth);
     
     // Add r-space metal correlations, if any.
     if(_metalModel || _metalTemplate) xi += _metalCorr->_evaluate(r,mu,z,anyChanged);
+    
+    // Apply distortion matrix, if any.
+    if(_distMatrix) {
+        int nbins = _getNBins();
+        if(anyChanged) {
+            std::vector<double> xiUndist;
+            xiUndist.reserve(nbins);
+            // Calculate undistorted xi for every bin.
+            for(int i = 0; i < nbins; ++i) {
+                double rbin = _getRBin(i);
+                double mubin = _getMuBin(i);
+                double zbin = _getZBin(i);
+                if(rbin < _rmin || rbin > _rmax) {
+                    xiUndist[i] = 0.;
+                    continue;
+                }
+                biasSqz = redshiftEvolution(biasSq,gammaBias,zbin,_getZRef());
+                // Transform (rbin,mubin) to (rBAO,muBAO) using the scale parameters.
+                if(_anisotropic) {
+                    double apar = redshiftEvolution(scale_parallel,gamma_scale,zbin,_getZRef());
+                    double aperp = redshiftEvolution(scale_perp,gamma_scale,zbin,_getZRef());
+                    double musq(mubin*mubin);
+                    scalez = std::sqrt(apar*apar*musq + aperp*aperp*(1-musq));
+                    rBAO = rbin*scalez;
+                    muBAO = apar*mubin/scalez;
+                }
+                else {
+                    scalez = redshiftEvolution(scale,gamma_scale,zbin,_getZRef());
+                    rBAO = rbin*scalez;
+                    muBAO = mubin;
+                }
+                if(rBAO < _rmin || rBAO > _rmax) {
+                    xiUndist[i] = 0.;
+                    continue;
+                }
+                // Calculate the cosmological predictions.
+                peak = _Xipk->getCorrelation(rBAO,muBAO);
+                smooth = (_decoupled) ? _Xinw->getCorrelation(rbin,mubin) : _Xinw->getCorrelation(rBAO,muBAO);
+                xiUndist[i] = biasSqz*(ampl*peak + smooth);
+                // Add r-space metal correlations, if any.
+                if(_metalModel || _metalTemplate) xiUndist[i] += _metalCorr->_evaluate(rbin,mubin,zbin,anyChanged);
+            }
+        }
+        // Multiply undistorted xi by distortion matrix.
+        double xitmp(0.);
+        for(int i = 0; i < nbins; ++i) {
+            xitmp += 0.;
+        }
+    }
     
     // Add r-space broadband distortions, if any.
     if(_distortMul) xi *= 1 + _distortMul->_evaluate(r,mu,z,anyChanged);
