@@ -18,8 +18,8 @@ namespace baofit {
 	    // option metalModel will read a set of required Lya-metal and metal-metal templates
 	    // provided by the user. The option metalTemplate uses an empirical template derived
 	    // from metals added to mock data.
-	    MetalCorrelationModel(std::string const &metalrootName, std::string const &metalName,
-	        bool metalModel = false, bool metalTemplate = false, AbsCorrelationModel *base = 0);
+	    MetalCorrelationModel(std::string const &metalModelName, bool metalModel = false,
+	        bool metalTemplate = false, AbsCorrelationModel *base = 0);
 	    virtual ~MetalCorrelationModel();
 	    // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;

@@ -24,7 +24,7 @@ namespace local = baofit;
 
 local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &modelrootName,
     std::string const &fiducialName, std::string const &nowigglesName,
-    std::string const &metalrootName, std::string const &metalName,
+    std::string const &distMatrixName, std::string const &metalModelName,
     double zref, double rmin, double rmax, double dilmin, double dilmax,
     double relerr, double abserr, int ellMax, int samplesPerDecade,
     std::string const &distAdd, std::string const &distMul, double distR0,
@@ -120,7 +120,7 @@ _crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarni
     
     // Define our r-space metal correlation model, if any.
     if(metalModel || metalTemplate) {
-        _metalCorr.reset(new baofit::MetalCorrelationModel(metalrootName,metalName,metalModel,metalTemplate,this));
+        _metalCorr.reset(new baofit::MetalCorrelationModel(metalModelName,metalModel,metalTemplate,this));
     }
     
     // Define our r-space broadband distortion models, if any.
@@ -288,7 +288,7 @@ bool anyChanged, int index) const {
     if(_metalModel || _metalTemplate) xi += _metalCorr->_evaluate(r,mu,z,anyChanged,index);
     
     // Apply distortion matrix, if any.
-    if(_distMatrix) {
+    if(_distMatrix && index>=0) {
         int nbins = _getNBins();
         if(anyChanged) {
             std::vector<double> xiUndist;
@@ -353,5 +353,6 @@ void  local::BaoKSpaceCorrelationModel::printToStream(std::ostream &out, std::st
     out << "Scales apply to BAO peak " << (_decoupled ? "only." : "and cosmological broadband.") << std::endl;
     out << "Anisotropic non-linear broadening applies to peak " << (!_nlBroadband ? "only." : "and cosmological broadband.") << std::endl;
     out << "Non-linear correction is switched " << (_nlCorrection || _nlCorrectionAlt ? "on." : "off.") << std::endl;
+    out << "Distortion matrix is switched " << (_distMatrix ? "on." : "off.") << std::endl;
     out << "Metal correlations are switched " << (_metalModel || _metalTemplate ? "on." : "off.") << std::endl;
 }

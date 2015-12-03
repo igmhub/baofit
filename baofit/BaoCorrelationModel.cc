@@ -17,9 +17,9 @@ namespace local = baofit;
 
 local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName,
     std::string const &fiducialName, std::string const &nowigglesName,
-    std::string const &metalrootName, std::string const &metalName,
-    std::string const &distAdd, std::string const &distMul, double distR0,
-    double zref, bool anisotropic, bool decoupled, bool metalModel, bool metalTemplate,
+    std::string const &metalModelName, std::string const &distAdd,
+    std::string const &distMul, double distR0, double zref,
+    bool anisotropic, bool decoupled, bool metalModel, bool metalTemplate,
     bool crossCorrelation)
 : AbsCorrelationModel("BAO Correlation Model"), _anisotropic(anisotropic), _decoupled(decoupled),
 _metalModel(metalModel), _metalTemplate(metalTemplate)
@@ -64,7 +64,7 @@ _metalModel(metalModel), _metalTemplate(metalTemplate)
     }
     // Define our r-space metal correlation model, if any.
     if(metalModel || metalTemplate) {
-        _metalCorr.reset(new baofit::MetalCorrelationModel(metalrootName,metalName,metalModel,metalTemplate,this));
+        _metalCorr.reset(new baofit::MetalCorrelationModel(metalModelName,metalModel,metalTemplate,this));
     }
     // Define our broadband distortion models, if any.
     if(distAdd.length() > 0) {

@@ -27,7 +27,7 @@ namespace baofit {
         // be re-normalized appropriately when the model is evaluated at any different z.
 		BaoKSpaceCorrelationModel(std::string const &modelrootName,
 		    std::string const &fiducialName, std::string const &nowigglesName,
-		    std::string const &metalrootName, std::string const &metalName,
+		    std::string const &distMatrixName, std::string const &metalModelName,
             double zref, double rmin, double rmax, double dilmin, double dilmax,
             double relerr, double abserr, int ellMax, int samplesPerDecade,
             std::string const &distAdd, std::string const &distMul, double distR0,
