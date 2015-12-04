@@ -44,7 +44,7 @@ int local::CorrelationAnalyzer::addData(AbsCorrelationDataCPtr data, int reuseCo
         boost::dynamic_pointer_cast<const likely::BinnedData>(data),reuseCovIndex);
 }
 
-void local::CorrelationAnalyzer::setCoordinates() const {
+int local::CorrelationAnalyzer::setCoordinates() const {
     AbsCorrelationDataPtr combined =
         boost::dynamic_pointer_cast<baofit::AbsCorrelationData>(_resampler.combined());
     int nbins = combined->getGrid().getNBinsTotal();
@@ -57,7 +57,8 @@ void local::CorrelationAnalyzer::setCoordinates() const {
         mubin.push_back(combined->getCosAngle(i));
         zbin.push_back(combined->getRedshift(i));
     }
-    _model->setCoordinates(rbin,mubin,zbin,nbins);
+    _model->setCoordinates(rbin,mubin,zbin);
+    return nbins;
 }
 
 local::AbsCorrelationDataPtr local::CorrelationAnalyzer::getCombined(bool verbose, bool finalized) const {

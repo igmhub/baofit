@@ -36,11 +36,14 @@ likely::Parameters const &params, int index) {
 }
 
 void local::AbsCorrelationModel::setCoordinates(std::vector<double> rbin, std::vector<double> mubin,
-std::vector<double> zbin, int nbins) {
+std::vector<double> zbin) {
     _rbin = rbin;
     _mubin = mubin;
     _zbin = zbin;
-    _nbins = nbins;
+    _nbins = _rbin.size();
+    if(_nbins != _mubin.size() || _nbins != _zbin.size()) {
+        throw RuntimeError("AbsCorrelationModel::setCoordinates: coordinate vectors not the same size.");
+    }
 }
 
 double local::AbsCorrelationModel::_evaluate(double r, cosmo::Multipole multipole, double z,

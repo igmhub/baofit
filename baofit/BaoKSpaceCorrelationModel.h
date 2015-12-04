@@ -31,7 +31,7 @@ namespace baofit {
             double zref, double rmin, double rmax, double dilmin, double dilmax,
             double relerr, double abserr, int ellMax, int samplesPerDecade,
             std::string const &distAdd, std::string const &distMul, double distR0,
-            double zcorr0, double zcorr1, double zcorr2, double sigma8,
+            double zcorr0, double zcorr1, double zcorr2, double sigma8, int distMatrixOrder,
             bool anisotropic = false, bool decoupled = false, bool nlBroadband = false,
             bool nlCorrection = false, bool nlCorrectionAlt = false, bool distMatrix = false,
             bool metalModel = false, bool metalTemplate = false,
@@ -50,7 +50,7 @@ namespace baofit {
         NonLinearCorrectionModelPtr _nlcorr;
         bool _anisotropic, _decoupled, _nlBroadband, _nlCorrection, _nlCorrectionAlt,
             _distMatrix, _metalModel, _metalTemplate, _crossCorrelation, _verbose;
-        int _nlBase, _baoBase, _maxWarnings;
+        int _nlBase, _baoBase, _maxWarnings, _distMatrixOrder;
         mutable int _nWarnings;
         cosmo::DistortedPowerCorrelationPtr _Xipk, _Xinw;
         // Evaluates our k-space distortion model D(k,mu_k) using our current parameter values.

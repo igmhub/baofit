@@ -28,15 +28,16 @@ local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &m
     double zref, double rmin, double rmax, double dilmin, double dilmax,
     double relerr, double abserr, int ellMax, int samplesPerDecade,
     std::string const &distAdd, std::string const &distMul, double distR0,
-    double zcorr0, double zcorr1, double zcorr2, double sigma8,
+    double zcorr0, double zcorr1, double zcorr2, double sigma8, int distMatrixOrder,
     bool anisotropic, bool decoupled,  bool nlBroadband, bool nlCorrection,
     bool nlCorrectionAlt, bool distMatrix, bool metalModel, bool metalTemplate,
     bool crossCorrelation, bool verbose)
 : AbsCorrelationModel("BAO k-Space Correlation Model"), _dilmin(dilmin), _dilmax(dilmax),
-_zcorr0(zcorr0), _zcorr1(zcorr1), _zcorr2(zcorr2), _anisotropic(anisotropic), _decoupled(decoupled),
-_nlBroadband(nlBroadband), _nlCorrection(nlCorrection), _nlCorrectionAlt(nlCorrectionAlt),
-_distMatrix(distMatrix), _metalModel(metalModel), _metalTemplate(metalTemplate),
-_crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarnings(10)
+_zcorr0(zcorr0), _zcorr1(zcorr1), _zcorr2(zcorr2), _distMatrixOrder(distMatrixOrder),
+_anisotropic(anisotropic), _decoupled(decoupled), _nlBroadband(nlBroadband),
+_nlCorrection(nlCorrection), _nlCorrectionAlt(nlCorrectionAlt), _distMatrix(distMatrix),
+_metalModel(metalModel), _metalTemplate(metalTemplate), _crossCorrelation(crossCorrelation),
+_verbose(verbose), _nWarnings(0), _maxWarnings(10)
 {
     _setZRef(zref);
     // Linear bias parameters
@@ -289,7 +290,7 @@ bool anyChanged, int index) const {
     
     // Apply distortion matrix, if any.
     if(_distMatrix && index>=0) {
-        int nbins = _getNBins();
+        int nbins = _distMatrixOrder;
         if(anyChanged) {
             std::vector<double> xiUndist;
             xiUndist.reserve(nbins);

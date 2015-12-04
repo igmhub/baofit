@@ -29,9 +29,9 @@ namespace baofit {
         // delta-v has no effect.
         double evaluate(double r, cosmo::Multipole multipole, double z, likely::Parameters const &params,
             int index);
-        // Set coordinates.
+        // Sets the grid coordinates to use for the distortion matrix.
         void setCoordinates(std::vector<double> rbin, std::vector<double> mubin,
-            std::vector<double> zbin, int nbins);
+            std::vector<double> zbin);
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
     protected:
@@ -85,12 +85,10 @@ namespace baofit {
         double _getNormFactor(cosmo::Multipole multipole, double z) const;
         // Returns the radius in Mpc/h for the specified bin.
         double _getRBin(int index) const;
-        // Returns the cosine of angle for the specified bin.
+        // Returns the cosine of the theta angle for the specified bin.
         double _getMuBin(int index) const;
         // Returns the redshift for the specified bin.
         double _getZBin(int index) const;
-        // Returns the number of bins for the coordinate grid.
-        int _getNBins() const;
     private:
         int _indexBase, _dvIndex, _betaIndex, _bbIndex, _gammabiasIndex, _gammabetaIndex, _nbins;
         bool _crossCorrelation;
@@ -111,7 +109,6 @@ namespace baofit {
     inline double AbsCorrelationModel::_getBias() const { return _bias; }
     inline double AbsCorrelationModel::_getGammaBias() const { return _gammaBias; }
     inline double AbsCorrelationModel::_getGammaBeta() const { return _gammaBeta; }
-    inline int AbsCorrelationModel::_getNBins() const { return _nbins; }
     // Evaluates the redshift evolution p(z) of a parameter for which p(zref)=p0 according to
     // p(z) = p0*((1+z)/(1+zref))^gamma.
     double redshiftEvolution(double p0, double gamma, double z, double zref);
