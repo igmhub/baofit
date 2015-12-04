@@ -136,6 +136,11 @@ _verbose(verbose), _nWarnings(0), _maxWarnings(10)
     
     // Define our non-linear correction model.
     _nlcorr.reset(new baofit::NonLinearCorrectionModel(zref,sigma8,nlCorrection,nlCorrectionAlt));
+    
+    // Define our distortion matrix, if any.
+    //if(distMatrix) {
+    //    _distMat.reset(new baofit::DistortionMatrix(distMatrixName,distMatrixOrder));
+    //}
 }
 
 local::BaoKSpaceCorrelationModel::~BaoKSpaceCorrelationModel() { }
@@ -292,15 +297,13 @@ bool anyChanged, int index) const {
     if(_distMatrix && index>=0) {
         int nbins = _distMatrixOrder;
         if(anyChanged) {
-            std::vector<double> xiUndist;
-            xiUndist.reserve(nbins);
-            // Calculate undistorted xi for every bin.
-            for(int i = 0; i < nbins; ++i) {
-                double rbin = _getRBin(i);
-                double mubin = _getMuBin(i);
-                double zbin = _getZBin(i);
+            // Calculate the undistorted correlation function for every bin.
+            for(int bin = 0; bin < nbins; ++bin) {
+                double rbin = _getRBin(bin);
+                double mubin = _getMuBin(bin);
+                double zbin = _getZBin(bin);
                 if(rbin < _rmin || rbin > _rmax) {
-                    xiUndist[i] = 0.;
+                    //_distMat->setCorrelation(bin,0);
                     continue;
                 }
                 biasSqz = redshiftEvolution(biasSq,gammaBias,zbin,_getZRef());
@@ -319,21 +322,23 @@ bool anyChanged, int index) const {
                     muBAO = mubin;
                 }
                 if(rBAO < _rmin || rBAO > _rmax) {
-                    xiUndist[i] = 0.;
+                    //_distMat->setCorrelation(bin,0);
                     continue;
                 }
                 // Calculate the cosmological predictions.
                 peak = _Xipk->getCorrelation(rBAO,muBAO);
                 smooth = (_decoupled) ? _Xinw->getCorrelation(rbin,mubin) : _Xinw->getCorrelation(rBAO,muBAO);
-                xiUndist[i] = biasSqz*(ampl*peak + smooth);
+                double xiu = biasSqz*(ampl*peak + smooth);
                 // Add r-space metal correlations, if any.
-                if(_metalModel || _metalTemplate) xiUndist[i] += _metalCorr->_evaluate(rbin,mubin,zbin,anyChanged,index);
+                if(_metalModel || _metalTemplate) xiu += _metalCorr->_evaluate(rbin,mubin,zbin,anyChanged,index);
+                // Save the undistorted correlation function.
+                //_distMat->setCorrelation(bin,xiu);
             }
         }
-        // Multiply undistorted xi by distortion matrix.
-        double xitmp(0.);
-        for(int i = 0; i < nbins; ++i) {
-            xitmp += 0.;
+        // Multiply the undistorted correlation function by the distortion matrix.
+        //xi = 0;
+        for(int bin = 0; bin < nbins; ++bin) {
+            //xi += _distMat->getDistortion(index,bin)*_distMat->getCorrelation(bin);
         }
     }
     
