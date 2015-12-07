@@ -15,6 +15,10 @@ namespace baofit {
     typedef boost::shared_ptr<NonLinearCorrectionModel> NonLinearCorrectionModelPtr;
     typedef boost::shared_ptr<const NonLinearCorrectionModel> NonLinearCorrectionModelCPtr;
     
+    class DistortionMatrix;
+    typedef boost::shared_ptr<DistortionMatrix> DistortionMatrixPtr;
+    typedef boost::shared_ptr<const DistortionMatrix> DistortionMatrixCPtr;
+    
     class AbsCorrelationData;
     typedef boost::shared_ptr<AbsCorrelationData> AbsCorrelationDataPtr;    
     typedef boost::shared_ptr<const AbsCorrelationData> AbsCorrelationDataCPtr;    

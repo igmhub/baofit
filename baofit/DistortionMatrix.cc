@@ -19,14 +19,14 @@ namespace phoenix = boost::phoenix;
 
 namespace local = baofit;
 
-local::DistortionMatrix::DistortionMatrix(std::string const &distMatrixName, int distMatrixOrder)
+local::DistortionMatrix::DistortionMatrix(std::string const &distMatrixName, int distMatrixOrder, bool verbose)
 : _nbins(distMatrixOrder)
 {
     // Initialize the undistorted correlation function.
     _ucf.resize(_nbins,0.);
     
     // Initialize the distortion matrix.
-    nbinstot = _nbins*_nbins;
+    int nbinstot = _nbins*_nbins;
     _dist.resize(nbinstot,0.);
     
     // General stuff needed for reading the file.
@@ -67,7 +67,7 @@ local::DistortionMatrix::DistortionMatrix(std::string const &distMatrixName, int
     distIn.close();
     if(verbose) {
         std::cout << "Read " << lines << " of " << nbinstot
-            << " distortion values from " << distName << std::endl;
+            << " distortion matrix values from " << distName << std::endl;
     }
 }
 

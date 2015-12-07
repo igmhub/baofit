@@ -13,7 +13,7 @@ namespace baofit {
 	public:
 	    // Creates a distortion matrix based on values read from file. Missing entries
 	    // are assigned the value zero.
-	    DistortionMatrix(std::string const &distMatrixName, int distMatrixOrder);
+	    DistortionMatrix(std::string const &distMatrixName, int distMatrixOrder, bool verbose = false);
 	    virtual ~DistortionMatrix();
 	    // Returns the value of the distortion matrix for the specified indices.
 	    double getDistortion(int index1, int index2) const;

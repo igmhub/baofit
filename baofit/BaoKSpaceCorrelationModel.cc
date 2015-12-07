@@ -4,6 +4,7 @@
 #include "baofit/RuntimeError.h"
 #include "baofit/BroadbandModel.h"
 #include "baofit/NonLinearCorrectionModel.h"
+#include "baofit/DistortionMatrix.h"
 #include "baofit/MetalCorrelationModel.h"
 
 #include "likely/Interpolator.h"
@@ -119,6 +120,14 @@ _verbose(verbose), _nWarnings(0), _maxWarnings(10)
     _Xinw.reset(new cosmo::DistortedPowerCorrelation(PnwPtr,distortionModelPtr,
         klo,khi,nk,rmin,rmax,nr,ellMax,symmetric,relerr,abserr,abspow));
     
+    // Define our non-linear correction model.
+    _nlcorr.reset(new baofit::NonLinearCorrectionModel(zref,sigma8,nlCorrection,nlCorrectionAlt));
+    
+    // Define our distortion matrix, if any.
+    if(distMatrix) {
+        _distMat.reset(new baofit::DistortionMatrix(distMatrixName,distMatrixOrder,verbose));
+    }
+    
     // Define our r-space metal correlation model, if any.
     if(metalModel || metalTemplate) {
         _metalCorr.reset(new baofit::MetalCorrelationModel(metalModelName,metalModel,metalTemplate,this));
@@ -133,14 +142,6 @@ _verbose(verbose), _nWarnings(0), _maxWarnings(10)
         _distortMul.reset(new baofit::BroadbandModel("Multiplicative broadband distortion",
             "dist mul",distMul,distR0,zref,this));
     }
-    
-    // Define our non-linear correction model.
-    _nlcorr.reset(new baofit::NonLinearCorrectionModel(zref,sigma8,nlCorrection,nlCorrectionAlt));
-    
-    // Define our distortion matrix, if any.
-    //if(distMatrix) {
-    //    _distMat.reset(new baofit::DistortionMatrix(distMatrixName,distMatrixOrder));
-    //}
 }
 
 local::BaoKSpaceCorrelationModel::~BaoKSpaceCorrelationModel() { }
@@ -303,8 +304,12 @@ bool anyChanged, int index) const {
                 double mubin = _getMuBin(bin);
                 double zbin = _getZBin(bin);
                 if(rbin < _rmin || rbin > _rmax) {
-                    //_distMat->setCorrelation(bin,0);
+                    _distMat->setCorrelation(bin,0);
                     continue;
+                }
+                if(_zcorr0>0) {
+                    double rpar = std::fabs(rbin*mubin)/100.;
+                    zbin = _zcorr0 + _zcorr1*rpar + _zcorr2*rpar*rpar;
                 }
                 biasSqz = redshiftEvolution(biasSq,gammaBias,zbin,_getZRef());
                 // Transform (rbin,mubin) to (rBAO,muBAO) using the scale parameters.
@@ -322,7 +327,7 @@ bool anyChanged, int index) const {
                     muBAO = mubin;
                 }
                 if(rBAO < _rmin || rBAO > _rmax) {
-                    //_distMat->setCorrelation(bin,0);
+                    _distMat->setCorrelation(bin,0);
                     continue;
                 }
                 // Calculate the cosmological predictions.
@@ -332,13 +337,13 @@ bool anyChanged, int index) const {
                 // Add r-space metal correlations, if any.
                 if(_metalModel || _metalTemplate) xiu += _metalCorr->_evaluate(rbin,mubin,zbin,anyChanged,index);
                 // Save the undistorted correlation function.
-                //_distMat->setCorrelation(bin,xiu);
+                _distMat->setCorrelation(bin,xiu);
             }
         }
         // Multiply the undistorted correlation function by the distortion matrix.
-        //xi = 0;
+        xi = 0;
         for(int bin = 0; bin < nbins; ++bin) {
-            //xi += _distMat->getDistortion(index,bin)*_distMat->getCorrelation(bin);
+            xi += _distMat->getDistortion(index,bin)*_distMat->getCorrelation(bin);
         }
     }
     

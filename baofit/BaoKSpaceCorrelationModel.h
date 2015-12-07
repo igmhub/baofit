@@ -48,7 +48,7 @@ namespace baofit {
         double _dilmin, _dilmax, _zcorr0, _zcorr1, _zcorr2, _rmin, _rmax;
         AbsCorrelationModelPtr _metalCorr, _distortAdd, _distortMul;
         NonLinearCorrectionModelPtr _nlcorr;
-        //DistortionMatrixPtr _distMat;
+        DistortionMatrixPtr _distMat;
         bool _anisotropic, _decoupled, _nlBroadband, _nlCorrection, _nlCorrectionAlt,
             _distMatrix, _metalModel, _metalTemplate, _crossCorrelation, _verbose;
         int _nlBase, _baoBase, _maxWarnings, _distMatrixOrder;
