@@ -62,7 +62,9 @@ _verbose(verbose), _nWarnings(0), _maxWarnings(10)
     defineParameter("BAO alpha-iso",1,0.02);
     defineParameter("BAO alpha-parallel",1,0.1);
     defineParameter("BAO alpha-perp",1,0.1);
-    int last = defineParameter("gamma-scale",0,0.5);
+    defineParameter("gamma-scale",0,0.5);
+    // Pixelization parameter
+    _pixBase = defineParameter("pixel scale",2,0.2);
 
     // Load the P(k) interpolation data we will use for each multipole of each model.
     std::string root(modelrootName);
@@ -158,8 +160,13 @@ double local::BaoKSpaceCorrelationModel::_evaluateKSpaceDistortion(double k, dou
     // Calculate non-linear correction, if any
     double nonlinearcorr = _nlcorr->_evaluateNLCorrection(k,mu_k,pk,_zeff);
     if(_crossCorrelation) nonlinearcorr = std::sqrt(nonlinearcorr);
+    // Parallel pixelization smoothing
+    double kpar = std::fabs(k*mu_k);
+    double pixScale = getParameterValue(_pixBase);
+    double pix = std::sin(pixScale*kpar)/(pixScale*kpar);
+    double pixelization = pix*pix;
     // Put the pieces together
-    return nonlinear*nonlinearcorr*linear;
+    return nonlinear*nonlinearcorr*linear*pixelization;
 }
 
 double local::BaoKSpaceCorrelationModel::_evaluate(double r, double mu, double z,
@@ -206,6 +213,7 @@ bool anyChanged, int index) const {
     // Redo the transforms from (k,mu_k) to (r,mu), if necessary
     if(anyChanged) {
         bool nlChanged = isParameterValueChanged(_nlBase) || isParameterValueChanged(_nlBase+1);
+        bool pixChanged = isParameterValueChanged(_pixBase);
         bool otherChanged = isParameterValueChanged(0);
         int nmu(20);
         double margin(4), vepsMax(1e-1), vepsMin(1e-6);
@@ -219,7 +227,7 @@ bool anyChanged, int index) const {
                 _Xipk->printToStream(std::cout);
             }
         }
-        else if(nlChanged || otherChanged) {
+        else if(nlChanged || pixChanged || otherChanged) {
             // We are already initialized, so just redo the transforms.
             converged &= _Xipk->transform(interpolateK,bypassConvergenceTest);
         }
@@ -237,7 +245,7 @@ bool anyChanged, int index) const {
                 _Xinw->printToStream(std::cout);
             }
         }
-        else if(nlChanged || otherChanged) {
+        else if(nlChanged || pixChanged || otherChanged) {
             // We are already initialized, so just redo the transforms.
             converged &= _Xinw->transform(interpolateK,bypassConvergenceTest);
         }

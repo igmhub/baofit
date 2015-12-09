@@ -51,7 +51,7 @@ namespace baofit {
         DistortionMatrixPtr _distMat;
         bool _anisotropic, _decoupled, _nlBroadband, _nlCorrection, _nlCorrectionAlt,
             _distMatrix, _metalModel, _metalTemplate, _crossCorrelation, _verbose;
-        int _nlBase, _baoBase, _maxWarnings, _distMatrixOrder;
+        int _nlBase, _baoBase, _pixBase, _maxWarnings, _distMatrixOrder;
         mutable int _nWarnings;
         cosmo::DistortedPowerCorrelationPtr _Xipk, _Xinw;
         // Evaluates our k-space distortion model D(k,mu_k) using our current parameter values.
