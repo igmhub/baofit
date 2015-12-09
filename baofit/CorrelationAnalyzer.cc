@@ -197,11 +197,11 @@ AbsCorrelationDataCPtr combined) const {
     if(chisq > 0 && nbins > npar) {
         double prob = 1 - boost::math::gamma_p((nbins-npar)/2.,chisq/2);
         out << boost::lexical_cast<std::string>(chisq) << ' ' << boost::lexical_cast<std::string>(nbins) << ' '
-            << boost::lexical_cast<std::string>(npar) << ' ' << boost::lexical_cast<std::string>(prob);
+            << boost::lexical_cast<std::string>(npar) << ' ' << boost::lexical_cast<std::string>(prob) << std::endl;
     }
     else {
         out << boost::lexical_cast<std::string>(chisq) << ' ' << boost::lexical_cast<std::string>(nbins) << ' '
-            << boost::lexical_cast<std::string>(npar) << ' ' << boost::lexical_cast<std::string>(-1);
+            << boost::lexical_cast<std::string>(npar) << ' ' << boost::lexical_cast<std::string>(-1) << std::endl;
     }
 }
 
