@@ -31,14 +31,14 @@ local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &m
     std::string const &distAdd, std::string const &distMul, double distR0,
     double zcorr0, double zcorr1, double zcorr2, double sigma8, int distMatrixOrder,
     bool anisotropic, bool decoupled,  bool nlBroadband, bool nlCorrection,
-    bool nlCorrectionAlt, bool distMatrix, bool metalModel, bool metalTemplate,
-    bool crossCorrelation, bool verbose)
+    bool nlCorrectionAlt, bool pixelize, bool distMatrix, bool metalModel,
+    bool metalTemplate, bool crossCorrelation, bool verbose)
 : AbsCorrelationModel("BAO k-Space Correlation Model"), _dilmin(dilmin), _dilmax(dilmax),
 _zcorr0(zcorr0), _zcorr1(zcorr1), _zcorr2(zcorr2), _distMatrixOrder(distMatrixOrder),
 _anisotropic(anisotropic), _decoupled(decoupled), _nlBroadband(nlBroadband),
-_nlCorrection(nlCorrection), _nlCorrectionAlt(nlCorrectionAlt), _distMatrix(distMatrix),
-_metalModel(metalModel), _metalTemplate(metalTemplate), _crossCorrelation(crossCorrelation),
-_verbose(verbose), _nWarnings(0), _maxWarnings(10)
+_nlCorrection(nlCorrection), _nlCorrectionAlt(nlCorrectionAlt), _pixelize(pixelize),
+_distMatrix(distMatrix), _metalModel(metalModel), _metalTemplate(metalTemplate),
+_crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarnings(10)
 {
     _setZRef(zref);
     // Linear bias parameters
@@ -63,8 +63,10 @@ _verbose(verbose), _nWarnings(0), _maxWarnings(10)
     defineParameter("BAO alpha-parallel",1,0.1);
     defineParameter("BAO alpha-perp",1,0.1);
     defineParameter("gamma-scale",0,0.5);
-    // Pixelization parameter
-    _pixBase = defineParameter("pixel scale",2,0.2);
+    if(pixelize) {
+        // Pixelization parameter
+        _pixBase = defineParameter("pixel scale",2,0.2);
+    }
 
     // Load the P(k) interpolation data we will use for each multipole of each model.
     std::string root(modelrootName);
@@ -160,11 +162,14 @@ double local::BaoKSpaceCorrelationModel::_evaluateKSpaceDistortion(double k, dou
     // Calculate non-linear correction, if any
     double nonlinearcorr = _nlcorr->_evaluateNLCorrection(k,mu_k,pk,_zeff);
     if(_crossCorrelation) nonlinearcorr = std::sqrt(nonlinearcorr);
-    // Parallel pixelization smoothing
-    double kpar = std::fabs(k*mu_k);
-    double pixScale = getParameterValue(_pixBase);
-    double pix = std::sin(pixScale*kpar)/(pixScale*kpar);
-    double pixelization = pix*pix;
+    // Calculate pixelization smoothing, if any
+    double pixelization(1);
+    if(_pixelize) {
+        double kpar = std::fabs(k*mu_k);
+        double pixScale = getParameterValue(_pixBase);
+        double pix = std::sin(pixScale*kpar)/(pixScale*kpar);
+        pixelization = pix*pix;
+    }
     // Put the pieces together
     return nonlinear*nonlinearcorr*linear*pixelization;
 }
@@ -213,7 +218,7 @@ bool anyChanged, int index) const {
     // Redo the transforms from (k,mu_k) to (r,mu), if necessary
     if(anyChanged) {
         bool nlChanged = isParameterValueChanged(_nlBase) || isParameterValueChanged(_nlBase+1);
-        bool pixChanged = isParameterValueChanged(_pixBase);
+        bool pixChanged = _pixelize ? isParameterValueChanged(_pixBase) : false;
         bool otherChanged = isParameterValueChanged(0);
         int nmu(20);
         double margin(4), vepsMax(1e-1), vepsMin(1e-6);
@@ -372,6 +377,7 @@ void  local::BaoKSpaceCorrelationModel::printToStream(std::ostream &out, std::st
     out << "Scales apply to BAO peak " << (_decoupled ? "only." : "and cosmological broadband.") << std::endl;
     out << "Anisotropic non-linear broadening applies to peak " << (!_nlBroadband ? "only." : "and cosmological broadband.") << std::endl;
     out << "Non-linear correction is switched " << (_nlCorrection || _nlCorrectionAlt ? "on." : "off.") << std::endl;
+    out << "Pixelization smoothing is switched " << (_pixelize ? "on." : "off.") << std::endl;
     out << "Distortion matrix is switched " << (_distMatrix ? "on." : "off.") << std::endl;
     out << "Metal correlations are switched " << (_metalModel || _metalTemplate ? "on." : "off.") << std::endl;
 }

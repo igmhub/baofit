@@ -33,8 +33,8 @@ namespace baofit {
             std::string const &distAdd, std::string const &distMul, double distR0,
             double zcorr0, double zcorr1, double zcorr2, double sigma8, int distMatrixOrder,
             bool anisotropic = false, bool decoupled = false, bool nlBroadband = false,
-            bool nlCorrection = false, bool nlCorrectionAlt = false, bool distMatrix = false,
-            bool metalModel = false, bool metalTemplate = false,
+            bool nlCorrection = false, bool nlCorrectionAlt = false, bool pixelize = false,
+            bool distMatrix = false, bool metalModel = false, bool metalTemplate = false,
             bool crossCorrelation = false, bool verbose = false);
 		virtual ~BaoKSpaceCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
@@ -50,7 +50,7 @@ namespace baofit {
         NonLinearCorrectionModelPtr _nlcorr;
         DistortionMatrixPtr _distMat;
         bool _anisotropic, _decoupled, _nlBroadband, _nlCorrection, _nlCorrectionAlt,
-            _distMatrix, _metalModel, _metalTemplate, _crossCorrelation, _verbose;
+            _pixelize, _distMatrix, _metalModel, _metalTemplate, _crossCorrelation, _verbose;
         int _nlBase, _baoBase, _pixBase, _maxWarnings, _distMatrixOrder;
         mutable int _nWarnings;
         cosmo::DistortedPowerCorrelationPtr _Xipk, _Xinw;
