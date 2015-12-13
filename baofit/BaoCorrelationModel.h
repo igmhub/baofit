@@ -19,9 +19,9 @@ namespace baofit {
 	    // reference redshift.
 		BaoCorrelationModel(std::string const &modelrootName,
 		    std::string const &fiducialName, std::string const &nowigglesName,
-            std::string const &metalrootName, std::string const &metalName,
-            std::string const &distAdd, std::string const &distMul, double distR0,
-            double zref, bool anisotropic = false, bool decoupled = false,
+            std::string const &metalModelName, std::string const &distAdd,
+            std::string const &distMul, double distR0, double zref,
+            bool anisotropic = false, bool decoupled = false,
             bool metalModel = false, bool metalTemplate = false,
             bool crossCorrelation = false);
 		virtual ~BaoCorrelationModel();
@@ -31,7 +31,7 @@ namespace baofit {
 		// Returns the correlation function evaluated in redshift space where (r,mu) is
 		// the pair separation and z is their average redshift. The separation r should
 		// be provided in Mpc/h.
-        virtual double _evaluate(double r, double mu, double z, bool anyChanged) const;
+        virtual double _evaluate(double r, double mu, double z, bool anyChanged, int index) const;
 	private:
         AbsCorrelationModelPtr _metalCorr, _distortAdd, _distortMul;
         bool _anisotropic, _decoupled, _metalModel, _metalTemplate;

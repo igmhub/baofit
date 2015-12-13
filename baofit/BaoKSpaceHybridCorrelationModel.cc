@@ -154,7 +154,7 @@ double local::BaoKSpaceHybridCorrelationModel::_evaluateKSpaceDistortion(double 
 }
 
 double local::BaoKSpaceHybridCorrelationModel::_evaluate(double r, double mu, double z,
-bool anyChanged) const {
+bool anyChanged, int index) const {
 
     // Lookup linear bias parameters.
     double beta = getParameterValue(0);
@@ -249,9 +249,9 @@ bool anyChanged) const {
     double xi = biasSq*(ampl*peak + smooth);
     
     // Add r-space broadband distortions, if any.
-    if(_distortMul) xi *= 1 + _distortMul->_evaluate(r,mu,z,anyChanged);
+    if(_distortMul) xi *= 1 + _distortMul->_evaluate(r,mu,z,anyChanged,index);
     if(_distortAdd) {
-        double distortion = _distortAdd->_evaluate(r,mu,z,anyChanged);
+        double distortion = _distortAdd->_evaluate(r,mu,z,anyChanged,index);
         // The additive distortion is multiplied by ((1+z)/(1+z0))^gammaBias
         xi += redshiftEvolution(distortion,gammaBias,z,_getZRef());
     }

@@ -33,10 +33,12 @@ int main(int argc, char **argv) {
         zcorr0,zcorr1,zcorr2,sigma8;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
         mcmcSave,mcmcInterval,toymcSamples,reuseCov,nSpline,splineOrder,bootstrapCovTrials,
-        projectModesNKeep,covSampleSize,ellMax,samplesPerDecade,ngridx,ngridy,ngridz,gridscaling;
+        projectModesNKeep,covSampleSize,ellMax,samplesPerDecade,ngridx,ngridy,ngridz,gridscaling,
+        distMatrixOrder;
     std::string modelrootName,fiducialName,nowigglesName,dataName,xiPoints,toymcConfig,
         platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig,
-        fixModeScales,distAdd,distMul,dataFormat,axis1Bins,axis2Bins,axis3Bins,metalrootName,metalName;
+        fixModeScales,distAdd,distMul,dataFormat,axis1Bins,axis2Bins,axis3Bins,distMatrixName,
+        metalModelName;
     std::vector<std::string> modelConfig;
 
     // Default values in quotes below are to avoid roundoff errors leading to ugly --help
@@ -130,10 +132,14 @@ int main(int argc, char **argv) {
         ("nl-correction-alt", "k-space alternative non-linear correction applied in the flux power spectrum model.")
         ("distortion-alt", "Uses alternative model for the continuum fitting broadband distortion.")
         ("no-distortion", "No modeling of the continuum fitting broadband distortion.")
+        ("pixelize", "Include pixelization smoothing.")
+        ("dist-matrix", "Uses distortion matrix to model continuum fitting broadband distortion.")
+        ("dist-matrix-name", po::value<std::string>(&distMatrixName)->default_value(""),
+            "Distortion matrix will be read from the specified file.")
+        ("dist-matrix-order", po::value<int>(&distMatrixOrder)->default_value(2500),
+            "Order of the (square) distortion matrix.")
         ("metal-model", "Include r-space model of metal line correlations.")
-        ("metalroot", po::value<std::string>(&metalrootName)->default_value(""),
-            "Common path to prepend to all metal model filenames.")
-        ("metalname", po::value<std::string>(&metalName)->default_value(""),
+        ("metal-model-name", po::value<std::string>(&metalModelName)->default_value(""),
             "Metal correlation functions will be read from <name>.<ell>.dat with ell=0,2,4.")
         ("metal-template", "Include r-space template for metal line correlations derived from mock data.")
         ("cross-correlation", "Uses independent linear bias parameters for both components.")
@@ -327,7 +333,8 @@ int main(int argc, char **argv) {
         calculateGradients(vm.count("calculate-gradients")),
         nlBroadband(vm.count("nl-broadband")), nlCorrection(vm.count("nl-correction")),
         nlCorrectionAlt(vm.count("nl-correction-alt")), distortionAlt(vm.count("distortion-alt")),
-        noDistortion(vm.count("no-distortion")), metalModel(vm.count("metal-model")),
+        noDistortion(vm.count("no-distortion")), pixelize(vm.count("pixelize")),
+        distMatrix(vm.count("dist-matrix")), metalModel(vm.count("metal-model")),
         metalTemplate(vm.count("metal-template")), customGrid(vm.count("custom-grid"));
 
     // Check that we have a recognized data format.
@@ -385,11 +392,11 @@ int main(int argc, char **argv) {
         else if(kspace) {
             // Build our fit model from tabulated P(k) on disk.
             model.reset(new baofit::BaoKSpaceCorrelationModel(
-                modelrootName,fiducialName,nowigglesName,metalrootName,metalName,
+                modelrootName,fiducialName,nowigglesName,distMatrixName,metalModelName,
                 zref,rmin,rmax,dilmin,dilmax,relerr,abserr,ellMax,samplesPerDecade,
-                distAdd,distMul,distR0,zcorr0,zcorr1,zcorr2,sigma8,anisotropic,decoupled,
-                nlBroadband,nlCorrection,nlCorrectionAlt,metalModel,metalTemplate,
-                crossCorrelation,verbose));
+                distAdd,distMul,distR0,zcorr0,zcorr1,zcorr2,sigma8,distMatrixOrder,anisotropic,
+                decoupled,nlBroadband,nlCorrection,nlCorrectionAlt,pixelize,distMatrix,
+                metalModel,metalTemplate,crossCorrelation,verbose));
         }
         else if(kspacefft) {
             // Build our fit model from tabulated P(k) on disk and use a 3D FFT.
@@ -410,7 +417,7 @@ int main(int argc, char **argv) {
         else {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
             model.reset(new baofit::BaoCorrelationModel(
-                modelrootName,fiducialName,nowigglesName,metalrootName,metalName,distAdd,distMul,
+                modelrootName,fiducialName,nowigglesName,metalModelName,distAdd,distMul,
                 distR0,zref,anisotropic,decoupled,metalModel,metalTemplate,crossCorrelation));
         }
              
@@ -541,6 +548,13 @@ int main(int argc, char **argv) {
                 }
             }
             analyzer.addData(data,reuseCovIndex);
+        }
+        
+        // Forward the grid coordinates of our binned data to the correlation model,
+        // if using a distortion matrix.
+        if(distMatrix) {
+            int nbins = analyzer.setCoordinates();
+            if(distMatrixOrder != nbins) throw baofit::RuntimeError("Distortion matrix order does not match grid size.");
         }
         
         // Initialize combined as a read-only pointer to the finalized data to fit...

@@ -194,7 +194,7 @@ double local::legendreP(int ell, double mu) {
     return 0;
 }
 
-double local::BroadbandModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
+double local::BroadbandModel::_evaluate(double r, double mu, double z, bool anyChanged, int index) const {
     double xi(0);
     double rr = r/_r0;
     double rrP = r*mu/_r0;
@@ -226,7 +226,7 @@ double local::BroadbandModel::_evaluate(double r, double mu, double z, bool anyC
 }
 
 double local::BroadbandModel::_evaluate(double r, cosmo::Multipole multipole, double z,
-bool anyChanged) const {
+bool anyChanged, int index) const {
     return 0;
 }
 

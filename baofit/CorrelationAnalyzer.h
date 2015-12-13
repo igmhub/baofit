@@ -31,6 +31,9 @@ namespace baofit {
         int getNData() const;
         // Sets the correlation model to use.
         void setModel(AbsCorrelationModelPtr model);
+        // Sets the grid coordinates to use for the distortion matrix in the correlation model.
+        // Returns the number of bins of the coordinate grid.
+        int setCoordinates() const;
         // Returns a shared pointer to the combined correlation data added to this
         // analyzer, after it has been finalized. If verbose, prints out the number
         // of bins with data before and after finalizing the data.

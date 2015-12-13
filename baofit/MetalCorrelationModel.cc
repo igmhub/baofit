@@ -13,9 +13,10 @@
 
 namespace local = baofit;
 
-local::MetalCorrelationModel::MetalCorrelationModel(std::string const &metalrootName, std::string const &metalName,
-    bool metalModel, bool metalTemplate, AbsCorrelationModel *base)
-: AbsCorrelationModel("Metal Correlation Model"), _metalModel(metalModel), _metalTemplate(metalTemplate), _base(base ? *base:*this)
+local::MetalCorrelationModel::MetalCorrelationModel(std::string const &metalModelName, bool metalModel,
+    bool metalTemplate, AbsCorrelationModel *base)
+: AbsCorrelationModel("Metal Correlation Model"), _metalModel(metalModel), _metalTemplate(metalTemplate),
+_base(base ? *base:*this)
 {
     if(metalModel && metalTemplate) throw RuntimeError("MetalCorrelationModel: illegal option specification.");
     // Initialize metal correlation model
@@ -30,52 +31,50 @@ local::MetalCorrelationModel::MetalCorrelationModel(std::string const &metalroot
         _base.defineParameter("beta Si3",1,0.1);
         _base.defineParameter("bias Si3",-0.01,0.001);
         // Load the interpolation data we will use for each multipole of each metal model.
-        std::string root(metalrootName);
-        if(0 < root.size() && root[root.size()-1] != '/') root += '/';
-        boost::format fileName("%s%s%s%s.%d.dat");
+        boost::format fileName("%s%s%s.%d.dat");
         try {
-            _LyaSi2a0 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Lya" % "_Si2a" % 0));
-            _LyaSi2a2 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Lya" % "_Si2a" % 2));
-            _LyaSi2a4 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Lya" % "_Si2a" % 4));
-            _LyaSi2b0 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Lya" % "_Si2b" % 0));
-            _LyaSi2b2 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Lya" % "_Si2b" % 2));
-            _LyaSi2b4 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Lya" % "_Si2b" % 4));
-            _LyaSi2c0 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Lya" % "_Si2c" % 0));
-            _LyaSi2c2 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Lya" % "_Si2c" % 2));
-            _LyaSi2c4 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Lya" % "_Si2c" % 4));
-            _LyaSi30 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Lya" % "_Si3" % 0));
-            _LyaSi32 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Lya" % "_Si3" % 2));
-            _LyaSi34 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Lya" % "_Si3" % 4));
-            _Si2aSi2a0 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Si2a" % "_Si2a" % 0));
-            _Si2aSi2a2 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Si2a" % "_Si2a" % 2));
-            _Si2aSi2a4 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Si2a" % "_Si2a" % 4));
-            _Si2aSi2b0 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Si2a" % "_Si2b" % 0));
-            _Si2aSi2b2 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Si2a" % "_Si2b" % 2));
-            _Si2aSi2b4 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Si2a" % "_Si2b" % 4));
-            _Si2aSi2c0 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Si2a" % "_Si2c" % 0));
-            _Si2aSi2c2 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Si2a" % "_Si2c" % 2));
-            _Si2aSi2c4 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Si2a" % "_Si2c" % 4));
-            _Si2bSi2b0 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Si2b" % "_Si2b" % 0));
-            _Si2bSi2b2 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Si2b" % "_Si2b" % 2));
-            _Si2bSi2b4 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Si2b" % "_Si2b" % 4));
-            _Si2bSi2c0 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Si2b" % "_Si2c" % 0));
-            _Si2bSi2c2 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Si2b" % "_Si2c" % 2));
-            _Si2bSi2c4 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Si2b" % "_Si2c" % 4));
-            _Si2cSi2c0 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Si2c" % "_Si2c" % 0));
-            _Si2cSi2c2 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Si2c" % "_Si2c" % 2));
-            _Si2cSi2c4 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Si2c" % "_Si2c" % 4));
-            _Si3Si2a0 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Si3" % "_Si2a" % 0));
-            _Si3Si2a2 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Si3" % "_Si2a" % 2));
-            _Si3Si2a4 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Si3" % "_Si2a" % 4));
-            _Si3Si2b0 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Si3" % "_Si2b" % 0));
-            _Si3Si2b2 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Si3" % "_Si2b" % 2));
-            _Si3Si2b4 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Si3" % "_Si2b" % 4));
-            _Si3Si2c0 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Si3" % "_Si2c" % 0));
-            _Si3Si2c2 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Si3" % "_Si2c" % 2));
-            _Si3Si2c4 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Si3" % "_Si2c" % 4));
-            _Si3Si30 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Si3" % "_Si3" % 0));
-            _Si3Si32 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Si3" % "_Si3" % 2));
-            _Si3Si34 = likely::createBiCubicInterpolator(boost::str(fileName % root % metalName % "_Si3" % "_Si3" % 4));
+            _LyaSi2a0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Lya" % "_Si2a" % 0));
+            _LyaSi2a2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Lya" % "_Si2a" % 2));
+            _LyaSi2a4 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Lya" % "_Si2a" % 4));
+            _LyaSi2b0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Lya" % "_Si2b" % 0));
+            _LyaSi2b2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Lya" % "_Si2b" % 2));
+            _LyaSi2b4 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Lya" % "_Si2b" % 4));
+            _LyaSi2c0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Lya" % "_Si2c" % 0));
+            _LyaSi2c2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Lya" % "_Si2c" % 2));
+            _LyaSi2c4 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Lya" % "_Si2c" % 4));
+            _LyaSi30 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Lya" % "_Si3" % 0));
+            _LyaSi32 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Lya" % "_Si3" % 2));
+            _LyaSi34 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Lya" % "_Si3" % 4));
+            _Si2aSi2a0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2a" % "_Si2a" % 0));
+            _Si2aSi2a2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2a" % "_Si2a" % 2));
+            _Si2aSi2a4 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2a" % "_Si2a" % 4));
+            _Si2aSi2b0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2a" % "_Si2b" % 0));
+            _Si2aSi2b2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2a" % "_Si2b" % 2));
+            _Si2aSi2b4 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2a" % "_Si2b" % 4));
+            _Si2aSi2c0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2a" % "_Si2c" % 0));
+            _Si2aSi2c2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2a" % "_Si2c" % 2));
+            _Si2aSi2c4 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2a" % "_Si2c" % 4));
+            _Si2bSi2b0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2b" % "_Si2b" % 0));
+            _Si2bSi2b2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2b" % "_Si2b" % 2));
+            _Si2bSi2b4 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2b" % "_Si2b" % 4));
+            _Si2bSi2c0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2b" % "_Si2c" % 0));
+            _Si2bSi2c2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2b" % "_Si2c" % 2));
+            _Si2bSi2c4 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2b" % "_Si2c" % 4));
+            _Si2cSi2c0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2c" % "_Si2c" % 0));
+            _Si2cSi2c2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2c" % "_Si2c" % 2));
+            _Si2cSi2c4 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2c" % "_Si2c" % 4));
+            _Si3Si2a0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si3" % "_Si2a" % 0));
+            _Si3Si2a2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si3" % "_Si2a" % 2));
+            _Si3Si2a4 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si3" % "_Si2a" % 4));
+            _Si3Si2b0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si3" % "_Si2b" % 0));
+            _Si3Si2b2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si3" % "_Si2b" % 2));
+            _Si3Si2b4 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si3" % "_Si2b" % 4));
+            _Si3Si2c0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si3" % "_Si2c" % 0));
+            _Si3Si2c2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si3" % "_Si2c" % 2));
+            _Si3Si2c4 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si3" % "_Si2c" % 4));
+            _Si3Si30 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si3" % "_Si3" % 0));
+            _Si3Si32 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si3" % "_Si3" % 2));
+            _Si3Si34 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si3" % "_Si3" % 4));
         }
         catch(likely::RuntimeError const &e) {
             throw RuntimeError("MetalCorrelationModel: error while reading metal model interpolation data.");
@@ -98,7 +97,7 @@ local::MetalCorrelationModel::MetalCorrelationModel(std::string const &metalroot
 
 local::MetalCorrelationModel::~MetalCorrelationModel() { }
 
-double local::MetalCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
+double local::MetalCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged, int index) const {
     double xi(0);
     double rperp = r*std::sqrt(1-mu*mu);
     if(rperp<_rperpMin) rperp = _rperpMin;

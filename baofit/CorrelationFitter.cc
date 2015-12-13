@@ -61,11 +61,11 @@ std::vector<double> &prediction) const {
         double predicted;
         if(_type == AbsCorrelationData::Coordinate) {
             double mu = _data->getCosAngle(index);
-            predicted = _model->evaluate(r,mu,z,params);
+            predicted = _model->evaluate(r,mu,z,params,index);
         }
         else {
             cosmo::Multipole multipole = _data->getMultipole(index);
-            predicted = _model->evaluate(r,multipole,z,params);
+            predicted = _model->evaluate(r,multipole,z,params,index);
         }
         prediction.push_back(predicted);
     }    

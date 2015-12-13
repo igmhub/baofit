@@ -44,6 +44,23 @@ int local::CorrelationAnalyzer::addData(AbsCorrelationDataCPtr data, int reuseCo
         boost::dynamic_pointer_cast<const likely::BinnedData>(data),reuseCovIndex);
 }
 
+int local::CorrelationAnalyzer::setCoordinates() const {
+    AbsCorrelationDataPtr combined =
+        boost::dynamic_pointer_cast<baofit::AbsCorrelationData>(_resampler.combined());
+    int nbins = combined->getGrid().getNBinsTotal();
+    std::vector<double> rbin, mubin, zbin;
+    rbin.reserve(nbins);
+    mubin.reserve(nbins);
+    zbin.reserve(nbins);
+    for(int i = 0; i < nbins; ++i) {
+        rbin.push_back(combined->getRadius(i));
+        mubin.push_back(combined->getCosAngle(i));
+        zbin.push_back(combined->getRedshift(i));
+    }
+    _model->setCoordinates(rbin,mubin,zbin);
+    return nbins;
+}
+
 local::AbsCorrelationDataPtr local::CorrelationAnalyzer::getCombined(bool verbose, bool finalized) const {
     AbsCorrelationDataPtr combined =
         boost::dynamic_pointer_cast<baofit::AbsCorrelationData>(_resampler.combined());
@@ -180,11 +197,11 @@ AbsCorrelationDataCPtr combined) const {
     if(chisq > 0 && nbins > npar) {
         double prob = 1 - boost::math::gamma_p((nbins-npar)/2.,chisq/2);
         out << boost::lexical_cast<std::string>(chisq) << ' ' << boost::lexical_cast<std::string>(nbins) << ' '
-            << boost::lexical_cast<std::string>(npar) << ' ' << boost::lexical_cast<std::string>(prob);
+            << boost::lexical_cast<std::string>(npar) << ' ' << boost::lexical_cast<std::string>(prob) << std::endl;
     }
     else {
         out << boost::lexical_cast<std::string>(chisq) << ' ' << boost::lexical_cast<std::string>(nbins) << ' '
-            << boost::lexical_cast<std::string>(npar) << ' ' << boost::lexical_cast<std::string>(-1);
+            << boost::lexical_cast<std::string>(npar) << ' ' << boost::lexical_cast<std::string>(-1) << std::endl;
     }
 }
 
@@ -613,12 +630,12 @@ AbsCorrelationDataCPtr combined, std::string const &script, bool dumpGradients) 
         cosmo::Multipole multipole;
         if(type == AbsCorrelationData::Coordinate) {
             mu = combined->getCosAngle(index);
-            predicted = _model->evaluate(r,mu,z,parameterValues);
+            predicted = _model->evaluate(r,mu,z,parameterValues,index);
             out  << ' ' << r << ' ' << mu << ' ' << z;
         }
         else {
             multipole = combined->getMultipole(index);
-            predicted = _model->evaluate(r,multipole,z,parameterValues);
+            predicted = _model->evaluate(r,multipole,z,parameterValues,index);
             out  << ' ' << r << ' ' << (int)multipole << ' ' << z;
         }
         out << ' ' << predicted << ' ' << data << ' ' << error;
@@ -629,12 +646,12 @@ AbsCorrelationDataCPtr combined, std::string const &script, bool dumpGradients) 
                     double p0 = parameterValues[ipar];
                     parameterValues[ipar] = p0 + 0.5*dpar;
                     double predHi = (type == AbsCorrelationData::Coordinate) ?
-                        _model->evaluate(r,mu,z,parameterValues) :
-                        _model->evaluate(r,multipole,z,parameterValues);
+                        _model->evaluate(r,mu,z,parameterValues,index) :
+                        _model->evaluate(r,multipole,z,parameterValues,index);
                     parameterValues[ipar] = p0 - 0.5*dpar;
                     double predLo = (type == AbsCorrelationData::Coordinate) ?
-                        _model->evaluate(r,mu,z,parameterValues) :
-                        _model->evaluate(r,multipole,z,parameterValues);
+                        _model->evaluate(r,mu,z,parameterValues,index) :
+                        _model->evaluate(r,multipole,z,parameterValues,index);
                     gradient = (predHi - predLo)/dpar;
                     parameterValues[ipar] = p0;
                 }
@@ -671,9 +688,9 @@ int ndump, double zdump, std::string const &script, bool oneLine) const {
     double dr((_rmax - _rmin)/(ndump-1));
     for(int rIndex = 0; rIndex < ndump; ++rIndex) {
         double rval(_rmin + dr*rIndex);
-        double mono = _model->evaluate(rval,cosmo::Monopole,zdump,parameterValues);
-        double quad = _model->evaluate(rval,cosmo::Quadrupole,zdump,parameterValues);
-        double hexa = _model->evaluate(rval,cosmo::Hexadecapole,zdump,parameterValues);
+        double mono = _model->evaluate(rval,cosmo::Monopole,zdump,parameterValues,-1);
+        double quad = _model->evaluate(rval,cosmo::Quadrupole,zdump,parameterValues,-1);
+        double hexa = _model->evaluate(rval,cosmo::Hexadecapole,zdump,parameterValues,-1);
         // Output the model predictions for this radius in the requested format.
         if(!oneLine) out << rval;
         out << ' ' << boost::lexical_cast<std::string>(mono) << ' '

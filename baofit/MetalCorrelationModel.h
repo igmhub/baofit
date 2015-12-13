@@ -18,8 +18,8 @@ namespace baofit {
 	    // option metalModel will read a set of required Lya-metal and metal-metal templates
 	    // provided by the user. The option metalTemplate uses an empirical template derived
 	    // from metals added to mock data.
-	    MetalCorrelationModel(std::string const &metalrootName, std::string const &metalName,
-	        bool metalModel = false, bool metalTemplate = false, AbsCorrelationModel *base = 0);
+	    MetalCorrelationModel(std::string const &metalModelName, bool metalModel = false,
+	        bool metalTemplate = false, AbsCorrelationModel *base = 0);
 	    virtual ~MetalCorrelationModel();
 	    // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
@@ -27,7 +27,7 @@ namespace baofit {
 	    // Returns the correlation function evaluated in redshift space where (r,mu) is
 		// the pair separation and z is their average redshift. The separation r should
 		// be provided in Mpc/h.
-	    virtual double _evaluate(double r, double mu, double z, bool anyChanged) const;
+	    virtual double _evaluate(double r, double mu, double z, bool anyChanged, int index) const;
 	private:
 	    int _indexBase;
 	    double _rperpMin, _rparMin, _rperpMax, _rparMax;

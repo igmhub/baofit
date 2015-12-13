@@ -27,14 +27,14 @@ namespace baofit {
         // be re-normalized appropriately when the model is evaluated at any different z.
 		BaoKSpaceCorrelationModel(std::string const &modelrootName,
 		    std::string const &fiducialName, std::string const &nowigglesName,
-		    std::string const &metalrootName, std::string const &metalName,
+		    std::string const &distMatrixName, std::string const &metalModelName,
             double zref, double rmin, double rmax, double dilmin, double dilmax,
             double relerr, double abserr, int ellMax, int samplesPerDecade,
             std::string const &distAdd, std::string const &distMul, double distR0,
-            double zcorr0, double zcorr1, double zcorr2, double sigma8,
+            double zcorr0, double zcorr1, double zcorr2, double sigma8, int distMatrixOrder,
             bool anisotropic = false, bool decoupled = false, bool nlBroadband = false,
-            bool nlCorrection = false, bool nlCorrectionAlt = false,
-            bool metalModel = false, bool metalTemplate = false,
+            bool nlCorrection = false, bool nlCorrectionAlt = false, bool pixelize = false,
+            bool distMatrix = false, bool metalModel = false, bool metalTemplate = false,
             bool crossCorrelation = false, bool verbose = false);
 		virtual ~BaoKSpaceCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
@@ -43,14 +43,15 @@ namespace baofit {
 		// Returns the correlation function evaluated in redshift space where (r,mu) is
 		// the pair separation and z is their average redshift. The separation r should
 		// be provided in Mpc/h.
-        virtual double _evaluate(double r, double mu, double z, bool anyChanged) const;
+        virtual double _evaluate(double r, double mu, double z, bool anyChanged, int index) const;
 	private:
-        double _dilmin, _dilmax, _zcorr0, _zcorr1, _zcorr2;;
+        double _dilmin, _dilmax, _zcorr0, _zcorr1, _zcorr2, _rmin, _rmax;
         AbsCorrelationModelPtr _metalCorr, _distortAdd, _distortMul;
         NonLinearCorrectionModelPtr _nlcorr;
+        DistortionMatrixPtr _distMat;
         bool _anisotropic, _decoupled, _nlBroadband, _nlCorrection, _nlCorrectionAlt,
-            _metalModel, _metalTemplate, _crossCorrelation, _verbose;
-        int _nlBase, _baoBase, _maxWarnings;
+            _pixelize, _distMatrix, _metalModel, _metalTemplate, _crossCorrelation, _verbose;
+        int _nlBase, _baoBase, _pixBase, _maxWarnings, _distMatrixOrder;
         mutable int _nWarnings;
         cosmo::DistortedPowerCorrelationPtr _Xipk, _Xinw;
         // Evaluates our k-space distortion model D(k,mu_k) using our current parameter values.

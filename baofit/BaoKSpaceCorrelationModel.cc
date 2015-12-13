@@ -4,6 +4,7 @@
 #include "baofit/RuntimeError.h"
 #include "baofit/BroadbandModel.h"
 #include "baofit/NonLinearCorrectionModel.h"
+#include "baofit/DistortionMatrix.h"
 #include "baofit/MetalCorrelationModel.h"
 
 #include "likely/Interpolator.h"
@@ -24,19 +25,20 @@ namespace local = baofit;
 
 local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &modelrootName,
     std::string const &fiducialName, std::string const &nowigglesName,
-    std::string const &metalrootName, std::string const &metalName,
+    std::string const &distMatrixName, std::string const &metalModelName,
     double zref, double rmin, double rmax, double dilmin, double dilmax,
     double relerr, double abserr, int ellMax, int samplesPerDecade,
     std::string const &distAdd, std::string const &distMul, double distR0,
-    double zcorr0, double zcorr1, double zcorr2, double sigma8,
+    double zcorr0, double zcorr1, double zcorr2, double sigma8, int distMatrixOrder,
     bool anisotropic, bool decoupled,  bool nlBroadband, bool nlCorrection,
-    bool nlCorrectionAlt, bool metalModel, bool metalTemplate,
-    bool crossCorrelation, bool verbose)
+    bool nlCorrectionAlt, bool pixelize, bool distMatrix, bool metalModel,
+    bool metalTemplate, bool crossCorrelation, bool verbose)
 : AbsCorrelationModel("BAO k-Space Correlation Model"), _dilmin(dilmin), _dilmax(dilmax),
-_zcorr0(zcorr0), _zcorr1(zcorr1), _zcorr2(zcorr2), _anisotropic(anisotropic), _decoupled(decoupled),
-_nlBroadband(nlBroadband), _nlCorrection(nlCorrection), _nlCorrectionAlt(nlCorrectionAlt),
-_metalModel(metalModel), _metalTemplate(metalTemplate), _crossCorrelation(crossCorrelation),
-_verbose(verbose), _nWarnings(0), _maxWarnings(10)
+_zcorr0(zcorr0), _zcorr1(zcorr1), _zcorr2(zcorr2), _distMatrixOrder(distMatrixOrder),
+_anisotropic(anisotropic), _decoupled(decoupled), _nlBroadband(nlBroadband),
+_nlCorrection(nlCorrection), _nlCorrectionAlt(nlCorrectionAlt), _pixelize(pixelize),
+_distMatrix(distMatrix), _metalModel(metalModel), _metalTemplate(metalTemplate),
+_crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarnings(10)
 {
     _setZRef(zref);
     // Linear bias parameters
@@ -60,7 +62,11 @@ _verbose(verbose), _nWarnings(0), _maxWarnings(10)
     defineParameter("BAO alpha-iso",1,0.02);
     defineParameter("BAO alpha-parallel",1,0.1);
     defineParameter("BAO alpha-perp",1,0.1);
-    int last = defineParameter("gamma-scale",0,0.5);
+    defineParameter("gamma-scale",0,0.5);
+    if(pixelize) {
+        // Pixelization parameter
+        _pixBase = defineParameter("pixel scale",2,0.2);
+    }
 
     // Load the P(k) interpolation data we will use for each multipole of each model.
     std::string root(modelrootName);
@@ -105,8 +111,10 @@ _verbose(verbose), _nWarnings(0), _maxWarnings(10)
     // Expand the radial ranges needed for transforms to allow for the min/max dilation.
     rmin *= dilmin;
     rmax *= dilmax;
+    _rmin = rmin;
+    _rmax = rmax;
     // Space interpolation points at ~1 Mpc/h.
-    int nr = (int)std::ceil(rmax-rmin); 
+    int nr = (int)std::ceil(rmax-rmin);
     double abspow(0);
     bool symmetric(true);
     // Xipk(r,mu) ~ D(k,mu_k)*Ppk(k)
@@ -116,9 +124,17 @@ _verbose(verbose), _nWarnings(0), _maxWarnings(10)
     _Xinw.reset(new cosmo::DistortedPowerCorrelation(PnwPtr,distortionModelPtr,
         klo,khi,nk,rmin,rmax,nr,ellMax,symmetric,relerr,abserr,abspow));
     
+    // Define our non-linear correction model.
+    _nlcorr.reset(new baofit::NonLinearCorrectionModel(zref,sigma8,nlCorrection,nlCorrectionAlt));
+    
+    // Define our distortion matrix, if any.
+    if(distMatrix) {
+        _distMat.reset(new baofit::DistortionMatrix(distMatrixName,distMatrixOrder,verbose));
+    }
+    
     // Define our r-space metal correlation model, if any.
     if(metalModel || metalTemplate) {
-        _metalCorr.reset(new baofit::MetalCorrelationModel(metalrootName,metalName,metalModel,metalTemplate,this));
+        _metalCorr.reset(new baofit::MetalCorrelationModel(metalModelName,metalModel,metalTemplate,this));
     }
     
     // Define our r-space broadband distortion models, if any.
@@ -130,9 +146,6 @@ _verbose(verbose), _nWarnings(0), _maxWarnings(10)
         _distortMul.reset(new baofit::BroadbandModel("Multiplicative broadband distortion",
             "dist mul",distMul,distR0,zref,this));
     }
-    
-    // Define our non-linear correction model.
-    _nlcorr.reset(new baofit::NonLinearCorrectionModel(zref,sigma8,nlCorrection,nlCorrectionAlt));
 }
 
 local::BaoKSpaceCorrelationModel::~BaoKSpaceCorrelationModel() { }
@@ -149,12 +162,20 @@ double local::BaoKSpaceCorrelationModel::_evaluateKSpaceDistortion(double k, dou
     // Calculate non-linear correction, if any
     double nonlinearcorr = _nlcorr->_evaluateNLCorrection(k,mu_k,pk,_zeff);
     if(_crossCorrelation) nonlinearcorr = std::sqrt(nonlinearcorr);
+    // Calculate pixelization smoothing, if any
+    double pixelization(1);
+    if(_pixelize) {
+        double kpar = std::fabs(k*mu_k);
+        double pixScale = getParameterValue(_pixBase);
+        double pix = std::sin(pixScale*kpar)/(pixScale*kpar);
+        pixelization = pix*pix;
+    }
     // Put the pieces together
-    return nonlinear*nonlinearcorr*linear;
+    return nonlinear*nonlinearcorr*linear*pixelization;
 }
 
 double local::BaoKSpaceCorrelationModel::_evaluate(double r, double mu, double z,
-bool anyChanged) const {
+bool anyChanged, int index) const {
 
     // Lookup linear bias parameters.
     double beta = getParameterValue(0);
@@ -184,7 +205,7 @@ bool anyChanged) const {
     }
     _zeff = z;
     // Apply redshift evolution
-    biasSq = redshiftEvolution(biasSq,gammaBias,z,_getZRef());
+    double biasSqz = redshiftEvolution(biasSq,gammaBias,z,_getZRef());
     _betaz = redshiftEvolution(beta,gammaBeta,z,_getZRef());
     if(_crossCorrelation) _beta2z = redshiftEvolution(beta2,gammaBeta,z,_getZRef());
 
@@ -197,6 +218,7 @@ bool anyChanged) const {
     // Redo the transforms from (k,mu_k) to (r,mu), if necessary
     if(anyChanged) {
         bool nlChanged = isParameterValueChanged(_nlBase) || isParameterValueChanged(_nlBase+1);
+        bool pixChanged = _pixelize ? isParameterValueChanged(_pixBase) : false;
         bool otherChanged = isParameterValueChanged(0);
         int nmu(20);
         double margin(4), vepsMax(1e-1), vepsMin(1e-6);
@@ -210,7 +232,7 @@ bool anyChanged) const {
                 _Xipk->printToStream(std::cout);
             }
         }
-        else if(nlChanged || otherChanged) {
+        else if(nlChanged || pixChanged || otherChanged) {
             // We are already initialized, so just redo the transforms.
             converged &= _Xipk->transform(interpolateK,bypassConvergenceTest);
         }
@@ -228,7 +250,7 @@ bool anyChanged) const {
                 _Xinw->printToStream(std::cout);
             }
         }
-        else if(nlChanged || otherChanged) {
+        else if(nlChanged || pixChanged || otherChanged) {
             // We are already initialized, so just redo the transforms.
             converged &= _Xinw->transform(interpolateK,bypassConvergenceTest);
         }
@@ -251,44 +273,97 @@ bool anyChanged) const {
     double gamma_scale = getParameterValue(_baoBase + 4);
 
     // Transform (r,mu) to (rBAO,muBAO) using the scale parameters.
-    double rBAO, muBAO;
+    double rBAO, muBAO, scalez;
     if(_anisotropic) {
         double apar = redshiftEvolution(scale_parallel,gamma_scale,z,_getZRef());
         double aperp = redshiftEvolution(scale_perp,gamma_scale,z,_getZRef());
         double musq(mu*mu);
-        scale = std::sqrt(apar*apar*musq + aperp*aperp*(1-musq));
-        rBAO = r*scale;
-        muBAO = apar*mu/scale;
+        scalez = std::sqrt(apar*apar*musq + aperp*aperp*(1-musq));
+        rBAO = r*scalez;
+        muBAO = apar*mu/scalez;
     }
     else {
-        scale = redshiftEvolution(scale,gamma_scale,z,_getZRef());
-        rBAO = r*scale;
+        scalez = redshiftEvolution(scale,gamma_scale,z,_getZRef());
+        rBAO = r*scalez;
         muBAO = mu;
     }
 
     // Check dilation limits
-    if(scale < _dilmin) {
+    if(scalez < _dilmin) {
         throw RuntimeError("BaoKSpaceCorrelationModel: hit min dilation limit.");
     }
-    else if(scale > _dilmax) {
+    else if(scalez > _dilmax) {
         throw RuntimeError("BaoKSpaceCorrelationModel: hit max dilation limit.");
     }
 
-    // Calculate the cosmological predictions...
+    // Calculate the cosmological predictions.
     // the peak model is always evaluated at (rBAO,muBAO)
     double peak = _Xipk->getCorrelation(rBAO,muBAO);
     // the decoupled option determines where we evaluate the smooth model
     double smooth = (_decoupled) ? _Xinw->getCorrelation(r,mu) : _Xinw->getCorrelation(rBAO,muBAO);
     // Combine the pieces with the appropriate normalization factors
-    double xi = biasSq*(ampl*peak + smooth);
+    double xi = biasSqz*(ampl*peak + smooth);
     
     // Add r-space metal correlations, if any.
-    if(_metalModel || _metalTemplate) xi += _metalCorr->_evaluate(r,mu,z,anyChanged);
+    if(_metalModel || _metalTemplate) xi += _metalCorr->_evaluate(r,mu,z,anyChanged,index);
+    
+    // Apply distortion matrix, if any.
+    if(_distMatrix && index>=0) {
+        int nbins = _distMatrixOrder;
+        if(anyChanged) {
+            // Calculate the undistorted correlation function for every bin.
+            for(int bin = 0; bin < nbins; ++bin) {
+                double rbin = _getRBin(bin);
+                double mubin = _getMuBin(bin);
+                double zbin = _getZBin(bin);
+                if(rbin < _rmin || rbin > _rmax) {
+                    _distMat->setCorrelation(bin,0);
+                    continue;
+                }
+                if(_zcorr0>0) {
+                    double rpar = std::fabs(rbin*mubin)/100.;
+                    zbin = _zcorr0 + _zcorr1*rpar + _zcorr2*rpar*rpar;
+                }
+                biasSqz = redshiftEvolution(biasSq,gammaBias,zbin,_getZRef());
+                // Transform (rbin,mubin) to (rBAO,muBAO) using the scale parameters.
+                if(_anisotropic) {
+                    double apar = redshiftEvolution(scale_parallel,gamma_scale,zbin,_getZRef());
+                    double aperp = redshiftEvolution(scale_perp,gamma_scale,zbin,_getZRef());
+                    double musq(mubin*mubin);
+                    scalez = std::sqrt(apar*apar*musq + aperp*aperp*(1-musq));
+                    rBAO = rbin*scalez;
+                    muBAO = apar*mubin/scalez;
+                }
+                else {
+                    scalez = redshiftEvolution(scale,gamma_scale,zbin,_getZRef());
+                    rBAO = rbin*scalez;
+                    muBAO = mubin;
+                }
+                if(rBAO < _rmin || rBAO > _rmax) {
+                    _distMat->setCorrelation(bin,0);
+                    continue;
+                }
+                // Calculate the cosmological predictions.
+                peak = _Xipk->getCorrelation(rBAO,muBAO);
+                smooth = (_decoupled) ? _Xinw->getCorrelation(rbin,mubin) : _Xinw->getCorrelation(rBAO,muBAO);
+                double xiu = biasSqz*(ampl*peak + smooth);
+                // Add r-space metal correlations, if any.
+                if(_metalModel || _metalTemplate) xiu += _metalCorr->_evaluate(rbin,mubin,zbin,anyChanged,index);
+                // Save the undistorted correlation function.
+                _distMat->setCorrelation(bin,xiu);
+            }
+        }
+        // Multiply the undistorted correlation function by the distortion matrix.
+        xi = 0;
+        for(int bin = 0; bin < nbins; ++bin) {
+            xi += _distMat->getDistortion(index,bin)*_distMat->getCorrelation(bin);
+        }
+    }
     
     // Add r-space broadband distortions, if any.
-    if(_distortMul) xi *= 1 + _distortMul->_evaluate(r,mu,z,anyChanged);
+    if(_distortMul) xi *= 1 + _distortMul->_evaluate(r,mu,z,anyChanged,index);
     if(_distortAdd) {
-        double distortion = _distortAdd->_evaluate(r,mu,z,anyChanged);
+        double distortion = _distortAdd->_evaluate(r,mu,z,anyChanged,index);
         // The additive distortion is multiplied by ((1+z)/(1+z0))^gammaBias
         xi += redshiftEvolution(distortion,gammaBias,z,_getZRef());
     }
@@ -302,5 +377,7 @@ void  local::BaoKSpaceCorrelationModel::printToStream(std::ostream &out, std::st
     out << "Scales apply to BAO peak " << (_decoupled ? "only." : "and cosmological broadband.") << std::endl;
     out << "Anisotropic non-linear broadening applies to peak " << (!_nlBroadband ? "only." : "and cosmological broadband.") << std::endl;
     out << "Non-linear correction is switched " << (_nlCorrection || _nlCorrectionAlt ? "on." : "off.") << std::endl;
+    out << "Pixelization smoothing is switched " << (_pixelize ? "on." : "off.") << std::endl;
+    out << "Distortion matrix is switched " << (_distMatrix ? "on." : "off.") << std::endl;
     out << "Metal correlations are switched " << (_metalModel || _metalTemplate ? "on." : "off.") << std::endl;
 }

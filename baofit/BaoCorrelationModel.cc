@@ -17,9 +17,9 @@ namespace local = baofit;
 
 local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName,
     std::string const &fiducialName, std::string const &nowigglesName,
-    std::string const &metalrootName, std::string const &metalName,
-    std::string const &distAdd, std::string const &distMul, double distR0,
-    double zref, bool anisotropic, bool decoupled, bool metalModel, bool metalTemplate,
+    std::string const &metalModelName, std::string const &distAdd,
+    std::string const &distMul, double distR0, double zref,
+    bool anisotropic, bool decoupled, bool metalModel, bool metalTemplate,
     bool crossCorrelation)
 : AbsCorrelationModel("BAO Correlation Model"), _anisotropic(anisotropic), _decoupled(decoupled),
 _metalModel(metalModel), _metalTemplate(metalTemplate)
@@ -64,7 +64,7 @@ _metalModel(metalModel), _metalTemplate(metalTemplate)
     }
     // Define our r-space metal correlation model, if any.
     if(metalModel || metalTemplate) {
-        _metalCorr.reset(new baofit::MetalCorrelationModel(metalrootName,metalName,metalModel,metalTemplate,this));
+        _metalCorr.reset(new baofit::MetalCorrelationModel(metalModelName,metalModel,metalTemplate,this));
     }
     // Define our broadband distortion models, if any.
     if(distAdd.length() > 0) {
@@ -79,7 +79,7 @@ _metalModel(metalModel), _metalTemplate(metalTemplate)
 
 local::BaoCorrelationModel::~BaoCorrelationModel() { }
 
-double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged) const {
+double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged, int index) const {
 
     // Lookup parameter values by name.
     double ampl = getParameterValue(_indexBase + 1); //("BAO amplitude");
@@ -132,12 +132,12 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     double xi = peak + smooth;
     
     // Add r-space metal correlations, if any.
-    if(_metalModel || _metalTemplate) xi += _metalCorr->_evaluate(r,mu,z,anyChanged);
+    if(_metalModel || _metalTemplate) xi += _metalCorr->_evaluate(r,mu,z,anyChanged,index);
     
     // Add broadband distortions, if any.
-    if(_distortMul) xi *= 1 + _distortMul->_evaluate(r,mu,z,anyChanged);
+    if(_distortMul) xi *= 1 + _distortMul->_evaluate(r,mu,z,anyChanged,index);
     if(_distortAdd) {
-        double distortion = _distortAdd->_evaluate(r,mu,z,anyChanged);
+        double distortion = _distortAdd->_evaluate(r,mu,z,anyChanged,index);
         // The additive distortion is multiplied by ((1+z)/(1+z0))^gamma_bias
         double gamma_bias = getParameterValue(_indexBase - 1); //("gamma-bias");
         xi += redshiftEvolution(distortion,gamma_bias,z,_getZRef());
