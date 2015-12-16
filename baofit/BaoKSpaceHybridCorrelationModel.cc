@@ -237,6 +237,7 @@ bool anyChanged, int index) const {
 
     // Check dilation limit
     if(scale > _dilmax) {
+        std::cout << "current dilation = " << scale << ", max dilation limit = " << _dilmax << std::endl;
         throw RuntimeError("BaoKSpaceHybridCorrelationModel: hit max dilation limit.");
     }
 
