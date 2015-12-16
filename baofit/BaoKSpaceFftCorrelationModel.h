@@ -18,10 +18,9 @@ namespace baofit {
 	class BaoKSpaceFftCorrelationModel : public AbsCorrelationModel {
 	public:
 	    // Creates a new model using the specified tabulated power spectra at the specified
-	    // reference redshift. The dilmin,dilmax parameters specify the max range of
-        // radial dilations that will be explored. The 3D FFT grid spacing and size are set by
-        // the parameters spacing and nx, ny, nz. The input tabulated power spectra specified
-        // by the model names provided are assumed to be normalized for redshift zref and will
+	    // reference redshift. The 3D FFT grid spacing and size are set by the parameters
+        // spacing and nx, ny, nz. The input tabulated power spectra specified by the
+        // model names provided are assumed to be normalized for redshift zref and will
         // be re-normalized appropriately when the model is evaluated at any different z.
 		BaoKSpaceFftCorrelationModel(std::string const &modelrootName,
 		    std::string const &fiducialName, std::string const &nowigglesName, double zref,
