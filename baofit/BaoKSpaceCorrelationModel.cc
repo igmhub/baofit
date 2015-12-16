@@ -290,9 +290,11 @@ bool anyChanged, int index) const {
 
     // Check dilation limits
     if(scalez < _dilmin) {
+        std::cout << "current dilation = " << scalez << ", min dilation limit = " << _dilmin << std::endl;
         throw RuntimeError("BaoKSpaceCorrelationModel: hit min dilation limit.");
     }
     else if(scalez > _dilmax) {
+        std::cout << "current dilation = " << scalez << ", max dilation limit = " << _dilmax << std::endl;
         throw RuntimeError("BaoKSpaceCorrelationModel: hit max dilation limit.");
     }
 
