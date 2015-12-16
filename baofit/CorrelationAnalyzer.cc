@@ -477,14 +477,28 @@ std::string const &refitConfig, std::string const &saveName, int nsave, double z
     while((sample = sampler.nextSample())) {
         // Fit the sample.
         baofit::CorrelationFitter fitEngine(sample,_model,_covSampleSize);
-        likely::FunctionMinimumPtr sampleMin = fitEngine.fit(_method);
-        bool ok = (sampleMin->getStatus() == likely::FunctionMinimum::OK);
+        likely::FunctionMinimumPtr sampleMin;
+        bool ok(false);
+        try {
+            sampleMin = fitEngine.fit(_method);
+            ok = (sampleMin->getStatus() == likely::FunctionMinimum::OK);
+        }
+        catch(std::runtime_error const &e) {
+            std::cerr << "ERROR while fitting:\n  " << e.what() << std::endl;
+            ok = false;
+        }
         // Refit the sample if requested and the first fit succeeded.
         likely::FunctionMinimumPtr sampleMinRefit;
         if(ok && fmin2) {
-            sampleMinRefit = fitEngine.fit(_method,refitConfig);
-            // Did this fit succeed also?
-            if(sampleMinRefit->getStatus() != likely::FunctionMinimum::OK) ok = false;
+            try {
+                sampleMinRefit = fitEngine.fit(_method,refitConfig);
+                // Did this fit also succeed?
+                if(sampleMinRefit->getStatus() != likely::FunctionMinimum::OK) ok = false;
+            }
+            catch(std::runtime_error const &e) {
+                std::cerr << "ERROR while fitting:\n  " << e.what() << std::endl;
+                ok = false;
+            }
         }
         if(ok) {
             // Accumulate the fit results if the fit was successful.
