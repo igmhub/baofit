@@ -135,7 +135,7 @@ int main(int argc, char **argv) {
         ("pixelize", "Include pixelization smoothing.")
         ("dist-matrix", "Uses distortion matrix to model continuum fitting broadband distortion.")
         ("dist-matrix-name", po::value<std::string>(&distMatrixName)->default_value(""),
-            "Distortion matrix will be read from the specified file.")
+            "Distortion matrix will be read from the specified file. If not specified, the data name will be used by default.")
         ("dist-matrix-order", po::value<int>(&distMatrixOrder)->default_value(2500),
             "Order of the (square) distortion matrix.")
         ("metal-model", "Include r-space model of metal line correlations.")
@@ -364,6 +364,11 @@ int main(int argc, char **argv) {
         return -1;
     }
     cosmo::Multipole ellmax = static_cast<cosmo::Multipole>(lmax);
+
+    // Set default name of the distortion matrix file, if necessary.
+    if(distMatrix && 0 == distMatrixName.length()) {
+        distMatrixName = dataName;
+    }
 
 	// Fill in any missing grid dimensions.
     if(0 == ngridy) ngridy = ngridx;

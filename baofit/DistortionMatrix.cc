@@ -23,6 +23,7 @@ local::DistortionMatrix::DistortionMatrix(std::string const &distMatrixName, int
 : _nbins(distMatrixOrder)
 {
     // Initialize the undistorted correlation function.
+    if(_nbins<=0) throw RuntimeError("DistortionMatrix: expected distortion matrix order > 0.");
     _ucf.resize(_nbins,0.);
     
     // Initialize the distortion matrix.
