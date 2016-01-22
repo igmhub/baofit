@@ -32,13 +32,14 @@ local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &m
     double zcorr0, double zcorr1, double zcorr2, double sigma8, int distMatrixOrder,
     bool anisotropic, bool decoupled,  bool nlBroadband, bool nlCorrection,
     bool nlCorrectionAlt, bool pixelize, bool distMatrix, bool metalModel,
-    bool metalTemplate, bool crossCorrelation, bool verbose)
+    bool metalTemplate, bool combinedFitParameters, bool crossCorrelation, bool verbose)
 : AbsCorrelationModel("BAO k-Space Correlation Model"), _dilmin(dilmin), _dilmax(dilmax),
 _zcorr0(zcorr0), _zcorr1(zcorr1), _zcorr2(zcorr2), _distMatrixOrder(distMatrixOrder),
 _anisotropic(anisotropic), _decoupled(decoupled), _nlBroadband(nlBroadband),
 _nlCorrection(nlCorrection), _nlCorrectionAlt(nlCorrectionAlt), _pixelize(pixelize),
 _distMatrix(distMatrix), _metalModel(metalModel), _metalTemplate(metalTemplate),
-_crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarnings(10)
+_combinedFitParameters(combinedFitParameters), _crossCorrelation(crossCorrelation),
+_verbose(verbose), _nWarnings(0), _maxWarnings(10)
 {
     _setZRef(zref);
     // Linear bias parameters
@@ -66,6 +67,14 @@ _crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarni
     if(pixelize) {
         // Pixelization parameter
         _pixBase = defineParameter("pixel scale",2,0.2);
+    }
+    if(combinedFitParameters) {
+        _combinedBase = defineParameter("beta*bias",-0.196,0.02);
+        _setBetaBiasIndex(_combinedBase);
+        defineParameter("BAO apar/aperp",1,0.1);
+        // Fix the parameters that are not being used
+        configureFitParameters("fix[(1+beta)*bias]=0");
+        configureFitParameters("fix[BAO alpha-parallel]=0");
     }
 
     // Load the P(k) interpolation data we will use for each multipole of each model.
@@ -182,6 +191,10 @@ bool anyChanged, int index) const {
     double bb = getParameterValue(1);
     // Calculate bias^2 from beta and bb.
     double bias = bb/(1+beta);
+    if(_combinedFitParameters) {
+        double betabias = getParameterValue(_combinedBase);
+        bias = betabias/beta;
+    }
     // Get linear bias parameters of other tracer (if we are modeling a cross correlation)
     // and calculate the combined bias^2 at zref.
     double beta2,biasSq;
@@ -271,6 +284,10 @@ bool anyChanged, int index) const {
     double scale_parallel = getParameterValue(_baoBase + 2);
     double scale_perp = getParameterValue(_baoBase + 3);
     double gamma_scale = getParameterValue(_baoBase + 4);
+    if(_combinedFitParameters) {
+        double scale_ratio = getParameterValue(_combinedBase+1);
+        scale_parallel = scale_ratio*scale_perp;
+    }
 
     // Transform (r,mu) to (rBAO,muBAO) using the scale parameters.
     double rBAO, muBAO, scalez;

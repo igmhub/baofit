@@ -65,6 +65,8 @@ namespace baofit {
         void _setGammaBiasIndex(int gammabiasIndex);
         // Sets the index of the beta power-law evolution parameter to use.
         void _setGammaBetaIndex(int gammabetaIndex);
+        // Sets the index of the Lya beta*bias parameter to use.
+        void _setBetaBiasIndex(int betabiasIndex);
         // Sets the index of the velocity shift parameter to use.
         void _setDVIndex(int index);
         // Updates the internal parameters.
@@ -90,7 +92,7 @@ namespace baofit {
         // Returns the redshift for the specified bin.
         double _getZBin(int index) const;
     private:
-        int _indexBase, _dvIndex, _betaIndex, _bbIndex, _gammabiasIndex, _gammabetaIndex, _nbins;
+        int _indexBase, _dvIndex, _betaIndex, _bbIndex, _gammabiasIndex, _gammabetaIndex, _betabiasIndex, _nbins;
         bool _crossCorrelation;
         enum IndexOffset {
             BETA = 0, BB = 1, GAMMA_BIAS = 2, GAMMA_BETA = 3, DELTA_V = 4, BIAS2 = 5, BB2 = 6
@@ -105,6 +107,7 @@ namespace baofit {
     inline void AbsCorrelationModel::_setBbIndex(int bbIndex) { _bbIndex = bbIndex; }
     inline void AbsCorrelationModel::_setGammaBiasIndex(int gammabiasIndex) { _gammabiasIndex = gammabiasIndex; }
     inline void AbsCorrelationModel::_setGammaBetaIndex(int gammabetaIndex) { _gammabetaIndex = gammabetaIndex; }
+    inline void AbsCorrelationModel::_setBetaBiasIndex(int betabiasIndex) { _betabiasIndex = betabiasIndex; }
     inline double AbsCorrelationModel::_getBeta() const { return _beta; }
     inline double AbsCorrelationModel::_getBias() const { return _bias; }
     inline double AbsCorrelationModel::_getGammaBias() const { return _gammaBias; }
