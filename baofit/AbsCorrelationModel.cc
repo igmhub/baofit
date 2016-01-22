@@ -12,7 +12,7 @@
 namespace local = baofit;
 
 local::AbsCorrelationModel::AbsCorrelationModel(std::string const &name)
-: FitModel(name), _indexBase(-1), _crossCorrelation(false), _dvIndex(-1)
+: FitModel(name), _indexBase(-1), _crossCorrelation(false), _dvIndex(-1), _betabiasIndex(-1)
 { }
 
 local::AbsCorrelationModel::~AbsCorrelationModel() { }
@@ -104,6 +104,9 @@ void local::AbsCorrelationModel::_updateInternalParameters() {
     _bias = getParameterValue(_bbIndex)/(1+_beta);
     _gammaBias = getParameterValue(_gammabiasIndex);
     _gammaBeta = getParameterValue(_gammabetaIndex);
+    if(_betabiasIndex>=0) {
+        _bias = getParameterValue(_betabiasIndex)/_beta;
+    }
 }
 
 void local::AbsCorrelationModel::_applyVelocityShift(double &r, double &mu, double z) {
