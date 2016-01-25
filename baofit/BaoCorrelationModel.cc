@@ -19,10 +19,10 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
     std::string const &fiducialName, std::string const &nowigglesName,
     std::string const &metalModelName, std::string const &distAdd,
     std::string const &distMul, double distR0, double zref,
-    bool anisotropic, bool decoupled, bool metalModel, bool metalTemplate,
-    bool crossCorrelation)
+    bool anisotropic, bool decoupled, bool metalModel, bool metalModelInterpolate,
+    bool metalTemplate, bool crossCorrelation)
 : AbsCorrelationModel("BAO Correlation Model"), _anisotropic(anisotropic), _decoupled(decoupled),
-_metalModel(metalModel), _metalTemplate(metalTemplate)
+_metalModel(metalModel), _metalModelInterpolate(metalModelInterpolate), _metalTemplate(metalTemplate)
 {
     // Linear bias parameters
     _indexBase = _defineLinearBiasParameters(zref,crossCorrelation);
@@ -63,8 +63,9 @@ _metalModel(metalModel), _metalTemplate(metalTemplate)
         throw RuntimeError("BaoCorrelationModel: error while reading model interpolation data.");
     }
     // Define our r-space metal correlation model, if any.
-    if(metalModel || metalTemplate) {
-        _metalCorr.reset(new baofit::MetalCorrelationModel(metalModelName,metalModel,metalTemplate,this));
+    if(metalModel || metalModelInterpolate || metalTemplate) {
+        _metalCorr.reset(new baofit::MetalCorrelationModel(metalModelName,metalModel,metalModelInterpolate,
+            metalTemplate,this));
     }
     // Define our broadband distortion models, if any.
     if(distAdd.length() > 0) {
@@ -132,7 +133,7 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     double xi = peak + smooth;
     
     // Add r-space metal correlations, if any.
-    if(_metalModel || _metalTemplate) xi += _metalCorr->_evaluate(r,mu,z,anyChanged,index);
+    if(_metalModel || _metalModelInterpolate || _metalTemplate) xi += _metalCorr->_evaluate(r,mu,z,anyChanged,index);
     
     // Add broadband distortions, if any.
     if(_distortMul) xi *= 1 + _distortMul->_evaluate(r,mu,z,anyChanged,index);

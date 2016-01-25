@@ -139,6 +139,7 @@ int main(int argc, char **argv) {
         ("dist-matrix-order", po::value<int>(&distMatrixOrder)->default_value(2500),
             "Order of the (square) distortion matrix.")
         ("metal-model", "Include r-space model of metal line correlations.")
+        ("metal-model-interpolate", "Include r-space model of metal line correlations that uses bicubic interpolation.")
         ("metal-model-name", po::value<std::string>(&metalModelName)->default_value(""),
             "Metal correlation functions will be read from <name>.<ell>.dat with ell=0,2,4.")
         ("metal-template", "Include r-space template for metal line correlations derived from mock data.")
@@ -336,8 +337,8 @@ int main(int argc, char **argv) {
         nlCorrectionAlt(vm.count("nl-correction-alt")), distortionAlt(vm.count("distortion-alt")),
         noDistortion(vm.count("no-distortion")), pixelize(vm.count("pixelize")),
         distMatrix(vm.count("dist-matrix")), metalModel(vm.count("metal-model")),
-        metalTemplate(vm.count("metal-template")), customGrid(vm.count("custom-grid")),
-        combinedFitParameters(vm.count("combined-fit-parameters"));
+        metalModelInterpolate(vm.count("metal-model-interpolate")), metalTemplate(vm.count("metal-template")),
+        customGrid(vm.count("custom-grid")), combinedFitParameters(vm.count("combined-fit-parameters"));
 
     // Check that we have a recognized data format.
     if(dataFormat != "comoving-cartesian" && dataFormat != "comoving-polar" &&
@@ -403,7 +404,8 @@ int main(int argc, char **argv) {
                 zref,rmin,rmax,dilmin,dilmax,relerr,abserr,ellMax,samplesPerDecade,
                 distAdd,distMul,distR0,zcorr0,zcorr1,zcorr2,sigma8,distMatrixOrder,anisotropic,
                 decoupled,nlBroadband,nlCorrection,nlCorrectionAlt,pixelize,distMatrix,
-                metalModel,metalTemplate,combinedFitParameters,crossCorrelation,verbose));
+                metalModel,metalModelInterpolate,metalTemplate,combinedFitParameters,crossCorrelation,
+                verbose));
         }
         else if(kspacefft) {
             // Build our fit model from tabulated P(k) on disk and use a 3D FFT.
@@ -425,7 +427,8 @@ int main(int argc, char **argv) {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
             model.reset(new baofit::BaoCorrelationModel(
                 modelrootName,fiducialName,nowigglesName,metalModelName,distAdd,distMul,
-                distR0,zref,anisotropic,decoupled,metalModel,metalTemplate,crossCorrelation));
+                distR0,zref,anisotropic,decoupled,metalModel,metalModelInterpolate,metalTemplate,
+                crossCorrelation));
         }
              
         // Configure our fit model parameters by applying all model-config options in turn,

@@ -8,6 +8,7 @@
 #include "likely/types.h"
 
 #include <string>
+#include <vector>
 
 namespace baofit {
 	// Represents an r-space model for metal line correlations
@@ -19,7 +20,7 @@ namespace baofit {
 	    // provided by the user. The option metalTemplate uses an empirical template derived
 	    // from metals added to mock data.
 	    MetalCorrelationModel(std::string const &metalModelName, bool metalModel = false,
-	        bool metalTemplate = false, AbsCorrelationModel *base = 0);
+	        bool metalModelInterpolate = false, bool metalTemplate = false, AbsCorrelationModel *base = 0);
 	    virtual ~MetalCorrelationModel();
 	    // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
@@ -29,9 +30,17 @@ namespace baofit {
 		// be provided in Mpc/h.
 	    virtual double _evaluate(double r, double mu, double z, bool anyChanged, int index) const;
 	private:
-	    int _indexBase;
+	    void _initialize(std::vector<double> &vector, std::string const &filename);
+	    std::vector<double> _corrLyaSi2a0, _corrLyaSi2a2, _corrLyaSi2a4, _corrLyaSi2b0, _corrLyaSi2b2,
+	        _corrLyaSi2b4, _corrLyaSi2c0, _corrLyaSi2c2, _corrLyaSi2c4, _corrLyaSi30, _corrLyaSi32,
+	        _corrLyaSi34, _corrSi2aSi2a0, _corrSi2aSi2a2, _corrSi2aSi2a4, _corrSi2aSi2b0, _corrSi2aSi2b2,
+	        _corrSi2aSi2b4, _corrSi2aSi2c0, _corrSi2aSi2c2, _corrSi2aSi2c4, _corrSi2bSi2b0, _corrSi2bSi2b2,
+	        _corrSi2bSi2b4, _corrSi2bSi2c0, _corrSi2bSi2c2, _corrSi2bSi2c4, _corrSi2cSi2c0, _corrSi2cSi2c2,
+	        _corrSi2cSi2c4, _corrSi3Si2a0, _corrSi3Si2a2, _corrSi3Si2a4, _corrSi3Si2b0, _corrSi3Si2b2,
+	        _corrSi3Si2b4, _corrSi3Si2c0, _corrSi3Si2c2, _corrSi3Si2c4, _corrSi3Si30, _corrSi3Si32, _corrSi3Si34;
+	    int _indexBase, _lastLines;
 	    double _rperpMin, _rparMin, _rperpMax, _rparMax;
-	    bool _metalModel, _metalTemplate;
+	    bool _metalModel, _metalModelInterpolate, _metalTemplate;
 	    AbsCorrelationModel &_base;
 	    likely::BiCubicInterpolatorPtr _LyaSi2a0, _LyaSi2a2, _LyaSi2a4, _LyaSi2b0, _LyaSi2b2, _LyaSi2b4,
 	        _LyaSi2c0, _LyaSi2c2, _LyaSi2c4, _LyaSi30, _LyaSi32, _LyaSi34, _Si2aSi2a0, _Si2aSi2a2,

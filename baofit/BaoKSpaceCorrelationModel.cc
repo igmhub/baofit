@@ -32,14 +32,15 @@ local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &m
     double zcorr0, double zcorr1, double zcorr2, double sigma8, int distMatrixOrder,
     bool anisotropic, bool decoupled,  bool nlBroadband, bool nlCorrection,
     bool nlCorrectionAlt, bool pixelize, bool distMatrix, bool metalModel,
-    bool metalTemplate, bool combinedFitParameters, bool crossCorrelation, bool verbose)
+    bool metalModelInterpolate, bool metalTemplate, bool combinedFitParameters,
+    bool crossCorrelation, bool verbose)
 : AbsCorrelationModel("BAO k-Space Correlation Model"), _dilmin(dilmin), _dilmax(dilmax),
 _zcorr0(zcorr0), _zcorr1(zcorr1), _zcorr2(zcorr2), _distMatrixOrder(distMatrixOrder),
 _anisotropic(anisotropic), _decoupled(decoupled), _nlBroadband(nlBroadband),
 _nlCorrection(nlCorrection), _nlCorrectionAlt(nlCorrectionAlt), _pixelize(pixelize),
-_distMatrix(distMatrix), _metalModel(metalModel), _metalTemplate(metalTemplate),
-_combinedFitParameters(combinedFitParameters), _crossCorrelation(crossCorrelation),
-_verbose(verbose), _nWarnings(0), _maxWarnings(10)
+_distMatrix(distMatrix), _metalModel(metalModel), _metalModelInterpolate(metalModelInterpolate),
+_metalTemplate(metalTemplate), _combinedFitParameters(combinedFitParameters),
+_crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarnings(10)
 {
     _setZRef(zref);
     // Linear bias parameters
@@ -142,8 +143,9 @@ _verbose(verbose), _nWarnings(0), _maxWarnings(10)
     }
     
     // Define our r-space metal correlation model, if any.
-    if(metalModel || metalTemplate) {
-        _metalCorr.reset(new baofit::MetalCorrelationModel(metalModelName,metalModel,metalTemplate,this));
+    if(metalModel || metalModelInterpolate || metalTemplate) {
+        _metalCorr.reset(new baofit::MetalCorrelationModel(metalModelName,metalModel,metalModelInterpolate,
+            metalTemplate,this));
     }
     
     // Define our r-space broadband distortion models, if any.
@@ -324,7 +326,7 @@ bool anyChanged, int index) const {
     double xi = biasSqz*(ampl*peak + smooth);
     
     // Add r-space metal correlations, if any.
-    if(_metalModel || _metalTemplate) xi += _metalCorr->_evaluate(r,mu,z,anyChanged,index);
+    if(_metalModel || _metalModelInterpolate || _metalTemplate) xi += _metalCorr->_evaluate(r,mu,z,anyChanged,index);
     
     // Apply distortion matrix, if any.
     if(_distMatrix && index>=0) {
