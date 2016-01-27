@@ -369,7 +369,7 @@ bool anyChanged, int index) const {
                 smooth = (_decoupled) ? _Xinw->getCorrelation(rbin,mubin) : _Xinw->getCorrelation(rBAO,muBAO);
                 double xiu = biasSqz*(ampl*peak + smooth);
                 // Add r-space metal correlations, if any.
-                if(_metalModel || _metalTemplate) xiu += _metalCorr->_evaluate(rbin,mubin,zbin,anyChanged,index);
+                if(_metalModel || _metalModelInterpolate || _metalTemplate) xiu += _metalCorr->_evaluate(rbin,mubin,zbin,anyChanged,bin);
                 // Save the undistorted correlation function.
                 _distMat->setCorrelation(bin,xiu);
             }
