@@ -133,6 +133,7 @@ int main(int argc, char **argv) {
         ("distortion-alt", "Uses alternative model for the continuum fitting broadband distortion.")
         ("no-distortion", "No modeling of the continuum fitting broadband distortion.")
         ("pixelize", "Include pixelization smoothing.")
+        ("uvfluctuation", "Include k-space model of UV fluctuations.")
         ("dist-matrix", "Uses distortion matrix to model continuum fitting broadband distortion.")
         ("dist-matrix-name", po::value<std::string>(&distMatrixName)->default_value(""),
             "Distortion matrix will be read from the specified file. If not specified, the data name will be used by default.")
@@ -336,9 +337,10 @@ int main(int argc, char **argv) {
         nlBroadband(vm.count("nl-broadband")), nlCorrection(vm.count("nl-correction")),
         nlCorrectionAlt(vm.count("nl-correction-alt")), distortionAlt(vm.count("distortion-alt")),
         noDistortion(vm.count("no-distortion")), pixelize(vm.count("pixelize")),
-        distMatrix(vm.count("dist-matrix")), metalModel(vm.count("metal-model")),
-        metalModelInterpolate(vm.count("metal-model-interpolate")), metalTemplate(vm.count("metal-template")),
-        customGrid(vm.count("custom-grid")), combinedFitParameters(vm.count("combined-fit-parameters"));
+        uvfluctuation(vm.count("uvfluctuation")), distMatrix(vm.count("dist-matrix")),
+        metalModel(vm.count("metal-model")), metalModelInterpolate(vm.count("metal-model-interpolate")),
+        metalTemplate(vm.count("metal-template")), customGrid(vm.count("custom-grid")), 
+        combinedFitParameters(vm.count("combined-fit-parameters"));
 
     // Check that we have a recognized data format.
     if(dataFormat != "comoving-cartesian" && dataFormat != "comoving-polar" &&
@@ -403,9 +405,9 @@ int main(int argc, char **argv) {
                 modelrootName,fiducialName,nowigglesName,distMatrixName,metalModelName,
                 zref,rmin,rmax,dilmin,dilmax,relerr,abserr,ellMax,samplesPerDecade,
                 distAdd,distMul,distR0,zcorr0,zcorr1,zcorr2,sigma8,distMatrixOrder,anisotropic,
-                decoupled,nlBroadband,nlCorrection,nlCorrectionAlt,pixelize,distMatrix,
-                metalModel,metalModelInterpolate,metalTemplate,combinedFitParameters,crossCorrelation,
-                verbose));
+                decoupled,nlBroadband,nlCorrection,nlCorrectionAlt,pixelize,uvfluctuation,
+                distMatrix,metalModel,metalModelInterpolate,metalTemplate,combinedFitParameters,
+                crossCorrelation,verbose));
         }
         else if(kspacefft) {
             // Build our fit model from tabulated P(k) on disk and use a 3D FFT.
