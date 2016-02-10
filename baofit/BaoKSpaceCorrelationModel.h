@@ -31,7 +31,7 @@ namespace baofit {
             double zref, double rmin, double rmax, double dilmin, double dilmax,
             double relerr, double abserr, int ellMax, int samplesPerDecade,
             std::string const &distAdd, std::string const &distMul, double distR0,
-            double zcorr0, double zcorr1, double zcorr2, double sigma8, int distMatrixOrder,
+            double zeff, double sigma8, int distMatrixOrder,
             bool anisotropic = false, bool decoupled = false, bool nlBroadband = false,
             bool nlCorrection = false, bool nlCorrectionAlt = false, bool pixelize = false,
             bool uvfluctuation = false, bool distMatrix = false, bool metalModel = false,

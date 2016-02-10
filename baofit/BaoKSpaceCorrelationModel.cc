@@ -29,19 +29,18 @@ local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &m
     double zref, double rmin, double rmax, double dilmin, double dilmax,
     double relerr, double abserr, int ellMax, int samplesPerDecade,
     std::string const &distAdd, std::string const &distMul, double distR0,
-    double zcorr0, double zcorr1, double zcorr2, double sigma8, int distMatrixOrder,
+    double zeff, double sigma8, int distMatrixOrder,
     bool anisotropic, bool decoupled,  bool nlBroadband, bool nlCorrection,
     bool nlCorrectionAlt, bool pixelize, bool uvfluctuation, bool distMatrix,
     bool metalModel, bool metalModelInterpolate, bool metalTemplate,
     bool combinedFitParameters, bool crossCorrelation, bool verbose)
 : AbsCorrelationModel("BAO k-Space Correlation Model"), _dilmin(dilmin), _dilmax(dilmax),
-_zcorr0(zcorr0), _zcorr1(zcorr1), _zcorr2(zcorr2), _distMatrixOrder(distMatrixOrder),
-_anisotropic(anisotropic), _decoupled(decoupled), _nlBroadband(nlBroadband),
-_nlCorrection(nlCorrection), _nlCorrectionAlt(nlCorrectionAlt), _pixelize(pixelize),
-_uvfluctuation(uvfluctuation), _distMatrix(distMatrix), _metalModel(metalModel),
-_metalModelInterpolate(metalModelInterpolate), _metalTemplate(metalTemplate),
-_combinedFitParameters(combinedFitParameters), _crossCorrelation(crossCorrelation),
-_verbose(verbose), _nWarnings(0), _maxWarnings(10)
+_zeff(zeff), _distMatrixOrder(distMatrixOrder), _anisotropic(anisotropic),
+_decoupled(decoupled), _nlBroadband(nlBroadband), _nlCorrection(nlCorrection),
+_nlCorrectionAlt(nlCorrectionAlt), _pixelize(pixelize), _uvfluctuation(uvfluctuation),
+_distMatrix(distMatrix), _metalModel(metalModel), _metalModelInterpolate(metalModelInterpolate),
+_metalTemplate(metalTemplate), _combinedFitParameters(combinedFitParameters),
+_crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarnings(10)
 {
     _setZRef(zref);
     // Linear bias parameters
@@ -234,13 +233,9 @@ bool anyChanged, int index) const {
     // Lookup linear bias redshift evolution parameters.
     double gammaBias = getParameterValue(2);
     double gammaBeta = getParameterValue(3);
-    // Calculate effective redshift for each (r,mu) bin, if requested
-    if(_zcorr0>0) {
-        double rpar = std::fabs(r*mu)/100.;
-        z = _zcorr0 + _zcorr1*rpar + _zcorr2*rpar*rpar;
-    }
-    _zeff = z;
+
     // Apply redshift evolution
+    if(_uvfluctuation) z = _zeff;
     double biasSqz = redshiftEvolution(biasSq,gammaBias,z,_getZRef());
     _betaz = redshiftEvolution(beta,gammaBeta,z,_getZRef());
     if(_crossCorrelation) _beta2z = redshiftEvolution(beta2,gammaBeta,z,_getZRef());
@@ -376,12 +371,11 @@ bool anyChanged, int index) const {
                     _distMat->setCorrelation(bin,0);
                     continue;
                 }
-                if(_zcorr0>0) {
-                    double rpar = std::fabs(rbin*mubin)/100.;
-                    zbin = _zcorr0 + _zcorr1*rpar + _zcorr2*rpar*rpar;
-                }
                 biasSqz = redshiftEvolution(biasSq,gammaBias,zbin,_getZRef());
-                if(_uvfluctuation) biasSqz = 1.;
+                if(_uvfluctuation) {
+                    zbin = _zeff;
+                    biasSqz = 1.;
+                }
                 // Transform (rbin,mubin) to (rBAO,muBAO) using the scale parameters.
                 if(_anisotropic) {
                     double apar = redshiftEvolution(scale_parallel,gamma_scale,zbin,_getZRef());
@@ -436,5 +430,6 @@ void  local::BaoKSpaceCorrelationModel::printToStream(std::ostream &out, std::st
     out << "Non-linear correction is switched " << (_nlCorrection || _nlCorrectionAlt ? "on." : "off.") << std::endl;
     out << "Pixelization smoothing is switched " << (_pixelize ? "on." : "off.") << std::endl;
     out << "Distortion matrix is switched " << (_distMatrix ? "on." : "off.") << std::endl;
-    out << "Metal correlations are switched " << (_metalModel || _metalTemplate ? "on." : "off.") << std::endl;
+    out << "Metal correlations are switched " << (_metalModel || _metalModelInterpolate || _metalTemplate ? "on." : "off.") << std::endl;
+    out << "UV fluctuations are switched " << (_uvfluctuation ? "on." : "off.") << std::endl;
 }
