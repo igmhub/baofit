@@ -17,13 +17,13 @@ local::NonLinearCorrectionModel::NonLinearCorrectionModel(double zref, double si
 }
 
 void local::NonLinearCorrectionModel::_initialize() {
-    // Interpolation data from Table 7 of http://arxiv.org/abs/xxxx.xxxxx
+    // Interpolation data from Table 7 of http://arxiv.org/abs/1506.04519
     double zArray[]      = { 2.2000, 2.4000, 2.6000, 2.8000, 3.0000 };
-    double qnlArray[]    = { 0.8670, 0.8510, 0.7810, 0.7730, 0.7915 };
-    double kvArray[]     = { 1.0500, 1.0600, 1.1500, 1.1600, 1.1600 };
+    double qnlArray[]    = { 0.8670, 0.8510, 0.7810, 0.7730, 0.7920 };
+    double kvArray[]     = { 1.1200, 1.1122, 1.2570, 1.2765, 1.2928 };
     double avArray[]     = { 0.5140, 0.5480, 0.6110, 0.6080, 0.5780 };
     double bvArray[]     = { 1.6000, 1.6100, 1.6400, 1.6500, 1.6300 };
-    double kpArray[]     = { 19.300, 19.500, 21.000, 19.100, 17.100 };
+    double kpArray[]     = { 19.400, 19.500, 21.100, 19.200, 17.100 };
     std::vector<double> z, qnl, kv, av, bv, kp;
     z.assign (zArray,zArray+5);
     qnl.assign (qnlArray,qnlArray+5);
@@ -42,7 +42,7 @@ local::NonLinearCorrectionModel::~NonLinearCorrectionModel() { }
 
 double local::NonLinearCorrectionModel::_evaluateNLCorrection(double k, double mu_k, double pk, double z) const {
     double growth, pecvelocity, pressure, nonlinearcorr;
-    // Non-linear correction model of http://arxiv.org/abs/xxxx.xxxxx
+    // Non-linear correction model of http://arxiv.org/abs/1506.04519
     if(_nlCorrection) {
         double qnl = (*_qnlInterpolator)(z);
         double kv = (*_kvInterpolator)(z);

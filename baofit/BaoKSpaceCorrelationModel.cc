@@ -29,15 +29,15 @@ local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &m
     double zref, double rmin, double rmax, double dilmin, double dilmax,
     double relerr, double abserr, int ellMax, int samplesPerDecade,
     std::string const &distAdd, std::string const &distMul, double distR0,
-    double zcorr0, double zcorr1, double zcorr2, double sigma8, int distMatrixOrder,
+    double zeff, double sigma8, int distMatrixOrder,
     bool anisotropic, bool decoupled,  bool nlBroadband, bool nlCorrection,
-    bool nlCorrectionAlt, bool pixelize, bool distMatrix, bool metalModel,
-    bool metalModelInterpolate, bool metalTemplate, bool combinedFitParameters,
-    bool crossCorrelation, bool verbose)
+    bool nlCorrectionAlt, bool pixelize, bool uvfluctuation, bool distMatrix,
+    bool metalModel, bool metalModelInterpolate, bool metalTemplate,
+    bool combinedFitParameters, bool crossCorrelation, bool verbose)
 : AbsCorrelationModel("BAO k-Space Correlation Model"), _dilmin(dilmin), _dilmax(dilmax),
-_zcorr0(zcorr0), _zcorr1(zcorr1), _zcorr2(zcorr2), _distMatrixOrder(distMatrixOrder),
-_anisotropic(anisotropic), _decoupled(decoupled), _nlBroadband(nlBroadband),
-_nlCorrection(nlCorrection), _nlCorrectionAlt(nlCorrectionAlt), _pixelize(pixelize),
+_zeff(zeff), _distMatrixOrder(distMatrixOrder), _anisotropic(anisotropic),
+_decoupled(decoupled), _nlBroadband(nlBroadband), _nlCorrection(nlCorrection),
+_nlCorrectionAlt(nlCorrectionAlt), _pixelize(pixelize), _uvfluctuation(uvfluctuation),
 _distMatrix(distMatrix), _metalModel(metalModel), _metalModelInterpolate(metalModelInterpolate),
 _metalTemplate(metalTemplate), _combinedFitParameters(combinedFitParameters),
 _crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarnings(10)
@@ -65,10 +65,17 @@ _crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarni
     defineParameter("BAO alpha-parallel",1,0.1);
     defineParameter("BAO alpha-perp",1,0.1);
     defineParameter("gamma-scale",0,0.5);
+    // Pixelization parameter
     if(pixelize) {
-        // Pixelization parameter
         _pixBase = defineParameter("pixel scale",2,0.2);
     }
+    // UV fluctuations
+    if(uvfluctuation) {
+        _uvBase = defineParameter("UV bias",0.13,0.01);
+        defineParameter("UV abs resp bias",-0.667,0.06);
+        defineParameter("UV mean free path",300,30); // in Mpc/h
+    }
+    // Combined parameters
     if(combinedFitParameters) {
         _combinedBase = defineParameter("beta*bias",-0.196,0.02);
         _setBetaBiasIndex(_combinedBase);
@@ -167,6 +174,19 @@ double local::BaoKSpaceCorrelationModel::_evaluateKSpaceDistortion(double k, dou
     double tracer1 = 1 + _betaz*mu2;
     double tracer2 = _crossCorrelation ? 1 + _beta2z*mu2 : tracer1;
     double linear = tracer1*tracer2;
+    // Calculate scale-dependent bias parameters, if any
+    if(_uvfluctuation) {
+        double UVbias = getParameterValue(_uvBase);
+        double UVbiasAbsorberResponse = getParameterValue(_uvBase+1);
+        double UVmeanFreePath = getParameterValue(_uvBase+2);
+        double s(UVmeanFreePath*k);
+        double Ws = std::atan(s)/s;
+        double biask = _biasz + UVbias*Ws/(1+UVbiasAbsorberResponse*Ws);
+        double betak = _betaz*_biasz/biask;
+        tracer1 = biask*(1 + betak*mu2);
+        tracer2 = _crossCorrelation ? _bias2z*(1 + _beta2z*mu2) : tracer1;
+        linear = _growthSq*tracer1*tracer2;
+    }
     // Calculate non-linear broadening
     double snl2 = _snlPar2*mu2 + _snlPerp2*(1-mu2);
     double nonlinear = std::exp(-0.5*snl2*k*k);
@@ -199,9 +219,9 @@ bool anyChanged, int index) const {
     }
     // Get linear bias parameters of other tracer (if we are modeling a cross correlation)
     // and calculate the combined bias^2 at zref.
-    double beta2,biasSq;
+    double beta2,bias2,biasSq;
     if(_crossCorrelation) {
-        double bias2 = getParameterValue(5);
+        bias2 = getParameterValue(5);
         double beta2bias2 = getParameterValue(6);
         beta2 = beta2bias2/bias2;
         biasSq = bias*bias2;
@@ -213,16 +233,24 @@ bool anyChanged, int index) const {
     // Lookup linear bias redshift evolution parameters.
     double gammaBias = getParameterValue(2);
     double gammaBeta = getParameterValue(3);
-    // Calculate effective redshift for each (r,mu) bin, if requested
-    if(_zcorr0>0) {
-        double rpar = std::fabs(r*mu)/100.;
-        z = _zcorr0 + _zcorr1*rpar + _zcorr2*rpar*rpar;
-    }
-    _zeff = z;
+
     // Apply redshift evolution
+    if(_uvfluctuation) z = _zeff;
     double biasSqz = redshiftEvolution(biasSq,gammaBias,z,_getZRef());
     _betaz = redshiftEvolution(beta,gammaBeta,z,_getZRef());
     if(_crossCorrelation) _beta2z = redshiftEvolution(beta2,gammaBeta,z,_getZRef());
+    
+    if(_uvfluctuation) {
+        _growthSq = redshiftEvolution(1,-2,z,_getZRef());
+        if(_crossCorrelation) {
+    	    _bias2z = bias2;
+    	    _biasz = biasSqz/(_bias2z*_growthSq);
+	    }
+	    else {
+		    _biasz = std::sqrt(biasSqz/_growthSq);
+	    }
+	    biasSqz = 1.;
+    }
 
     // Lookup non-linear broadening parameters.
     double snlPerp = getParameterValue(_nlBase);
@@ -234,6 +262,8 @@ bool anyChanged, int index) const {
     if(anyChanged) {
         bool nlChanged = isParameterValueChanged(_nlBase) || isParameterValueChanged(_nlBase+1);
         bool pixChanged = _pixelize ? isParameterValueChanged(_pixBase) : false;
+        bool uvChanged = _uvfluctuation ? isParameterValueChanged(_uvBase) || isParameterValueChanged(_uvBase+1)
+            || isParameterValueChanged(_uvBase+2) || isParameterValueChanged(1) : false;
         bool otherChanged = isParameterValueChanged(0);
         int nmu(20);
         double margin(4), vepsMax(1e-1), vepsMin(1e-6);
@@ -247,7 +277,7 @@ bool anyChanged, int index) const {
                 _Xipk->printToStream(std::cout);
             }
         }
-        else if(nlChanged || pixChanged || otherChanged) {
+        else if(nlChanged || pixChanged || uvChanged || otherChanged) {
             // We are already initialized, so just redo the transforms.
             converged &= _Xipk->transform(interpolateK,bypassConvergenceTest);
         }
@@ -265,7 +295,7 @@ bool anyChanged, int index) const {
                 _Xinw->printToStream(std::cout);
             }
         }
-        else if(nlChanged || pixChanged || otherChanged) {
+        else if(nlChanged || pixChanged || uvChanged || otherChanged) {
             // We are already initialized, so just redo the transforms.
             converged &= _Xinw->transform(interpolateK,bypassConvergenceTest);
         }
@@ -341,11 +371,11 @@ bool anyChanged, int index) const {
                     _distMat->setCorrelation(bin,0);
                     continue;
                 }
-                if(_zcorr0>0) {
-                    double rpar = std::fabs(rbin*mubin)/100.;
-                    zbin = _zcorr0 + _zcorr1*rpar + _zcorr2*rpar*rpar;
-                }
                 biasSqz = redshiftEvolution(biasSq,gammaBias,zbin,_getZRef());
+                if(_uvfluctuation) {
+                    zbin = _zeff;
+                    biasSqz = 1.;
+                }
                 // Transform (rbin,mubin) to (rBAO,muBAO) using the scale parameters.
                 if(_anisotropic) {
                     double apar = redshiftEvolution(scale_parallel,gamma_scale,zbin,_getZRef());
@@ -400,5 +430,6 @@ void  local::BaoKSpaceCorrelationModel::printToStream(std::ostream &out, std::st
     out << "Non-linear correction is switched " << (_nlCorrection || _nlCorrectionAlt ? "on." : "off.") << std::endl;
     out << "Pixelization smoothing is switched " << (_pixelize ? "on." : "off.") << std::endl;
     out << "Distortion matrix is switched " << (_distMatrix ? "on." : "off.") << std::endl;
-    out << "Metal correlations are switched " << (_metalModel || _metalTemplate ? "on." : "off.") << std::endl;
+    out << "Metal correlations are switched " << (_metalModel || _metalModelInterpolate || _metalTemplate ? "on." : "off.") << std::endl;
+    out << "UV fluctuations are switched " << (_uvfluctuation ? "on." : "off.") << std::endl;
 }

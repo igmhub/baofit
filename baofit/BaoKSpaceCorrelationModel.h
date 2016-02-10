@@ -31,11 +31,12 @@ namespace baofit {
             double zref, double rmin, double rmax, double dilmin, double dilmax,
             double relerr, double abserr, int ellMax, int samplesPerDecade,
             std::string const &distAdd, std::string const &distMul, double distR0,
-            double zcorr0, double zcorr1, double zcorr2, double sigma8, int distMatrixOrder,
+            double zeff, double sigma8, int distMatrixOrder,
             bool anisotropic = false, bool decoupled = false, bool nlBroadband = false,
             bool nlCorrection = false, bool nlCorrectionAlt = false, bool pixelize = false,
-            bool distMatrix = false, bool metalModel = false, bool metalModelInterpolate = false,
-            bool metalTemplate = false, bool combinedFitParameters = false, bool crossCorrelation = false,
+            bool uvfluctuation = false, bool distMatrix = false, bool metalModel = false,
+            bool metalModelInterpolate = false, bool metalTemplate = false,
+            bool combinedFitParameters = false, bool crossCorrelation = false,
             bool verbose = false);
 		virtual ~BaoKSpaceCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
@@ -51,15 +52,15 @@ namespace baofit {
         NonLinearCorrectionModelPtr _nlcorr;
         DistortionMatrixPtr _distMat;
         bool _anisotropic, _decoupled, _nlBroadband, _nlCorrection, _nlCorrectionAlt,
-            _pixelize, _distMatrix, _metalModel, _metalModelInterpolate, _metalTemplate,
-            _combinedFitParameters, _crossCorrelation, _verbose;
-        int _nlBase, _baoBase, _pixBase, _combinedBase, _maxWarnings, _distMatrixOrder;
+            _pixelize, _uvfluctuation, _distMatrix, _metalModel, _metalModelInterpolate,
+            _metalTemplate, _combinedFitParameters, _crossCorrelation, _verbose;
+        int _nlBase, _baoBase, _pixBase, _uvBase, _combinedBase, _maxWarnings, _distMatrixOrder;
         mutable int _nWarnings;
         cosmo::DistortedPowerCorrelationPtr _Xipk, _Xinw;
         // Evaluates our k-space distortion model D(k,mu_k) using our current parameter values.
         double _evaluateKSpaceDistortion(double k, double mu_k, double pk) const;
         // Parameters initialized in _evaluate that are needed by _evaluateKSpaceDistortion
-        mutable double _betaz, _beta2z, _snlPar2, _snlPerp2, _zeff;
+        mutable double _betaz, _beta2z, _snlPar2, _snlPerp2, _zeff, _biasz, _bias2z, _growthSq;
 	}; // BaoKSpaceCorrelationModel
 } // baofit
 
