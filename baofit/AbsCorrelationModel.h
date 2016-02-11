@@ -99,6 +99,7 @@ namespace baofit {
         };
         double _zref, _beta, _bias, _gammaBias, _gammaBeta;
         std::vector<double> _rbin, _mubin, _zbin;
+        mutable std::vector<double> _rbinModify, _mubinModify, _zbinModify;
 	}; // AbsCorrelationModel
 
     inline double AbsCorrelationModel::_getZRef() const { return _zref; }
