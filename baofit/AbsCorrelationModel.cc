@@ -29,9 +29,9 @@ likely::Parameters const &params, int index) {
             mubin = _mubin[i];
             zbin = _zbin[i];
             _applyVelocityShift(rbin,mubin,zbin);
-            _rbinModify[i] = rbin;
-            _mubinModify[i] = mubin;
-            _zbinModify[i] = zbin;
+            _rbinShift[i] = rbin;
+            _mubinShift[i] = mubin;
+            _zbinShift[i] = zbin;
         }
     }
     double result = _evaluate(r,mu,z,anyChanged,index);
@@ -56,9 +56,9 @@ std::vector<double> zbin) {
     if(_nbins != _mubin.size() || _nbins != _zbin.size()) {
         throw RuntimeError("AbsCorrelationModel::setCoordinates: coordinate vectors not the same size.");
     }
-    _rbinModify = rbin;
-    _mubinModify = mubin;
-    _zbinModify = zbin;
+    _rbinShift = rbin;
+    _mubinShift = mubin;
+    _zbinShift = zbin;
 }
 
 double local::AbsCorrelationModel::_evaluate(double r, cosmo::Multipole multipole, double z,
@@ -185,21 +185,21 @@ double local::AbsCorrelationModel::_getRBin(int index) const {
     if(index < 0 || index >= _nbins) {
         throw RuntimeError("AbsCorrelationModel::getRBin: invalid index.");
     }
-    return _rbinModify[index];
+    return _rbinShift[index];
 }
 
 double local::AbsCorrelationModel::_getMuBin(int index) const {
     if(index < 0 || index >= _nbins) {
         throw RuntimeError("AbsCorrelationModel::getMuBin: invalid index.");
     }
-    return _mubinModify[index];
+    return _mubinShift[index];
 }
 
 double local::AbsCorrelationModel::_getZBin(int index) const {
     if(index < 0 || index >= _nbins) {
         throw RuntimeError("AbsCorrelationModel::getZBin: invalid index.");
     }
-    return _zbinModify[index];
+    return _zbinShift[index];
 }
 
 void  local::AbsCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
