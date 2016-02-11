@@ -12,7 +12,7 @@
 namespace local = baofit;
 
 local::AbsCorrelationModel::AbsCorrelationModel(std::string const &name)
-: FitModel(name), _indexBase(-1), _crossCorrelation(false), _dvIndex(-1), _betabiasIndex(-1)
+: FitModel(name), _indexBase(-1), _crossCorrelation(false), _dvIndex(-1), _betabiasIndex(-1), _nbins(0)
 { }
 
 local::AbsCorrelationModel::~AbsCorrelationModel() { }
@@ -22,6 +22,18 @@ likely::Parameters const &params, int index) {
     bool anyChanged = updateParameterValues(params);
     _updateInternalParameters();
     if(_dvIndex >= 0) _applyVelocityShift(r,mu,z);
+    if(_dvIndex >= 0 && _nbins > 0 && anyChanged) {
+        double rbin, mubin, zbin;
+        for(int i = 0; i < _nbins; ++i) {
+            rbin = _rbin[i];
+            mubin = _mubin[i];
+            zbin = _zbin[i];
+            _applyVelocityShift(rbin,mubin,zbin);
+            _rbinShift[i] = rbin;
+            _mubinShift[i] = mubin;
+            _zbinShift[i] = zbin;
+        }
+    }
     double result = _evaluate(r,mu,z,anyChanged,index);
     resetParameterValuesChanged();
     return result;
@@ -44,6 +56,9 @@ std::vector<double> zbin) {
     if(_nbins != _mubin.size() || _nbins != _zbin.size()) {
         throw RuntimeError("AbsCorrelationModel::setCoordinates: coordinate vectors not the same size.");
     }
+    _rbinShift = rbin;
+    _mubinShift = mubin;
+    _zbinShift = zbin;
 }
 
 double local::AbsCorrelationModel::_evaluate(double r, cosmo::Multipole multipole, double z,
@@ -170,21 +185,21 @@ double local::AbsCorrelationModel::_getRBin(int index) const {
     if(index < 0 || index >= _nbins) {
         throw RuntimeError("AbsCorrelationModel::getRBin: invalid index.");
     }
-    return _rbin[index];
+    return _rbinShift[index];
 }
 
 double local::AbsCorrelationModel::_getMuBin(int index) const {
     if(index < 0 || index >= _nbins) {
         throw RuntimeError("AbsCorrelationModel::getMuBin: invalid index.");
     }
-    return _mubin[index];
+    return _mubinShift[index];
 }
 
 double local::AbsCorrelationModel::_getZBin(int index) const {
     if(index < 0 || index >= _nbins) {
         throw RuntimeError("AbsCorrelationModel::getZBin: invalid index.");
     }
-    return _zbin[index];
+    return _zbinShift[index];
 }
 
 void  local::AbsCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
