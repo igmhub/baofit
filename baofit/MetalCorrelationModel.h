@@ -20,7 +20,8 @@ namespace baofit {
 	    // provided by the user. The option metalTemplate uses an empirical template derived
 	    // from metals added to mock data.
 	    MetalCorrelationModel(std::string const &metalModelName, bool metalModel = false,
-	        bool metalModelInterpolate = false, bool metalTemplate = false, AbsCorrelationModel *base = 0);
+	        bool metalModelInterpolate = false, bool metalTemplate = false,
+	        bool crossCorrelation = false, AbsCorrelationModel *base = 0);
 	    virtual ~MetalCorrelationModel();
 	    // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
@@ -40,14 +41,16 @@ namespace baofit {
 	        _corrSi3Si2b4, _corrSi3Si2c0, _corrSi3Si2c2, _corrSi3Si2c4, _corrSi3Si30, _corrSi3Si32, _corrSi3Si34;
 	    int _indexBase, _lastLines;
 	    double _rperpMin, _rparMin, _rperpMax, _rparMax;
-	    bool _metalModel, _metalModelInterpolate, _metalTemplate;
+	    bool _metalModel, _metalModelInterpolate, _metalTemplate, _crossCorrelation;
 	    AbsCorrelationModel &_base;
 	    likely::BiCubicInterpolatorPtr _LyaSi2a0, _LyaSi2a2, _LyaSi2a4, _LyaSi2b0, _LyaSi2b2, _LyaSi2b4,
 	        _LyaSi2c0, _LyaSi2c2, _LyaSi2c4, _LyaSi30, _LyaSi32, _LyaSi34, _Si2aSi2a0, _Si2aSi2a2,
 	        _Si2aSi2a4, _Si2aSi2b0, _Si2aSi2b2, _Si2aSi2b4, _Si2aSi2c0, _Si2aSi2c2, _Si2aSi2c4,
 	        _Si2bSi2b0, _Si2bSi2b2, _Si2bSi2b4, _Si2bSi2c0, _Si2bSi2c2, _Si2bSi2c4, _Si2cSi2c0,
 	        _Si2cSi2c2, _Si2cSi2c4, _Si3Si2a0, _Si3Si2a2, _Si3Si2a4, _Si3Si2b0, _Si3Si2b2, _Si3Si2b4,
-	        _Si3Si2c0, _Si3Si2c2, _Si3Si2c4, _Si3Si30, _Si3Si32, _Si3Si34;
+	        _Si3Si2c0, _Si3Si2c2, _Si3Si2c4, _Si3Si30, _Si3Si32, _Si3Si34,
+	        _QSOSi2a0, _QSOSi2a2, _QSOSi2a4, _QSOSi2b0, _QSOSi2b2, _QSOSi2b4,
+	        _QSOSi2c0, _QSOSi2c2, _QSOSi2c4, _QSOSi30, _QSOSi32, _QSOSi34;
     }; // MetalCorrelationModel
     
 	// Calculates the normalization factor for each correlation function multipole.

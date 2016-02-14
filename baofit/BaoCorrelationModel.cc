@@ -65,7 +65,7 @@ _metalModel(metalModel), _metalModelInterpolate(metalModelInterpolate), _metalTe
     // Define our r-space metal correlation model, if any.
     if(metalModel || metalModelInterpolate || metalTemplate) {
         _metalCorr.reset(new baofit::MetalCorrelationModel(metalModelName,metalModel,metalModelInterpolate,
-            metalTemplate,this));
+            metalTemplate,crossCorrelation,this));
     }
     // Define our broadband distortion models, if any.
     if(distAdd.length() > 0) {

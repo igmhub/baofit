@@ -53,8 +53,8 @@ _crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarni
         _setDVIndex(defineParameter("delta-v",0,10));
         // We use don't use beta2 and (1+beta2)*bias2 here since for galaxies or quasars
         // the combination beta2*bias2 = f = dln(G)/dln(a) is well constrained.
-        defineParameter("bias2",3.6,0.1);
-        defineParameter("beta2*bias2",1,0.05);
+        _setBias2Index(defineParameter("bias2",3.6,0.1));
+        _setBeta2Bias2Index(defineParameter("beta2*bias2",1,0.05));
     }
     // Non-linear broadening parameters
     _nlBase = defineParameter("SigmaNL-perp",3.26,0.3);
@@ -152,7 +152,7 @@ _crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarni
     // Define our r-space metal correlation model, if any.
     if(metalModel || metalModelInterpolate || metalTemplate) {
         _metalCorr.reset(new baofit::MetalCorrelationModel(metalModelName,metalModel,metalModelInterpolate,
-            metalTemplate,this));
+            metalTemplate,crossCorrelation,this));
     }
     
     // Define our r-space broadband distortion models, if any.

@@ -69,6 +69,10 @@ namespace baofit {
         void _setBetaBiasIndex(int betabiasIndex);
         // Sets the index of the velocity shift parameter to use.
         void _setDVIndex(int index);
+        // Sets the index of the bias2 parameter to use.
+        void _setBias2Index(int bias2Index);
+        // Sets the index of the beta2*bias2 parameter to use.
+        void _setBeta2Bias2Index(int beta2bias2Index);
         // Updates the internal parameters.
         void _updateInternalParameters();
         // Returns the Lya beta parameter.
@@ -79,6 +83,10 @@ namespace baofit {
         double _getGammaBias() const;
         // Returns the beta power-law evolution parameter.
         double _getGammaBeta() const;
+        // Returns the beta2 parameter.
+        double _getBeta2() const;
+        // Returns the bias2 parameter.
+        double _getBias2() const;
         // Applies a shift dpi in the parallel direction to the separation (r,mu) using a fiducial
         // cosmology to convert from dv in km/s to dpi in Mpc/h at the specified redshift z. The
         // value of dv is obtained from the "delta-v" parameter defined by _defineLinearBiasParameters.
@@ -92,12 +100,13 @@ namespace baofit {
         // Returns the redshift for the specified bin.
         double _getZBin(int index) const;
     private:
-        int _indexBase, _dvIndex, _betaIndex, _bbIndex, _gammabiasIndex, _gammabetaIndex, _betabiasIndex, _nbins;
+        int _indexBase, _dvIndex, _betaIndex, _bbIndex, _gammabiasIndex, _gammabetaIndex, _betabiasIndex,
+            _bias2Index, _beta2bias2Index, _nbins;
         bool _crossCorrelation;
         enum IndexOffset {
             BETA = 0, BB = 1, GAMMA_BIAS = 2, GAMMA_BETA = 3, DELTA_V = 4, BIAS2 = 5, BB2 = 6
         };
-        double _zref, _beta, _bias, _gammaBias, _gammaBeta;
+        double _zref, _beta, _bias, _gammaBias, _gammaBeta, _bias2, _beta2;
         std::vector<double> _rbin, _mubin, _zbin;
         mutable std::vector<double> _rbinShift, _mubinShift, _zbinShift;
 	}; // AbsCorrelationModel
@@ -109,10 +118,14 @@ namespace baofit {
     inline void AbsCorrelationModel::_setGammaBiasIndex(int gammabiasIndex) { _gammabiasIndex = gammabiasIndex; }
     inline void AbsCorrelationModel::_setGammaBetaIndex(int gammabetaIndex) { _gammabetaIndex = gammabetaIndex; }
     inline void AbsCorrelationModel::_setBetaBiasIndex(int betabiasIndex) { _betabiasIndex = betabiasIndex; }
+    inline void AbsCorrelationModel::_setBias2Index(int bias2Index) { _bias2Index = bias2Index; }
+    inline void AbsCorrelationModel::_setBeta2Bias2Index(int beta2bias2Index) { _beta2bias2Index = beta2bias2Index; }
     inline double AbsCorrelationModel::_getBeta() const { return _beta; }
     inline double AbsCorrelationModel::_getBias() const { return _bias; }
     inline double AbsCorrelationModel::_getGammaBias() const { return _gammaBias; }
     inline double AbsCorrelationModel::_getGammaBeta() const { return _gammaBeta; }
+    inline double AbsCorrelationModel::_getBeta2() const { return _beta2; }
+    inline double AbsCorrelationModel::_getBias2() const { return _bias2; }
     // Evaluates the redshift evolution p(z) of a parameter for which p(zref)=p0 according to
     // p(z) = p0*((1+z)/(1+zref))^gamma.
     double redshiftEvolution(double p0, double gamma, double z, double zref);

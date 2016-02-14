@@ -101,10 +101,11 @@ int local::AbsCorrelationModel::_defineLinearBiasParameters(double zref, bool cr
         defineParameter("delta-v",0,10);
         _setDVIndex(_indexBase + DELTA_V);
         // We use don't use beta2 and (1+beta2)*bias2 here since for galaxies or quasars
-        // so that this parameter corresponds directly to f = dln(G)/dln(a), which is what
-        // we usually want to constrain when the second component is galaxies or quasars.
-        defineParameter("bias2",1.4,0.1);
-        last = defineParameter("beta2*bias2",-0.336,0.03);
+        // the combination beta2*bias2 = f = dln(G)/dln(a) is well constrained.
+        defineParameter("bias2",3.6,0.1);
+        _setBias2Index(_indexBase + BIAS2);
+        last = defineParameter("beta2*bias2",1,0.05);
+        _setBeta2Bias2Index(_indexBase + BB2);
     }
     else {
         // not really necessary since the ctor already does this and you cannot call this method
@@ -119,7 +120,11 @@ void local::AbsCorrelationModel::_updateInternalParameters() {
     _bias = getParameterValue(_bbIndex)/(1+_beta);
     _gammaBias = getParameterValue(_gammabiasIndex);
     _gammaBeta = getParameterValue(_gammabetaIndex);
-    if(_betabiasIndex>=0) {
+    if(_dvIndex >= 0) {
+        _bias2 = getParameterValue(_bias2Index);
+        _beta2 = getParameterValue(_beta2bias2Index)/_bias2;
+    }
+    if(_betabiasIndex >= 0) {
         _bias = getParameterValue(_betabiasIndex)/_beta;
     }
 }
