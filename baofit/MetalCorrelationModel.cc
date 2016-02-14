@@ -25,12 +25,15 @@ namespace phoenix = boost::phoenix;
 namespace local = baofit;
 
 local::MetalCorrelationModel::MetalCorrelationModel(std::string const &metalModelName, bool metalModel,
-    bool metalModelInterpolate, bool metalTemplate, AbsCorrelationModel *base)
+    bool metalModelInterpolate, bool metalTemplate, bool crossCorrelation, AbsCorrelationModel *base)
 : AbsCorrelationModel("Metal Correlation Model"), _metalModel(metalModel), _metalModelInterpolate(metalModelInterpolate),
-_metalTemplate(metalTemplate), _base(base ? *base:*this)
+_metalTemplate(metalTemplate), _crossCorrelation(crossCorrelation), _base(base ? *base:*this)
 {
     if((metalModel && metalModelInterpolate) || (metalModel && metalTemplate) || (metalModelInterpolate && metalTemplate)) {
         throw RuntimeError("MetalCorrelationModel: illegal option specification.");
+    }
+    if((metalModel && crossCorrelation) || (metalTemplate && crossCorrelation)) {
+        throw RuntimeError("MetalCorrelationModel: illegal option for cross-correlation.");
     }
     // Initialize metal correlation model.
     if(metalModel || metalModelInterpolate) {
@@ -90,7 +93,7 @@ _metalTemplate(metalTemplate), _base(base ? *base:*this)
             _initialize(_corrSi3Si32,boost::str(fileName % metalModelName % "_Si3" % "_Si3" % 2));
             _initialize(_corrSi3Si34,boost::str(fileName % metalModelName % "_Si3" % "_Si3" % 4));
         }
-        else if(metalModelInterpolate) {
+        else if(metalModelInterpolate && !crossCorrelation) {
             try {
                 _LyaSi2a0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Lya" % "_Si2a" % 0));
                 _LyaSi2a2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Lya" % "_Si2a" % 2));
@@ -143,6 +146,29 @@ _metalTemplate(metalTemplate), _base(base ? *base:*this)
             _rperpMax = _rperpMin + (_LyaSi2a0->getNX()-1)*_LyaSi2a0->getXSpacing();
             _rparMax = _rparMin + (_LyaSi2a0->getNY()-1)*_LyaSi2a0->getYSpacing();
         }
+        else if(metalModelInterpolate && crossCorrelation) {
+            try {
+                _QSOSi2a0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_QSO" % "_Si2a" % 0));
+                _QSOSi2a2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_QSO" % "_Si2a" % 2));
+                _QSOSi2a4 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_QSO" % "_Si2a" % 4));
+                _QSOSi2b0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_QSO" % "_Si2b" % 0));
+                _QSOSi2b2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_QSO" % "_Si2b" % 2));
+                _QSOSi2b4 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_QSO" % "_Si2b" % 4));
+                _QSOSi2c0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_QSO" % "_Si2c" % 0));
+                _QSOSi2c2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_QSO" % "_Si2c" % 2));
+                _QSOSi2c4 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_QSO" % "_Si2c" % 4));
+                _QSOSi30 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_QSO" % "_Si3" % 0));
+                _QSOSi32 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_QSO" % "_Si3" % 2));
+                _QSOSi34 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_QSO" % "_Si3" % 4));
+            }
+            catch(likely::RuntimeError const &e) {
+                throw RuntimeError("MetalCorrelationModel: error while reading metal model interpolation data.");
+            }
+            _rperpMin = _QSOSi2a0->getX0();
+            _rparMin = _QSOSi2a0->getY0();
+            _rperpMax = _rperpMin + (_QSOSi2a0->getNX()-1)*_QSOSi2a0->getXSpacing();
+            _rparMax = _rparMin + (_QSOSi2a0->getNY()-1)*_QSOSi2a0->getYSpacing();
+        }
     }
     // Initialize metal correlation template.
     else if(metalTemplate) {
@@ -194,10 +220,8 @@ local::MetalCorrelationModel::~MetalCorrelationModel() { }
 
 double local::MetalCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged, int index) const {
     double xi(0);
-    double rperp = r*std::sqrt(1-mu*mu);
-    double rpar = std::fabs(r*mu);
-    // Metal correlation model
-    if(_metalModel || _metalModelInterpolate) {
+    // Metal correlation model.
+    if((_metalModel || _metalModelInterpolate) && !_crossCorrelation) {
         double biasSq, betaAvg, betaProd, norm0(0), norm2(0), norm4(0);
         double zref = _base._getZRef();
         double beta = _base._getBeta();
@@ -213,6 +237,8 @@ double local::MetalCorrelationModel::_evaluate(double r, double mu, double z, bo
         double beta3 = _base.getParameterValue(_indexBase+6);
         double bias3 = _base.getParameterValue(_indexBase+7);
         if(_metalModel && index<0) throw RuntimeError("MetalCorrelationModel::_evaluate: invalid index.");
+        double rperp = r*std::sqrt(1-mu*mu);
+        double rpar = std::fabs(r*mu);
         if(_metalModelInterpolate) {
             if(rperp<_rperpMin) rperp = _rperpMin;
             if(rperp>_rperpMax) rperp = _rperpMax;
@@ -361,9 +387,71 @@ double local::MetalCorrelationModel::_evaluate(double r, double mu, double z, bo
         else if(_metalModelInterpolate) xi += norm0*(*_Si3Si30)(rperp,rpar) + norm2*(*_Si3Si32)(rperp,rpar) + norm4*(*_Si3Si34)(rperp,rpar);
         return xi;
     }
-    // Metal correlation template
+    // Metal correlation model (cross-correlation).
+    if(_metalModelInterpolate && _crossCorrelation) {
+        double biasSq, betaAvg, betaProd, norm0(0), norm2(0), norm4(0);
+        double zref = _base._getZRef();
+        double betaQ = _base._getBeta2();
+        double biasQ = _base._getBias2();
+        double gammaBias = _base._getGammaBias();
+        double gammaBeta = _base._getGammaBeta();
+        double beta2a = _base.getParameterValue(_indexBase);
+        double bias2a = _base.getParameterValue(_indexBase+1);
+        double beta2b = _base.getParameterValue(_indexBase+2);
+        double bias2b = _base.getParameterValue(_indexBase+3);
+        double beta2c = _base.getParameterValue(_indexBase+4);
+        double bias2c = _base.getParameterValue(_indexBase+5);
+        double beta3 = _base.getParameterValue(_indexBase+6);
+        double bias3 = _base.getParameterValue(_indexBase+7);
+        double rperp = r*std::sqrt(1-mu*mu);
+        double rpar = r*mu;
+        if(rperp<_rperpMin) rperp = _rperpMin;
+        if(rperp>_rperpMax) rperp = _rperpMax;
+        if(rpar<_rparMin) rpar = _rparMin;
+        if(rpar>_rparMax) rpar = _rparMax;
+        // QSO-Si2a correlation
+        biasSq = biasQ*bias2a;
+        betaAvg = (betaQ+beta2a)/2;
+        betaProd = betaQ*beta2a;
+        biasSq = redshiftEvolution(biasSq,gammaBias,z,zref);
+        betaAvg = redshiftEvolution(betaAvg,gammaBeta,z,zref);
+        betaProd = redshiftEvolution(betaProd,2*gammaBeta,z,zref);
+        updateNormFactors(norm0,norm2,norm4,biasSq,betaAvg,betaProd);
+        xi += norm0*(*_QSOSi2a0)(rperp,rpar) + norm2*(*_QSOSi2a2)(rperp,rpar) + norm4*(*_QSOSi2a4)(rperp,rpar);
+        // QSO-Si2b correlation
+        biasSq = biasQ*bias2b;
+        betaAvg = (betaQ+beta2b)/2;
+        betaProd = betaQ*beta2b;
+        biasSq = redshiftEvolution(biasSq,gammaBias,z,zref);
+        betaAvg = redshiftEvolution(betaAvg,gammaBeta,z,zref);
+        betaProd = redshiftEvolution(betaProd,2*gammaBeta,z,zref);
+        updateNormFactors(norm0,norm2,norm4,biasSq,betaAvg,betaProd);
+        xi += norm0*(*_QSOSi2b0)(rperp,rpar) + norm2*(*_QSOSi2b2)(rperp,rpar) + norm4*(*_QSOSi2b4)(rperp,rpar);
+        // QSO-Si2c correlation
+        biasSq = biasQ*bias2c;
+        betaAvg = (betaQ+beta2c)/2;
+        betaProd = betaQ*beta2c;
+        biasSq = redshiftEvolution(biasSq,gammaBias,z,zref);
+        betaAvg = redshiftEvolution(betaAvg,gammaBeta,z,zref);
+        betaProd = redshiftEvolution(betaProd,2*gammaBeta,z,zref);
+        updateNormFactors(norm0,norm2,norm4,biasSq,betaAvg,betaProd);
+        xi += norm0*(*_QSOSi2c0)(rperp,rpar) + norm2*(*_QSOSi2c2)(rperp,rpar) + norm4*(*_QSOSi2c4)(rperp,rpar);
+        // QSO-Si3 correlation
+        biasSq = biasQ*bias3;
+        betaAvg = (betaQ+beta3)/2;
+        betaProd = betaQ*beta3;
+        biasSq = redshiftEvolution(biasSq,gammaBias,z,zref);
+        betaAvg = redshiftEvolution(betaAvg,gammaBeta,z,zref);
+        betaProd = redshiftEvolution(betaProd,2*gammaBeta,z,zref);
+        updateNormFactors(norm0,norm2,norm4,biasSq,betaAvg,betaProd);
+        xi += norm0*(*_QSOSi30)(rperp,rpar) + norm2*(*_QSOSi32)(rperp,rpar) + norm4*(*_QSOSi34)(rperp,rpar);
+        return xi;
+    }
+    // Metal correlation template.
     else if(_metalTemplate) {
         double exppar, expperp, corr0(0), corr1(0), corr2(0), corr3(0);
+        double rperp = r*std::sqrt(1-mu*mu);
+        double rpar = std::fabs(r*mu);
         // Template 0
         double rpar0 = 59.533;
         double sigpar0 = _base.getParameterValue(_indexBase+4);
@@ -404,7 +492,7 @@ double local::MetalCorrelationModel::_evaluate(double r, double mu, double z, bo
         xi = corr0 + corr1 + corr2 + corr3;
         return xi;
     }
-    // No metal correlations
+    // No metal correlations.
     else {
         return xi;
     }
