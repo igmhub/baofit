@@ -113,7 +113,7 @@ _verbose(verbose)
     }
     
     // Define our non-linear correction model
-    _nlcorr.reset(new baofit::NonLinearCorrectionModel(zref,sigma8,nlCorrection,nlCorrectionAlt));
+    _nlCorr.reset(new baofit::NonLinearCorrectionModel(zref,sigma8,nlCorrection,nlCorrectionAlt));
 }
 
 local::BaoKSpaceHybridCorrelationModel::~BaoKSpaceHybridCorrelationModel() { }
@@ -143,7 +143,7 @@ double local::BaoKSpaceHybridCorrelationModel::_evaluateKSpaceDistortion(double 
         contdistortion = std::pow((k1-1/k1)/(k1+1/k1),pc);
     }
     // Calculate non-linear correction (if any)
-    double nonlinearcorr = _nlcorr->_evaluateNLCorrection(k,mu_k,pk,_zeff);
+    double nonlinearcorr = _nlCorr->_evaluateKSpace(k,mu_k,pk,_zeff);
     // Cross-correlation?
     if(_crossCorrelation) {
         contdistortion = std::sqrt(contdistortion);
@@ -259,6 +259,8 @@ bool anyChanged, int index) const {
 
     return xi;
 }
+
+double local::BaoKSpaceHybridCorrelationModel::_evaluateKSpace(double k, double mu_k, double pk, double z) const { }
 
 void  local::BaoKSpaceHybridCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
     AbsCorrelationModel::printToStream(out,formatSpec);

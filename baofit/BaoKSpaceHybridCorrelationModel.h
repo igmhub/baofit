@@ -40,10 +40,10 @@ namespace baofit {
 		// the pair separation and z is their average redshift. The separation r should
 		// be provided in Mpc/h.
         virtual double _evaluate(double r, double mu, double z, bool anyChanged, int index) const;
+        virtual double _evaluateKSpace(double k, double mu_k, double pk, double z) const;
 	private:
         double _dilmax, _zcorr0, _zcorr1, _zcorr2;
-        AbsCorrelationModelPtr _distortAdd, _distortMul;
-        NonLinearCorrectionModelPtr _nlcorr;
+        AbsCorrelationModelPtr _nlCorr, _distortAdd, _distortMul;
         bool _anisotropic, _decoupled, _nlBroadband, _nlCorrection, _nlCorrectionAlt, _distortionAlt,
             _noDistortion, _crossCorrelation, _verbose;
         int _nlBase, _contBase, _baoBase;

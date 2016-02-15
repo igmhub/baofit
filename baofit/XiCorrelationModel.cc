@@ -182,6 +182,8 @@ bool anyChanged, int index) const {
     throw RuntimeError("XiCorrelationModel: invalid multipole.");
 }
 
+double local::XiCorrelationModel::_evaluateKSpace(double k, double mu_k, double pk, double z) const { }
+
 void  local::XiCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
     AbsCorrelationModel::printToStream(out,formatSpec);
     out << "Interpolating with " << _rValues.size() << " points covering " << _rValues[0] << " to "

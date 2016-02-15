@@ -1,7 +1,6 @@
 // Created 14-Jan-2015 by Michael Blomqvist (University of California, Irvine) <cblomqvi@uci.edu>
 
 #include "baofit/NonLinearCorrectionModel.h"
-#include "baofit/AbsCorrelationModel.h"
 #include "baofit/RuntimeError.h"
 
 #include "likely/Interpolator.h"
@@ -11,7 +10,8 @@
 namespace local = baofit;
 
 local::NonLinearCorrectionModel::NonLinearCorrectionModel(double zref, double sigma8, bool nlCorrection, bool nlCorrectionAlt)
-: _zref(zref), _sigma8(sigma8), _nlCorrection(nlCorrection), _nlCorrectionAlt(nlCorrectionAlt)
+: AbsCorrelationModel("Non Linear Correction Model"), _zref(zref), _sigma8(sigma8), _nlCorrection(nlCorrection), 
+_nlCorrectionAlt(nlCorrectionAlt)
 {
     if(nlCorrection) _initialize();
 }
@@ -40,7 +40,7 @@ void local::NonLinearCorrectionModel::_initialize() {
 
 local::NonLinearCorrectionModel::~NonLinearCorrectionModel() { }
 
-double local::NonLinearCorrectionModel::_evaluateNLCorrection(double k, double mu_k, double pk, double z) const {
+double local::NonLinearCorrectionModel::_evaluateKSpace(double k, double mu_k, double pk, double z) const {
     double growth, pecvelocity, pressure, nonlinearcorr;
     // Non-linear correction model of http://arxiv.org/abs/1506.04519
     if(_nlCorrection) {
@@ -74,3 +74,7 @@ double local::NonLinearCorrectionModel::_evaluateNLCorrection(double k, double m
     
     return nonlinearcorr;
 }
+
+double local::NonLinearCorrectionModel::_evaluate(double r, double mu, double z, bool anyChanged, int index) const { }
+
+void local::NonLinearCorrectionModel::printToStream(std::ostream &out, std::string const &formatSpec) const { }

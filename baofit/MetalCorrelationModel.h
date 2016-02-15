@@ -30,6 +30,7 @@ namespace baofit {
 		// the pair separation and z is their average redshift. The separation r should
 		// be provided in Mpc/h.
 	    virtual double _evaluate(double r, double mu, double z, bool anyChanged, int index) const;
+	    virtual double _evaluateKSpace(double k, double mu_k, double pk, double z) const;
 	private:
 	    void _initialize(std::vector<double> &vector, std::string const &filename);
 	    std::vector<double> _corrLyaSi2a0, _corrLyaSi2a2, _corrLyaSi2a4, _corrLyaSi2b0, _corrLyaSi2b2,

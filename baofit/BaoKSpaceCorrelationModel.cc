@@ -3,9 +3,9 @@
 #include "baofit/BaoKSpaceCorrelationModel.h"
 #include "baofit/RuntimeError.h"
 #include "baofit/BroadbandModel.h"
-#include "baofit/NonLinearCorrectionModel.h"
 #include "baofit/DistortionMatrix.h"
 #include "baofit/MetalCorrelationModel.h"
+#include "baofit/NonLinearCorrectionModel.h"
 
 #include "likely/Interpolator.h"
 #include "likely/function_impl.h"
@@ -142,7 +142,7 @@ _crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarni
         klo,khi,nk,rmin,rmax,nr,ellMax,symmetric,relerr,abserr,abspow));
     
     // Define our non-linear correction model.
-    _nlcorr.reset(new baofit::NonLinearCorrectionModel(zref,sigma8,nlCorrection,nlCorrectionAlt));
+    _nlCorr.reset(new baofit::NonLinearCorrectionModel(zref,sigma8,nlCorrection,nlCorrectionAlt));
     
     // Define our distortion matrix, if any.
     if(distMatrix) {
@@ -191,7 +191,7 @@ double local::BaoKSpaceCorrelationModel::_evaluateKSpaceDistortion(double k, dou
     double snl2 = _snlPar2*mu2 + _snlPerp2*(1-mu2);
     double nonlinear = std::exp(-0.5*snl2*k*k);
     // Calculate non-linear correction, if any
-    double nonlinearcorr = _nlcorr->_evaluateNLCorrection(k,mu_k,pk,_zeff);
+    double nonlinearcorr = _nlCorr->_evaluateKSpace(k,mu_k,pk,_zeff);
     if(_crossCorrelation) nonlinearcorr = std::sqrt(nonlinearcorr);
     // Calculate pixelization smoothing, if any
     double pixelization(1);
@@ -421,6 +421,8 @@ bool anyChanged, int index) const {
 
     return xi;
 }
+
+double local::BaoKSpaceCorrelationModel::_evaluateKSpace(double k, double mu_k, double pk, double z) const { }
 
 void  local::BaoKSpaceCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
     AbsCorrelationModel::printToStream(out,formatSpec);

@@ -230,6 +230,8 @@ bool anyChanged, int index) const {
     return 0;
 }
 
+double local::BroadbandModel::_evaluateKSpace(double k, double mu_k, double pk, double z) const { }
+
 void  local::BroadbandModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
     AbsCorrelationModel::printToStream(out,formatSpec);
     out << "Using reference separation r0 = " << _r0 << " Mpc/h, reference redshift z0 = " << _z0 << std::endl;

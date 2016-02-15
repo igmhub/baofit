@@ -245,6 +245,8 @@ bool anyChanged, int index) const {
     return _getNormFactor(multipole,z)*_xi(r,multipole);
 }
 
+double local::PkCorrelationModel::_evaluateKSpace(double k, double mu_k, double pk, double z) const { }
+
 void  local::PkCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
     AbsCorrelationModel::printToStream(out,formatSpec);
 }
