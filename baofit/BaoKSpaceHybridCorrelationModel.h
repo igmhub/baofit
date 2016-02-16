@@ -30,8 +30,9 @@ namespace baofit {
             double epsAbs, double epsRel, std::string const &distAdd, std::string const &distMul,
             double distR0, double zcorr0, double zcorr1, double zcorr2, double sigma8,
             bool anisotropic = false, bool decoupled = false, bool nlBroadband = false,
-            bool nlCorrection = false, bool nlCorrectionAlt = false, bool distortionAlt = false,
-            bool noDistortion = false, bool crossCorrelation = false, bool verbose = false);
+            bool nlCorrection = false, bool fitNLCorrection = false, bool nlCorrectionAlt = false,
+            bool distortionAlt = false, bool noDistortion = false, bool crossCorrelation = false,
+            bool verbose = false);
 		virtual ~BaoKSpaceHybridCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
@@ -44,8 +45,8 @@ namespace baofit {
 	private:
         double _dilmax, _zcorr0, _zcorr1, _zcorr2;
         AbsCorrelationModelPtr _nlCorr, _distortAdd, _distortMul;
-        bool _anisotropic, _decoupled, _nlBroadband, _nlCorrection, _nlCorrectionAlt, _distortionAlt,
-            _noDistortion, _crossCorrelation, _verbose;
+        bool _anisotropic, _decoupled, _nlBroadband, _nlCorrection, _fitNLCorrection, _nlCorrectionAlt,
+            _distortionAlt, _noDistortion, _crossCorrelation, _verbose;
         int _nlBase, _contBase, _baoBase;
         cosmo::DistortedPowerCorrelationHybridPtr _Xipk, _Xinw;
         // Evaluates our k-space distortion model D(k,mu_k) using our current parameter values.

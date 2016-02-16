@@ -16,7 +16,7 @@ namespace baofit {
 	    // of the model parameters. The parameter zref is used for calculating the linear
 	    // growth factor.
 	    NonLinearCorrectionModel(double zref, double sigma8, bool nlCorrection = false,
-	        bool nlCorrectionAlt = false);
+	        bool fitNLCorrection = false, bool nlCorrectionAlt = false, AbsCorrelationModel *base = 0);
 	    virtual ~NonLinearCorrectionModel();
 	    // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
@@ -27,10 +27,12 @@ namespace baofit {
 	    // interpolate in the fixed model parameters and to calculate the linear growth factor.
 	    virtual double _evaluateKSpace(double k, double mu_k, double pk, double z) const;
 	private:
+	    int _indexBase;
 	    double _zref, _sigma8;
-	    bool _nlCorrection, _nlCorrectionAlt;
+	    bool _nlCorrection, _fitNLCorrection, _nlCorrectionAlt;
 	    void _initialize();
 	    mutable likely::InterpolatorPtr _qnlInterpolator, _kvInterpolator, _avInterpolator, _bvInterpolator, _kpInterpolator;
+	    AbsCorrelationModel &_base;
     }; // NonLinearCorrectionModel
 } // baofit
 

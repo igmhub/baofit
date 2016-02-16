@@ -31,16 +31,17 @@ local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &m
     std::string const &distAdd, std::string const &distMul, double distR0,
     double zeff, double sigma8, int distMatrixOrder,
     bool anisotropic, bool decoupled,  bool nlBroadband, bool nlCorrection,
-    bool nlCorrectionAlt, bool pixelize, bool uvfluctuation, bool distMatrix,
-    bool metalModel, bool metalModelInterpolate, bool metalTemplate,
+    bool fitNLCorrection, bool nlCorrectionAlt, bool pixelize, bool uvfluctuation,
+    bool distMatrix, bool metalModel, bool metalModelInterpolate, bool metalTemplate,
     bool combinedFitParameters, bool crossCorrelation, bool verbose)
 : AbsCorrelationModel("BAO k-Space Correlation Model"), _dilmin(dilmin), _dilmax(dilmax),
 _zeff(zeff), _distMatrixOrder(distMatrixOrder), _anisotropic(anisotropic),
 _decoupled(decoupled), _nlBroadband(nlBroadband), _nlCorrection(nlCorrection),
-_nlCorrectionAlt(nlCorrectionAlt), _pixelize(pixelize), _uvfluctuation(uvfluctuation),
-_distMatrix(distMatrix), _metalModel(metalModel), _metalModelInterpolate(metalModelInterpolate),
-_metalTemplate(metalTemplate), _combinedFitParameters(combinedFitParameters),
-_crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarnings(10)
+_fitNLCorrection(fitNLCorrection), _nlCorrectionAlt(nlCorrectionAlt), _pixelize(pixelize),
+_uvfluctuation(uvfluctuation), _distMatrix(distMatrix), _metalModel(metalModel),
+_metalModelInterpolate(metalModelInterpolate), _metalTemplate(metalTemplate),
+_combinedFitParameters(combinedFitParameters), _crossCorrelation(crossCorrelation),
+_verbose(verbose), _nWarnings(0), _maxWarnings(10)
 {
     _setZRef(zref);
     // Linear bias parameters
@@ -142,7 +143,7 @@ _crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarni
         klo,khi,nk,rmin,rmax,nr,ellMax,symmetric,relerr,abserr,abspow));
     
     // Define our non-linear correction model.
-    _nlCorr.reset(new baofit::NonLinearCorrectionModel(zref,sigma8,nlCorrection,nlCorrectionAlt));
+    _nlCorr.reset(new baofit::NonLinearCorrectionModel(zref,sigma8,nlCorrection,fitNLCorrection,nlCorrectionAlt,this));
     
     // Define our distortion matrix, if any.
     if(distMatrix) {
@@ -429,7 +430,7 @@ void  local::BaoKSpaceCorrelationModel::printToStream(std::ostream &out, std::st
     out << "Using " << (_anisotropic ? "anisotropic":"isotropic") << " BAO scales." << std::endl;
     out << "Scales apply to BAO peak " << (_decoupled ? "only." : "and cosmological broadband.") << std::endl;
     out << "Anisotropic non-linear broadening applies to peak " << (!_nlBroadband ? "only." : "and cosmological broadband.") << std::endl;
-    out << "Non-linear correction is switched " << (_nlCorrection || _nlCorrectionAlt ? "on." : "off.") << std::endl;
+    out << "Non-linear correction is switched " << (_nlCorrection || _fitNLCorrection || _nlCorrectionAlt ? "on." : "off.") << std::endl;
     out << "Pixelization smoothing is switched " << (_pixelize ? "on." : "off.") << std::endl;
     out << "Distortion matrix is switched " << (_distMatrix ? "on." : "off.") << std::endl;
     out << "Metal correlations are switched " << (_metalModel || _metalModelInterpolate || _metalTemplate ? "on." : "off.") << std::endl;

@@ -131,6 +131,7 @@ int main(int argc, char **argv) {
         ("nl-broadband",
             "k-space anisotropic non-linear broadening applied to broadband cosmology (default is peak only)")
         ("nl-correction", "k-space non-linear correction applied in the flux power spectrum model.")
+        ("fit-nl-correction", "fit for the k-space non-linear correction applied in the flux power spectrum model.")
         ("nl-correction-alt", "k-space alternative non-linear correction applied in the flux power spectrum model.")
         ("distortion-alt", "Uses alternative model for the continuum fitting broadband distortion.")
         ("no-distortion", "No modeling of the continuum fitting broadband distortion.")
@@ -337,12 +338,12 @@ int main(int argc, char **argv) {
         kspacefft(vm.count("kspace-fft")), kspacehybrid(vm.count("kspace-hybrid")),
         calculateGradients(vm.count("calculate-gradients")),
         nlBroadband(vm.count("nl-broadband")), nlCorrection(vm.count("nl-correction")),
-        nlCorrectionAlt(vm.count("nl-correction-alt")), distortionAlt(vm.count("distortion-alt")),
-        noDistortion(vm.count("no-distortion")), pixelize(vm.count("pixelize")),
-        uvfluctuation(vm.count("uvfluctuation")), distMatrix(vm.count("dist-matrix")),
-        metalModel(vm.count("metal-model")), metalModelInterpolate(vm.count("metal-model-interpolate")),
-        metalTemplate(vm.count("metal-template")), customGrid(vm.count("custom-grid")), 
-        combinedFitParameters(vm.count("combined-fit-parameters"));
+        fitNLCorrection(vm.count("fit-nl-correction")), nlCorrectionAlt(vm.count("nl-correction-alt")),
+        distortionAlt(vm.count("distortion-alt")), noDistortion(vm.count("no-distortion")),
+        pixelize(vm.count("pixelize")), uvfluctuation(vm.count("uvfluctuation")),
+        distMatrix(vm.count("dist-matrix")), metalModel(vm.count("metal-model")),
+        metalModelInterpolate(vm.count("metal-model-interpolate")), metalTemplate(vm.count("metal-template")),
+        customGrid(vm.count("custom-grid")), combinedFitParameters(vm.count("combined-fit-parameters"));
 
     // Check that we have a recognized data format.
     if(dataFormat != "comoving-cartesian" && dataFormat != "comoving-polar" &&
@@ -407,9 +408,9 @@ int main(int argc, char **argv) {
                 modelrootName,fiducialName,nowigglesName,distMatrixName,metalModelName,
                 zref,rmin,rmax,dilmin,dilmax,relerr,abserr,ellMax,samplesPerDecade,
                 distAdd,distMul,distR0,zeff,sigma8,distMatrixOrder,anisotropic,
-                decoupled,nlBroadband,nlCorrection,nlCorrectionAlt,pixelize,uvfluctuation,
-                distMatrix,metalModel,metalModelInterpolate,metalTemplate,combinedFitParameters,
-                crossCorrelation,verbose));
+                decoupled,nlBroadband,nlCorrection,fitNLCorrection,nlCorrectionAlt,pixelize,
+                uvfluctuation,distMatrix,metalModel,metalModelInterpolate,metalTemplate,
+                combinedFitParameters,crossCorrelation,verbose));
         }
         else if(kspacefft) {
             // Build our fit model from tabulated P(k) on disk and use a 3D FFT.
@@ -417,7 +418,7 @@ int main(int argc, char **argv) {
                 modelrootName,fiducialName,nowigglesName,zref,
                 gridspacing,ngridx,ngridy,ngridz,distAdd,distMul,distR0,
                 zcorr0,zcorr1,zcorr2,sigma8,anisotropic,decoupled,nlBroadband,nlCorrection,
-                nlCorrectionAlt,distortionAlt,noDistortion,crossCorrelation,verbose));
+                fitNLCorrection,nlCorrectionAlt,distortionAlt,noDistortion,crossCorrelation,verbose));
         }
         else if(kspacehybrid) {
             // Build our fit model from tabulated P(k) on disk and use a hybrid transformation.
@@ -425,7 +426,8 @@ int main(int argc, char **argv) {
                 modelrootName,fiducialName,nowigglesName,zref,
                 kxmax,ngridx,gridspacing,ngridy,gridscaling,rmax,dilmax,abserrHybrid,relerrHybrid,
                 distAdd,distMul,distR0,zcorr0,zcorr1,zcorr2,sigma8,anisotropic,decoupled,
-                nlBroadband,nlCorrection,nlCorrectionAlt,distortionAlt,noDistortion,crossCorrelation,verbose));
+                nlBroadband,nlCorrection,fitNLCorrection,nlCorrectionAlt,distortionAlt,noDistortion,
+                crossCorrelation,verbose));
         }
         else {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
