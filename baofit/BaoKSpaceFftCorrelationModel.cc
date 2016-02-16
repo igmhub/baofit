@@ -253,6 +253,8 @@ bool anyChanged, int index) const {
 
 double local::BaoKSpaceFftCorrelationModel::_evaluateKSpace(double k, double mu_k, double pk, double z) const { }
 
+int local::BaoKSpaceFftCorrelationModel::_getIndexBase() const { return _indexBase; }
+
 void  local::BaoKSpaceFftCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
     AbsCorrelationModel::printToStream(out,formatSpec);
     out << "Using " << (_anisotropic ? "anisotropic":"isotropic") << " BAO scales." << std::endl;

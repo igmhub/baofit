@@ -247,6 +247,8 @@ bool anyChanged, int index) const {
 
 double local::PkCorrelationModel::_evaluateKSpace(double k, double mu_k, double pk, double z) const { }
 
+int local::PkCorrelationModel::_getIndexBase() const { return _indexBase; }
+
 void  local::PkCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
     AbsCorrelationModel::printToStream(out,formatSpec);
 }

@@ -70,7 +70,7 @@ _verbose(verbose), _nWarnings(0), _maxWarnings(10)
     if(pixelize) {
         _pixBase = defineParameter("pixel scale",2,0.2);
     }
-    // UV fluctuations
+    // UV fluctuation parameters
     if(uvfluctuation) {
         _uvBase = defineParameter("UV bias",0.13,0.01);
         defineParameter("UV abs resp bias",-0.667,0.06);
@@ -144,6 +144,7 @@ _verbose(verbose), _nWarnings(0), _maxWarnings(10)
     
     // Define our non-linear correction model.
     _nlCorr.reset(new baofit::NonLinearCorrectionModel(zref,sigma8,nlCorrection,fitNLCorrection,nlCorrectionAlt,this));
+    if(fitNLCorrection) _nlcorrBase = _nlCorr->_getIndexBase();
     
     // Define our distortion matrix, if any.
     if(distMatrix) {
@@ -424,6 +425,8 @@ bool anyChanged, int index) const {
 }
 
 double local::BaoKSpaceCorrelationModel::_evaluateKSpace(double k, double mu_k, double pk, double z) const { }
+
+int local::BaoKSpaceCorrelationModel::_getIndexBase() const { return _indexBase; }
 
 void  local::BaoKSpaceCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
     AbsCorrelationModel::printToStream(out,formatSpec);

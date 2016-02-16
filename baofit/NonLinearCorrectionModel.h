@@ -26,6 +26,7 @@ namespace baofit {
 	    // depends also on the linear matter power spectrum P(k). The redshift z is used to
 	    // interpolate in the fixed model parameters and to calculate the linear growth factor.
 	    virtual double _evaluateKSpace(double k, double mu_k, double pk, double z) const;
+	    virtual int _getIndexBase() const;
 	private:
 	    int _indexBase;
 	    double _zref, _sigma8;

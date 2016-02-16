@@ -51,6 +51,7 @@ namespace baofit {
         virtual double _evaluate(double r, cosmo::Multipole multipole, double z, bool changed, int index) const;
         // k-space
         virtual double _evaluateKSpace(double k, double mu_k, double pk, double z) const = 0;
+        virtual int _getIndexBase() const = 0;
         // Defines the standard set of linear bias parameters used by _getNormFactor below, in
         // addition to a parameter "delta-v" used by _applyVelocityShift below. Adds a second set
         // of bias and beta parameters if crossCorrelation is true. Returns the index

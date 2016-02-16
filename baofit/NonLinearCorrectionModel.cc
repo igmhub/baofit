@@ -87,4 +87,6 @@ double local::NonLinearCorrectionModel::_evaluateKSpace(double k, double mu_k, d
 
 double local::NonLinearCorrectionModel::_evaluate(double r, double mu, double z, bool anyChanged, int index) const { }
 
+int local::NonLinearCorrectionModel::_getIndexBase() const { return _indexBase; }
+
 void local::NonLinearCorrectionModel::printToStream(std::ostream &out, std::string const &formatSpec) const { }
