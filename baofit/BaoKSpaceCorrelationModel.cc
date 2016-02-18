@@ -264,6 +264,8 @@ bool anyChanged, int index) const {
     if(anyChanged) {
         bool nlChanged = isParameterValueChanged(_nlBase) || isParameterValueChanged(_nlBase+1);
         bool pixChanged = _pixelize ? isParameterValueChanged(_pixBase) : false;
+        bool nlcorrChanged = _fitNLCorrection ? isParameterValueChanged(_nlcorrBase) || isParameterValueChanged(_nlcorrBase+1)
+            : false;
         bool uvChanged = _uvfluctuation ? isParameterValueChanged(_uvBase) || isParameterValueChanged(_uvBase+1)
             || isParameterValueChanged(_uvBase+2) || isParameterValueChanged(1) : false;
         bool otherChanged = isParameterValueChanged(0);
@@ -279,7 +281,7 @@ bool anyChanged, int index) const {
                 _Xipk->printToStream(std::cout);
             }
         }
-        else if(nlChanged || pixChanged || uvChanged || otherChanged) {
+        else if(nlChanged || pixChanged || nlcorrChanged || uvChanged || otherChanged) {
             // We are already initialized, so just redo the transforms.
             converged &= _Xipk->transform(interpolateK,bypassConvergenceTest);
         }
@@ -297,7 +299,7 @@ bool anyChanged, int index) const {
                 _Xinw->printToStream(std::cout);
             }
         }
-        else if(nlChanged || pixChanged || uvChanged || otherChanged) {
+        else if(nlChanged || pixChanged || nlcorrChanged || uvChanged || otherChanged) {
             // We are already initialized, so just redo the transforms.
             converged &= _Xinw->transform(interpolateK,bypassConvergenceTest);
         }

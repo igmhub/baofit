@@ -115,6 +115,7 @@ _crossCorrelation(crossCorrelation), _verbose(verbose)
     
     // Define our non-linear correction model
     _nlCorr.reset(new baofit::NonLinearCorrectionModel(zref,sigma8,nlCorrection,fitNLCorrection,nlCorrectionAlt,this));
+    if(fitNLCorrection) _nlcorrBase = _nlCorr->_getIndexBase();
 }
 
 local::BaoKSpaceHybridCorrelationModel::~BaoKSpaceHybridCorrelationModel() { }
@@ -199,8 +200,10 @@ bool anyChanged, int index) const {
     if(anyChanged) {
         bool nlChanged = isParameterValueChanged(_nlBase) || isParameterValueChanged(_nlBase+1);
         bool contChanged = isParameterValueChanged(_contBase) || isParameterValueChanged(_contBase+1);
+        bool nlcorrChanged = _fitNLCorrection ? isParameterValueChanged(_nlcorrBase) || isParameterValueChanged(_nlcorrBase+1)
+            : false;
         bool otherChanged = isParameterValueChanged(0);
-        if(nlChanged || contChanged || otherChanged) {
+        if(nlChanged || contChanged || nlcorrChanged || otherChanged) {
         	_Xipk->transform();
         }
         // Are we only applying non-linear broadening to the peak?
@@ -208,7 +211,7 @@ bool anyChanged, int index) const {
             _snlPerp2 = _snlPar2 = 0;
             nlChanged = false;
         }
-        if(nlChanged || contChanged || otherChanged) {
+        if(nlChanged || contChanged || nlcorrChanged || otherChanged) {
             _Xinw->transform();
         }
     }
