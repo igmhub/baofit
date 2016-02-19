@@ -33,9 +33,9 @@ namespace baofit {
             std::string const &distAdd, std::string const &distMul, double distR0,
             double zeff, double sigma8, int distMatrixOrder,
             bool anisotropic = false, bool decoupled = false, bool nlBroadband = false,
-            bool nlCorrection = false, bool nlCorrectionAlt = false, bool pixelize = false,
-            bool uvfluctuation = false, bool distMatrix = false, bool metalModel = false,
-            bool metalModelInterpolate = false, bool metalTemplate = false,
+            bool nlCorrection = false, bool fitNLCorrection = false, bool nlCorrectionAlt = false,
+            bool pixelize = false, bool uvfluctuation = false, bool distMatrix = false,
+            bool metalModel = false, bool metalModelInterpolate = false, bool metalTemplate = false,
             bool combinedFitParameters = false, bool crossCorrelation = false,
             bool verbose = false);
 		virtual ~BaoKSpaceCorrelationModel();
@@ -46,15 +46,17 @@ namespace baofit {
 		// the pair separation and z is their average redshift. The separation r should
 		// be provided in Mpc/h.
         virtual double _evaluate(double r, double mu, double z, bool anyChanged, int index) const;
+        virtual double _evaluateKSpace(double k, double mu_k, double pk, double z) const;
+        virtual int _getIndexBase() const;
 	private:
         double _dilmin, _dilmax, _zcorr0, _zcorr1, _zcorr2, _rmin, _rmax;
-        AbsCorrelationModelPtr _metalCorr, _distortAdd, _distortMul;
-        NonLinearCorrectionModelPtr _nlcorr;
+        AbsCorrelationModelPtr _metalCorr, _nlCorr, _distortAdd, _distortMul;
         DistortionMatrixPtr _distMat;
-        bool _anisotropic, _decoupled, _nlBroadband, _nlCorrection, _nlCorrectionAlt,
+        bool _anisotropic, _decoupled, _nlBroadband, _nlCorrection, _fitNLCorrection, _nlCorrectionAlt,
             _pixelize, _uvfluctuation, _distMatrix, _metalModel, _metalModelInterpolate,
             _metalTemplate, _combinedFitParameters, _crossCorrelation, _verbose;
-        int _nlBase, _baoBase, _pixBase, _uvBase, _combinedBase, _maxWarnings, _distMatrixOrder;
+        int _indexBase, _nlBase, _nlcorrBase, _baoBase, _pixBase, _uvBase, _combinedBase, _maxWarnings,
+            _distMatrixOrder;
         mutable int _nWarnings;
         cosmo::DistortedPowerCorrelationPtr _Xipk, _Xinw;
         // Evaluates our k-space distortion model D(k,mu_k) using our current parameter values.

@@ -25,12 +25,13 @@ local::BaoKSpaceHybridCorrelationModel::BaoKSpaceHybridCorrelationModel(std::str
     double spacing, int ny, int gridscaling, double rmax, double dilmax, double epsAbs, double epsRel,
     std::string const &distAdd, std::string const &distMul, double distR0, double zcorr0, double zcorr1,
     double zcorr2, double sigma8, bool anisotropic, bool decoupled,  bool nlBroadband, bool nlCorrection,
-    bool nlCorrectionAlt, bool distortionAlt, bool noDistortion, bool crossCorrelation, bool verbose)
+    bool fitNLCorrection, bool nlCorrectionAlt, bool distortionAlt, bool noDistortion, bool crossCorrelation,
+    bool verbose)
 : AbsCorrelationModel("BAO k-Space Hybrid Correlation Model"), _dilmax(dilmax),
 _zcorr0(zcorr0), _zcorr1(zcorr1), _zcorr2(zcorr2), _anisotropic(anisotropic), _decoupled(decoupled),
-_nlBroadband(nlBroadband), _nlCorrection(nlCorrection), _nlCorrectionAlt(nlCorrectionAlt),
-_distortionAlt(distortionAlt), _noDistortion(noDistortion), _crossCorrelation(crossCorrelation),
-_verbose(verbose)
+_nlBroadband(nlBroadband), _nlCorrection(nlCorrection), _fitNLCorrection(fitNLCorrection),
+_nlCorrectionAlt(nlCorrectionAlt), _distortionAlt(distortionAlt), _noDistortion(noDistortion),
+_crossCorrelation(crossCorrelation), _verbose(verbose)
 {
     _setZRef(zref);
     // Linear bias parameters
@@ -113,7 +114,8 @@ _verbose(verbose)
     }
     
     // Define our non-linear correction model
-    _nlcorr.reset(new baofit::NonLinearCorrectionModel(zref,sigma8,nlCorrection,nlCorrectionAlt));
+    _nlCorr.reset(new baofit::NonLinearCorrectionModel(zref,sigma8,nlCorrection,fitNLCorrection,nlCorrectionAlt,this));
+    if(fitNLCorrection) _nlcorrBase = _nlCorr->_getIndexBase();
 }
 
 local::BaoKSpaceHybridCorrelationModel::~BaoKSpaceHybridCorrelationModel() { }
@@ -143,7 +145,7 @@ double local::BaoKSpaceHybridCorrelationModel::_evaluateKSpaceDistortion(double 
         contdistortion = std::pow((k1-1/k1)/(k1+1/k1),pc);
     }
     // Calculate non-linear correction (if any)
-    double nonlinearcorr = _nlcorr->_evaluateNLCorrection(k,mu_k,pk,_zeff);
+    double nonlinearcorr = _nlCorr->_evaluateKSpace(k,mu_k,pk,_zeff);
     // Cross-correlation?
     if(_crossCorrelation) {
         contdistortion = std::sqrt(contdistortion);
@@ -198,8 +200,10 @@ bool anyChanged, int index) const {
     if(anyChanged) {
         bool nlChanged = isParameterValueChanged(_nlBase) || isParameterValueChanged(_nlBase+1);
         bool contChanged = isParameterValueChanged(_contBase) || isParameterValueChanged(_contBase+1);
+        bool nlcorrChanged = _fitNLCorrection ? isParameterValueChanged(_nlcorrBase) || isParameterValueChanged(_nlcorrBase+1)
+            : false;
         bool otherChanged = isParameterValueChanged(0);
-        if(nlChanged || contChanged || otherChanged) {
+        if(nlChanged || contChanged || nlcorrChanged || otherChanged) {
         	_Xipk->transform();
         }
         // Are we only applying non-linear broadening to the peak?
@@ -207,7 +211,7 @@ bool anyChanged, int index) const {
             _snlPerp2 = _snlPar2 = 0;
             nlChanged = false;
         }
-        if(nlChanged || contChanged || otherChanged) {
+        if(nlChanged || contChanged || nlcorrChanged || otherChanged) {
             _Xinw->transform();
         }
     }
@@ -260,10 +264,14 @@ bool anyChanged, int index) const {
     return xi;
 }
 
+double local::BaoKSpaceHybridCorrelationModel::_evaluateKSpace(double k, double mu_k, double pk, double z) const { }
+
+int local::BaoKSpaceHybridCorrelationModel::_getIndexBase() const { return _indexBase; }
+
 void  local::BaoKSpaceHybridCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
     AbsCorrelationModel::printToStream(out,formatSpec);
     out << "Using " << (_anisotropic ? "anisotropic":"isotropic") << " BAO scales." << std::endl;
     out << "Scales apply to BAO peak " << (_decoupled ? "only." : "and cosmological broadband.") << std::endl;
     out << "Anisotropic non-linear broadening applies to peak " << (!_nlBroadband ? "only." : "and cosmological broadband.") << std::endl;
-    out << "Non-linear correction is switched " << (_nlCorrection || _nlCorrectionAlt ? "on." : "off.") << std::endl;
+    out << "Non-linear correction is switched " << (_nlCorrection || _fitNLCorrection || _nlCorrectionAlt ? "on." : "off.") << std::endl;
 }

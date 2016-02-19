@@ -38,6 +38,8 @@ namespace baofit {
         // Returns the correlation function for the specified multipole at co-moving pair separation
         // r and average pair redshift z.
         virtual double _evaluate(double r, cosmo::Multipole multipole, double z, bool anyChanged, int index) const;
+        virtual double _evaluateKSpace(double k, double mu_k, double pk, double z) const;
+        virtual int _getIndexBase() const;
 	private:
         double _xi(double r, cosmo::Multipole multipole) const;
         double _getE(int j, double r, cosmo::Multipole multipole) const;

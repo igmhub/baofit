@@ -498,6 +498,10 @@ double local::MetalCorrelationModel::_evaluate(double r, double mu, double z, bo
     }
 }
 
+double local::MetalCorrelationModel::_evaluateKSpace(double k, double mu_k, double pk, double z) const { }
+
+int local::MetalCorrelationModel::_getIndexBase() const { return _indexBase; }
+
 void local::MetalCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const { }
 
 void local::updateNormFactors(double &norm0, double &norm2, double &norm4, double biasSq, double betaAvg, double betaProd) {

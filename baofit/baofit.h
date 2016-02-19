@@ -12,6 +12,7 @@
 #include "baofit/BroadbandModel.h"
 #include "baofit/DistortionMatrix.h"
 #include "baofit/MetalCorrelationModel.h"
+#include "baofit/NonLinearCorrectionModel.h"
 #include "baofit/PkCorrelationModel.h"
 #include "baofit/XiCorrelationModel.h"
 

@@ -168,6 +168,10 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     return xi;
 }
 
+double local::BaoCorrelationModel::_evaluateKSpace(double k, double mu_k, double pk, double z) const { }
+
+int local::BaoCorrelationModel::_getIndexBase() const { return _indexBase; }
+
 void  local::BaoCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
     AbsCorrelationModel::printToStream(out,formatSpec);
     out << "Using " << (_anisotropic ? "anisotropic":"isotropic") << " BAO scales." << std::endl;

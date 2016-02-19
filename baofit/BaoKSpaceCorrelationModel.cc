@@ -3,9 +3,9 @@
 #include "baofit/BaoKSpaceCorrelationModel.h"
 #include "baofit/RuntimeError.h"
 #include "baofit/BroadbandModel.h"
-#include "baofit/NonLinearCorrectionModel.h"
 #include "baofit/DistortionMatrix.h"
 #include "baofit/MetalCorrelationModel.h"
+#include "baofit/NonLinearCorrectionModel.h"
 
 #include "likely/Interpolator.h"
 #include "likely/function_impl.h"
@@ -31,16 +31,17 @@ local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &m
     std::string const &distAdd, std::string const &distMul, double distR0,
     double zeff, double sigma8, int distMatrixOrder,
     bool anisotropic, bool decoupled,  bool nlBroadband, bool nlCorrection,
-    bool nlCorrectionAlt, bool pixelize, bool uvfluctuation, bool distMatrix,
-    bool metalModel, bool metalModelInterpolate, bool metalTemplate,
+    bool fitNLCorrection, bool nlCorrectionAlt, bool pixelize, bool uvfluctuation,
+    bool distMatrix, bool metalModel, bool metalModelInterpolate, bool metalTemplate,
     bool combinedFitParameters, bool crossCorrelation, bool verbose)
 : AbsCorrelationModel("BAO k-Space Correlation Model"), _dilmin(dilmin), _dilmax(dilmax),
 _zeff(zeff), _distMatrixOrder(distMatrixOrder), _anisotropic(anisotropic),
 _decoupled(decoupled), _nlBroadband(nlBroadband), _nlCorrection(nlCorrection),
-_nlCorrectionAlt(nlCorrectionAlt), _pixelize(pixelize), _uvfluctuation(uvfluctuation),
-_distMatrix(distMatrix), _metalModel(metalModel), _metalModelInterpolate(metalModelInterpolate),
-_metalTemplate(metalTemplate), _combinedFitParameters(combinedFitParameters),
-_crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarnings(10)
+_fitNLCorrection(fitNLCorrection), _nlCorrectionAlt(nlCorrectionAlt), _pixelize(pixelize),
+_uvfluctuation(uvfluctuation), _distMatrix(distMatrix), _metalModel(metalModel),
+_metalModelInterpolate(metalModelInterpolate), _metalTemplate(metalTemplate),
+_combinedFitParameters(combinedFitParameters), _crossCorrelation(crossCorrelation),
+_verbose(verbose), _nWarnings(0), _maxWarnings(10)
 {
     _setZRef(zref);
     // Linear bias parameters
@@ -69,7 +70,7 @@ _crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarni
     if(pixelize) {
         _pixBase = defineParameter("pixel scale",2,0.2);
     }
-    // UV fluctuations
+    // UV fluctuation parameters
     if(uvfluctuation) {
         _uvBase = defineParameter("UV bias",0.13,0.01);
         defineParameter("UV abs resp bias",-0.667,0.06);
@@ -142,7 +143,8 @@ _crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarni
         klo,khi,nk,rmin,rmax,nr,ellMax,symmetric,relerr,abserr,abspow));
     
     // Define our non-linear correction model.
-    _nlcorr.reset(new baofit::NonLinearCorrectionModel(zref,sigma8,nlCorrection,nlCorrectionAlt));
+    _nlCorr.reset(new baofit::NonLinearCorrectionModel(zref,sigma8,nlCorrection,fitNLCorrection,nlCorrectionAlt,this));
+    if(fitNLCorrection) _nlcorrBase = _nlCorr->_getIndexBase();
     
     // Define our distortion matrix, if any.
     if(distMatrix) {
@@ -191,7 +193,7 @@ double local::BaoKSpaceCorrelationModel::_evaluateKSpaceDistortion(double k, dou
     double snl2 = _snlPar2*mu2 + _snlPerp2*(1-mu2);
     double nonlinear = std::exp(-0.5*snl2*k*k);
     // Calculate non-linear correction, if any
-    double nonlinearcorr = _nlcorr->_evaluateNLCorrection(k,mu_k,pk,_zeff);
+    double nonlinearcorr = _nlCorr->_evaluateKSpace(k,mu_k,pk,_zeff);
     if(_crossCorrelation) nonlinearcorr = std::sqrt(nonlinearcorr);
     // Calculate pixelization smoothing, if any
     double pixelization(1);
@@ -262,6 +264,8 @@ bool anyChanged, int index) const {
     if(anyChanged) {
         bool nlChanged = isParameterValueChanged(_nlBase) || isParameterValueChanged(_nlBase+1);
         bool pixChanged = _pixelize ? isParameterValueChanged(_pixBase) : false;
+        bool nlcorrChanged = _fitNLCorrection ? isParameterValueChanged(_nlcorrBase) || isParameterValueChanged(_nlcorrBase+1)
+            : false;
         bool uvChanged = _uvfluctuation ? isParameterValueChanged(_uvBase) || isParameterValueChanged(_uvBase+1)
             || isParameterValueChanged(_uvBase+2) || isParameterValueChanged(1) : false;
         bool otherChanged = isParameterValueChanged(0);
@@ -277,7 +281,7 @@ bool anyChanged, int index) const {
                 _Xipk->printToStream(std::cout);
             }
         }
-        else if(nlChanged || pixChanged || uvChanged || otherChanged) {
+        else if(nlChanged || pixChanged || nlcorrChanged || uvChanged || otherChanged) {
             // We are already initialized, so just redo the transforms.
             converged &= _Xipk->transform(interpolateK,bypassConvergenceTest);
         }
@@ -295,7 +299,7 @@ bool anyChanged, int index) const {
                 _Xinw->printToStream(std::cout);
             }
         }
-        else if(nlChanged || pixChanged || uvChanged || otherChanged) {
+        else if(nlChanged || pixChanged || nlcorrChanged || uvChanged || otherChanged) {
             // We are already initialized, so just redo the transforms.
             converged &= _Xinw->transform(interpolateK,bypassConvergenceTest);
         }
@@ -422,12 +426,16 @@ bool anyChanged, int index) const {
     return xi;
 }
 
+double local::BaoKSpaceCorrelationModel::_evaluateKSpace(double k, double mu_k, double pk, double z) const { }
+
+int local::BaoKSpaceCorrelationModel::_getIndexBase() const { return _indexBase; }
+
 void  local::BaoKSpaceCorrelationModel::printToStream(std::ostream &out, std::string const &formatSpec) const {
     AbsCorrelationModel::printToStream(out,formatSpec);
     out << "Using " << (_anisotropic ? "anisotropic":"isotropic") << " BAO scales." << std::endl;
     out << "Scales apply to BAO peak " << (_decoupled ? "only." : "and cosmological broadband.") << std::endl;
     out << "Anisotropic non-linear broadening applies to peak " << (!_nlBroadband ? "only." : "and cosmological broadband.") << std::endl;
-    out << "Non-linear correction is switched " << (_nlCorrection || _nlCorrectionAlt ? "on." : "off.") << std::endl;
+    out << "Non-linear correction is switched " << (_nlCorrection || _fitNLCorrection || _nlCorrectionAlt ? "on." : "off.") << std::endl;
     out << "Pixelization smoothing is switched " << (_pixelize ? "on." : "off.") << std::endl;
     out << "Distortion matrix is switched " << (_distMatrix ? "on." : "off.") << std::endl;
     out << "Metal correlations are switched " << (_metalModel || _metalModelInterpolate || _metalTemplate ? "on." : "off.") << std::endl;

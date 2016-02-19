@@ -30,8 +30,9 @@ namespace baofit {
             double epsAbs, double epsRel, std::string const &distAdd, std::string const &distMul,
             double distR0, double zcorr0, double zcorr1, double zcorr2, double sigma8,
             bool anisotropic = false, bool decoupled = false, bool nlBroadband = false,
-            bool nlCorrection = false, bool nlCorrectionAlt = false, bool distortionAlt = false,
-            bool noDistortion = false, bool crossCorrelation = false, bool verbose = false);
+            bool nlCorrection = false, bool fitNLCorrection = false, bool nlCorrectionAlt = false,
+            bool distortionAlt = false, bool noDistortion = false, bool crossCorrelation = false,
+            bool verbose = false);
 		virtual ~BaoKSpaceHybridCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
@@ -40,13 +41,14 @@ namespace baofit {
 		// the pair separation and z is their average redshift. The separation r should
 		// be provided in Mpc/h.
         virtual double _evaluate(double r, double mu, double z, bool anyChanged, int index) const;
+        virtual double _evaluateKSpace(double k, double mu_k, double pk, double z) const;
+        virtual int _getIndexBase() const;
 	private:
         double _dilmax, _zcorr0, _zcorr1, _zcorr2;
-        AbsCorrelationModelPtr _distortAdd, _distortMul;
-        NonLinearCorrectionModelPtr _nlcorr;
-        bool _anisotropic, _decoupled, _nlBroadband, _nlCorrection, _nlCorrectionAlt, _distortionAlt,
-            _noDistortion, _crossCorrelation, _verbose;
-        int _nlBase, _contBase, _baoBase;
+        AbsCorrelationModelPtr _nlCorr, _distortAdd, _distortMul;
+        bool _anisotropic, _decoupled, _nlBroadband, _nlCorrection, _fitNLCorrection, _nlCorrectionAlt,
+            _distortionAlt, _noDistortion, _crossCorrelation, _verbose;
+        int _indexBase, _nlBase, _contBase, _nlcorrBase, _baoBase;
         cosmo::DistortedPowerCorrelationHybridPtr _Xipk, _Xinw;
         // Evaluates our k-space distortion model D(k,mu_k) using our current parameter values.
         double _evaluateKSpaceDistortion(double k, double mu_k, double pk) const;

@@ -1,7 +1,6 @@
 // Created 14-Jan-2015 by Michael Blomqvist (University of California, Irvine) <cblomqvi@uci.edu>
 
 #include "baofit/NonLinearCorrectionModel.h"
-#include "baofit/AbsCorrelationModel.h"
 #include "baofit/RuntimeError.h"
 
 #include "likely/Interpolator.h"
@@ -10,10 +9,12 @@
 
 namespace local = baofit;
 
-local::NonLinearCorrectionModel::NonLinearCorrectionModel(double zref, double sigma8, bool nlCorrection, bool nlCorrectionAlt)
-: _zref(zref), _sigma8(sigma8), _nlCorrection(nlCorrection), _nlCorrectionAlt(nlCorrectionAlt)
+local::NonLinearCorrectionModel::NonLinearCorrectionModel(double zref, double sigma8, bool nlCorrection,
+    bool fitNLCorrection, bool nlCorrectionAlt, AbsCorrelationModel *base)
+: AbsCorrelationModel("Non Linear Correction Model"), _zref(zref), _sigma8(sigma8), _nlCorrection(nlCorrection), 
+_fitNLCorrection(fitNLCorrection), _nlCorrectionAlt(nlCorrectionAlt), _base(base ? *base:*this)
 {
-    if(nlCorrection) _initialize();
+    if(nlCorrection || fitNLCorrection) _initialize();
 }
 
 void local::NonLinearCorrectionModel::_initialize() {
@@ -36,19 +37,28 @@ void local::NonLinearCorrectionModel::_initialize() {
     _avInterpolator.reset(new likely::Interpolator(z,av,"linear"));
     _bvInterpolator.reset(new likely::Interpolator(z,bv,"linear"));
     _kpInterpolator.reset(new likely::Interpolator(z,kp,"linear"));
+    if(_fitNLCorrection) {
+        // Define parameters
+        _indexBase = _base.defineParameter("nlcorr qnl",0.867,0.08);
+        _base.defineParameter("nlcorr kp",19.4,1);
+    }
 }
 
 local::NonLinearCorrectionModel::~NonLinearCorrectionModel() { }
 
-double local::NonLinearCorrectionModel::_evaluateNLCorrection(double k, double mu_k, double pk, double z) const {
+double local::NonLinearCorrectionModel::_evaluateKSpace(double k, double mu_k, double pk, double z) const {
     double growth, pecvelocity, pressure, nonlinearcorr;
     // Non-linear correction model of http://arxiv.org/abs/1506.04519
-    if(_nlCorrection) {
+    if(_nlCorrection || _fitNLCorrection) {
         double qnl = (*_qnlInterpolator)(z);
         double kv = (*_kvInterpolator)(z);
         double av = (*_avInterpolator)(z);
         double bv = (*_bvInterpolator)(z);
         double kp = (*_kpInterpolator)(z);
+        if(_fitNLCorrection) {
+            qnl = _base.getParameterValue(_indexBase);
+            kp = _base.getParameterValue(_indexBase+1);
+        }
         double sigma8Sim(0.8338);
         double pi(4*std::atan(1));
         pk = pk*(sigma8Sim/_sigma8)*(sigma8Sim/_sigma8)*redshiftEvolution(1.,-2.,z,_zref);
@@ -74,3 +84,9 @@ double local::NonLinearCorrectionModel::_evaluateNLCorrection(double k, double m
     
     return nonlinearcorr;
 }
+
+double local::NonLinearCorrectionModel::_evaluate(double r, double mu, double z, bool anyChanged, int index) const { }
+
+int local::NonLinearCorrectionModel::_getIndexBase() const { return _indexBase; }
+
+void local::NonLinearCorrectionModel::printToStream(std::ostream &out, std::string const &formatSpec) const { }
