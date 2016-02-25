@@ -80,10 +80,10 @@ _verbose(verbose), _nWarnings(0), _maxWarnings(10)
     if(combinedFitParameters) {
         _combinedBase = defineParameter("beta*bias",-0.196,0.02);
         _setBetaBiasIndex(_combinedBase);
-        defineParameter("BAO apar/aperp",1,0.1);
+        defineParameter("BAO aperp/apar",1,0.1);
         // Fix the parameters that are not being used
         configureFitParameters("fix[(1+beta)*bias]=0");
-        configureFitParameters("fix[BAO alpha-parallel]=0");
+        configureFitParameters("fix[BAO alpha-perp]=0");
     }
 
     // Load the P(k) interpolation data we will use for each multipole of each model.
@@ -322,7 +322,7 @@ bool anyChanged, int index) const {
     double gamma_scale = getParameterValue(_baoBase + 4);
     if(_combinedFitParameters) {
         double scale_ratio = getParameterValue(_combinedBase+1);
-        scale_parallel = scale_ratio*scale_perp;
+        scale_perp = scale_ratio*scale_parallel;
     }
 
     // Transform (r,mu) to (rBAO,muBAO) using the scale parameters.
