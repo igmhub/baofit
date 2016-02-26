@@ -31,11 +31,12 @@ namespace baofit {
             double zref, double rmin, double rmax, double dilmin, double dilmax,
             double relerr, double abserr, int ellMax, int samplesPerDecade,
             std::string const &distAdd, std::string const &distMul, double distR0,
-            double zeff, double sigma8, int distMatrixOrder,
-            bool anisotropic = false, bool decoupled = false, bool nlBroadband = false,
-            bool nlCorrection = false, bool fitNLCorrection = false, bool nlCorrectionAlt = false,
-            bool pixelize = false, bool uvfluctuation = false, bool distMatrix = false,
-            bool metalModel = false, bool metalModelInterpolate = false, bool metalTemplate = false,
+            double zeff, double sigma8, int distMatrixOrder, std::string const &distMatrixDistAdd,
+            std::string const &distMatrixDistMul, bool anisotropic = false,
+            bool decoupled = false, bool nlBroadband = false, bool nlCorrection = false,
+            bool fitNLCorrection = false, bool nlCorrectionAlt = false, bool pixelize = false,
+            bool uvfluctuation = false, bool distMatrix = false, bool metalModel = false,
+            bool metalModelInterpolate = false, bool metalTemplate = false,
             bool combinedFitParameters = false, bool crossCorrelation = false,
             bool verbose = false);
 		virtual ~BaoKSpaceCorrelationModel();
@@ -50,11 +51,11 @@ namespace baofit {
         virtual int _getIndexBase() const;
 	private:
         double _dilmin, _dilmax, _zcorr0, _zcorr1, _zcorr2, _rmin, _rmax;
-        AbsCorrelationModelPtr _metalCorr, _nlCorr, _distortAdd, _distortMul;
+        AbsCorrelationModelPtr _metalCorr, _nlCorr, _distortAdd, _distortMul, _distMatDistortAdd,
+            _distMatDistortMul;
         DistortionMatrixPtr _distMat;
         bool _anisotropic, _decoupled, _nlBroadband, _nlCorrection, _fitNLCorrection, _nlCorrectionAlt,
-            _pixelize, _uvfluctuation, _distMatrix, _metalModel, _metalModelInterpolate,
-            _metalTemplate, _combinedFitParameters, _crossCorrelation, _verbose;
+            _pixelize, _uvfluctuation, _combinedFitParameters, _crossCorrelation, _verbose;
         int _indexBase, _nlBase, _nlcorrBase, _baoBase, _pixBase, _uvBase, _combinedBase, _maxWarnings,
             _distMatrixOrder;
         mutable int _nWarnings;

@@ -29,19 +29,18 @@ local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &m
     double zref, double rmin, double rmax, double dilmin, double dilmax,
     double relerr, double abserr, int ellMax, int samplesPerDecade,
     std::string const &distAdd, std::string const &distMul, double distR0,
-    double zeff, double sigma8, int distMatrixOrder,
-    bool anisotropic, bool decoupled,  bool nlBroadband, bool nlCorrection,
-    bool fitNLCorrection, bool nlCorrectionAlt, bool pixelize, bool uvfluctuation,
-    bool distMatrix, bool metalModel, bool metalModelInterpolate, bool metalTemplate,
-    bool combinedFitParameters, bool crossCorrelation, bool verbose)
+    double zeff, double sigma8, int distMatrixOrder, std::string const &distMatrixDistAdd,
+    std::string const &distMatrixDistMul, bool anisotropic, bool decoupled,
+    bool nlBroadband, bool nlCorrection, bool fitNLCorrection, bool nlCorrectionAlt,
+    bool pixelize, bool uvfluctuation, bool distMatrix, bool metalModel,
+    bool metalModelInterpolate, bool metalTemplate, bool combinedFitParameters,
+    bool crossCorrelation, bool verbose)
 : AbsCorrelationModel("BAO k-Space Correlation Model"), _dilmin(dilmin), _dilmax(dilmax),
 _zeff(zeff), _distMatrixOrder(distMatrixOrder), _anisotropic(anisotropic),
 _decoupled(decoupled), _nlBroadband(nlBroadband), _nlCorrection(nlCorrection),
 _fitNLCorrection(fitNLCorrection), _nlCorrectionAlt(nlCorrectionAlt), _pixelize(pixelize),
-_uvfluctuation(uvfluctuation), _distMatrix(distMatrix), _metalModel(metalModel),
-_metalModelInterpolate(metalModelInterpolate), _metalTemplate(metalTemplate),
-_combinedFitParameters(combinedFitParameters), _crossCorrelation(crossCorrelation),
-_verbose(verbose), _nWarnings(0), _maxWarnings(10)
+_uvfluctuation(uvfluctuation), _combinedFitParameters(combinedFitParameters),
+_crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarnings(10)
 {
     _setZRef(zref);
     // Linear bias parameters
@@ -146,15 +145,24 @@ _verbose(verbose), _nWarnings(0), _maxWarnings(10)
     _nlCorr.reset(new baofit::NonLinearCorrectionModel(zref,sigma8,nlCorrection,fitNLCorrection,nlCorrectionAlt,this));
     if(fitNLCorrection) _nlcorrBase = _nlCorr->_getIndexBase();
     
-    // Define our distortion matrix, if any.
-    if(distMatrix) {
-        _distMat.reset(new baofit::DistortionMatrix(distMatrixName,distMatrixOrder,verbose));
-    }
-    
     // Define our r-space metal correlation model, if any.
     if(metalModel || metalModelInterpolate || metalTemplate) {
         _metalCorr.reset(new baofit::MetalCorrelationModel(metalModelName,metalModel,metalModelInterpolate,
             metalTemplate,crossCorrelation,this));
+    }
+    
+    // Define our distortion matrix, if any.
+    if(distMatrix) {
+        _distMat.reset(new baofit::DistortionMatrix(distMatrixName,distMatrixOrder,verbose));
+        // Define our r-space broadband distortion model to apply before the distortion matrix, if any
+        if(distMatrixDistAdd.length() > 0) {
+            _distMatDistortAdd.reset(new baofit::BroadbandModel("Additive broadband distortion before distortion matrix",
+            "dist Matrix dist add",distMatrixDistAdd,distR0,zref,this));
+        }
+        if(distMatrixDistMul.length() > 0) {
+            _distMatDistortMul.reset(new baofit::BroadbandModel("Multiplicative broadband distortion before distortion matrix",
+            "dist Matrix dist mul",distMatrixDistMul,distR0,zref,this));
+        }
     }
     
     // Define our r-space broadband distortion models, if any.
@@ -360,10 +368,10 @@ bool anyChanged, int index) const {
     double xi = biasSqz*(ampl*peak + smooth);
     
     // Add r-space metal correlations, if any.
-    if(_metalModel || _metalModelInterpolate || _metalTemplate) xi += _metalCorr->_evaluate(r,mu,z,anyChanged,index);
+    if(_metalCorr) xi += _metalCorr->_evaluate(r,mu,z,anyChanged,index);
     
     // Apply distortion matrix, if any.
-    if(_distMatrix && index>=0) {
+    if(_distMat && index>=0) {
         int nbins = _distMatrixOrder;
         if(anyChanged) {
             // Calculate the undistorted correlation function for every bin.
@@ -403,12 +411,19 @@ bool anyChanged, int index) const {
                 smooth = (_decoupled) ? _Xinw->getCorrelation(rbin,mubin) : _Xinw->getCorrelation(rBAO,muBAO);
                 double xiu = biasSqz*(ampl*peak + smooth);
                 // Add r-space metal correlations, if any.
-                if(_metalModel || _metalModelInterpolate || _metalTemplate) xiu += _metalCorr->_evaluate(rbin,mubin,zbin,anyChanged,bin);
-                // Save the undistorted correlation function.
+                if(_metalCorr) xiu += _metalCorr->_evaluate(rbin,mubin,zbin,anyChanged,bin);
+                // Add r-space broadband distortions, if any.
+                if(_distMatDistortMul) xiu *= 1 + _distMatDistortMul->_evaluate(rbin,mubin,zbin,anyChanged,bin);
+                if(_distMatDistortAdd) {
+                    double distortion = _distMatDistortAdd->_evaluate(rbin,mubin,zbin,anyChanged,bin);
+                    // The additive distortion is multiplied by ((1+z)/(1+z0))^gammaBias
+                    xiu += redshiftEvolution(distortion,gammaBias,zbin,_getZRef());
+                }
+                // Save the (undistorted) correlation function.
                 _distMat->setCorrelation(bin,xiu);
             }
         }
-        // Multiply the undistorted correlation function by the distortion matrix.
+        // Multiply the (undistorted) correlation function by the distortion matrix.
         xi = 0;
         for(int bin = 0; bin < nbins; ++bin) {
             xi += _distMat->getDistortion(index,bin)*_distMat->getCorrelation(bin);
@@ -437,7 +452,7 @@ void  local::BaoKSpaceCorrelationModel::printToStream(std::ostream &out, std::st
     out << "Anisotropic non-linear broadening applies to peak " << (!_nlBroadband ? "only." : "and cosmological broadband.") << std::endl;
     out << "Non-linear correction is switched " << (_nlCorrection || _fitNLCorrection || _nlCorrectionAlt ? "on." : "off.") << std::endl;
     out << "Pixelization smoothing is switched " << (_pixelize ? "on." : "off.") << std::endl;
-    out << "Distortion matrix is switched " << (_distMatrix ? "on." : "off.") << std::endl;
-    out << "Metal correlations are switched " << (_metalModel || _metalModelInterpolate || _metalTemplate ? "on." : "off.") << std::endl;
+    out << "Distortion matrix is switched " << (_distMat ? "on." : "off.") << std::endl;
+    out << "Metal correlations are switched " << (_metalCorr ? "on." : "off.") << std::endl;
     out << "UV fluctuations are switched " << (_uvfluctuation ? "on." : "off.") << std::endl;
 }
