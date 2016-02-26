@@ -38,7 +38,7 @@ int main(int argc, char **argv) {
     std::string modelrootName,fiducialName,nowigglesName,dataName,xiPoints,toymcConfig,
         platelistName,platerootName,iniName,refitConfig,minMethod,xiMethod,outputPrefix,altConfig,
         fixModeScales,distAdd,distMul,dataFormat,axis1Bins,axis2Bins,axis3Bins,distMatrixName,
-        metalModelName;
+        distMatrixDistAdd,distMatrixDistMul,metalModelName;
     std::vector<std::string> modelConfig;
 
     // Default values in quotes below are to avoid roundoff errors leading to ugly --help
@@ -142,6 +142,10 @@ int main(int argc, char **argv) {
             "Distortion matrix will be read from the specified file. If not specified, the data name will be used by default.")
         ("dist-matrix-order", po::value<int>(&distMatrixOrder)->default_value(2500),
             "Order of the (square) distortion matrix.")
+        ("dist-matrix-dist-add", po::value<std::string>(&distMatrixDistAdd)->default_value(""),
+            "Parameterization to use for additive broadband distortion applied before the distortion matrix.")
+        ("dist-matrix-dist-mul", po::value<std::string>(&distMatrixDistMul)->default_value(""),
+            "Parameterization to use for multiplicative broadband distortion applied before the distortion matrix.")
         ("metal-model", "Include r-space model of metal line correlations.")
         ("metal-model-interpolate", "Include r-space model of metal line correlations that uses bicubic interpolation.")
         ("metal-model-name", po::value<std::string>(&metalModelName)->default_value(""),
@@ -407,9 +411,9 @@ int main(int argc, char **argv) {
             model.reset(new baofit::BaoKSpaceCorrelationModel(
                 modelrootName,fiducialName,nowigglesName,distMatrixName,metalModelName,
                 zref,rmin,rmax,dilmin,dilmax,relerr,abserr,ellMax,samplesPerDecade,
-                distAdd,distMul,distR0,zeff,sigma8,distMatrixOrder,anisotropic,
-                decoupled,nlBroadband,nlCorrection,fitNLCorrection,nlCorrectionAlt,pixelize,
-                uvfluctuation,distMatrix,metalModel,metalModelInterpolate,metalTemplate,
+                distAdd,distMul,distR0,zeff,sigma8,distMatrixOrder,distMatrixDistAdd,distMatrixDistMul,
+                anisotropic,decoupled,nlBroadband,nlCorrection,fitNLCorrection,nlCorrectionAlt,
+                pixelize,uvfluctuation,distMatrix,metalModel,metalModelInterpolate,metalTemplate,
                 combinedFitParameters,crossCorrelation,verbose));
         }
         else if(kspacefft) {

@@ -21,8 +21,7 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
     std::string const &distMul, double distR0, double zref,
     bool anisotropic, bool decoupled, bool metalModel, bool metalModelInterpolate,
     bool metalTemplate, bool crossCorrelation)
-: AbsCorrelationModel("BAO Correlation Model"), _anisotropic(anisotropic), _decoupled(decoupled),
-_metalModel(metalModel), _metalModelInterpolate(metalModelInterpolate), _metalTemplate(metalTemplate)
+: AbsCorrelationModel("BAO Correlation Model"), _anisotropic(anisotropic), _decoupled(decoupled)
 {
     // Linear bias parameters
     _indexBase = _defineLinearBiasParameters(zref,crossCorrelation);
@@ -133,7 +132,7 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     double xi = peak + smooth;
     
     // Add r-space metal correlations, if any.
-    if(_metalModel || _metalModelInterpolate || _metalTemplate) xi += _metalCorr->_evaluate(r,mu,z,anyChanged,index);
+    if(_metalCorr) xi += _metalCorr->_evaluate(r,mu,z,anyChanged,index);
     
     // Add broadband distortions, if any.
     if(_distortMul) xi *= 1 + _distortMul->_evaluate(r,mu,z,anyChanged,index);
@@ -176,5 +175,5 @@ void  local::BaoCorrelationModel::printToStream(std::ostream &out, std::string c
     AbsCorrelationModel::printToStream(out,formatSpec);
     out << "Using " << (_anisotropic ? "anisotropic":"isotropic") << " BAO scales." << std::endl;
     out << "Scales apply to BAO peak " << (_decoupled ? "only." : "and cosmological broadband.") << std::endl;
-    out << "Metal correlations are switched " << (_metalModel || _metalTemplate ? "on." : "off.") << std::endl;
+    out << "Metal correlations are switched " << (_metalCorr ? "on." : "off.") << std::endl;
 }
