@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
         rVetoWidth,rVetoCenter,muMin,muMax,kloSpline,khiSpline,toymcScale,saveICovScale,
         zMin,zMax,llMin,llMax,sepMin,sepMax,distR0,zdump,relerr,abserr,dilmin,dilmax,
         rperpMin,rperpMax,rparMin,rparMax,gridspacing,kxmax,relerrHybrid,abserrHybrid,
-        zcorr0,zcorr1,zcorr2,zeff,sigma8;
+        zcorr0,zcorr1,zcorr2,zeff,sigma8,dzmin;
     int nsep,nz,maxPlates,bootstrapTrials,bootstrapSize,randomSeed,ndump,jackknifeDrop,lmin,lmax,
         mcmcSave,mcmcInterval,toymcSamples,reuseCov,nSpline,splineOrder,bootstrapCovTrials,
         projectModesNKeep,covSampleSize,ellMax,samplesPerDecade,ngridx,ngridy,ngridz,gridscaling,
@@ -105,7 +105,9 @@ int main(int argc, char **argv) {
             "First order correction of the effective redshift for each (r,mu) bin.")
         ("zcorr2", po::value<double>(&zcorr2)->default_value(0),
             "Second order correction of the effective redshift for each (r,mu) bin.")
-        ("zeff", po::value<double>(&zeff)->default_value(2.3),
+        ("dzmin", po::value<double>(&dzmin)->default_value(0.5),
+            "Minimum redshift step required for repeating the k-space to r-space transformation.")
+        ("zeff", po::value<double>(&zeff)->default_value(0),
             "Effective redshift used by the non-linear correction and UV fluctuation model.")
         ("sigma8", po::value<double>(&sigma8)->default_value(0.8338),
             "Amplitude of the linear matter power spectrum on the scale of 8 Mpc/h")
@@ -411,10 +413,10 @@ int main(int argc, char **argv) {
             model.reset(new baofit::BaoKSpaceCorrelationModel(
                 modelrootName,fiducialName,nowigglesName,distMatrixName,metalModelName,
                 zref,rmin,rmax,dilmin,dilmax,relerr,abserr,ellMax,samplesPerDecade,
-                distAdd,distMul,distR0,zeff,sigma8,distMatrixOrder,distMatrixDistAdd,distMatrixDistMul,
-                anisotropic,decoupled,nlBroadband,nlCorrection,fitNLCorrection,nlCorrectionAlt,
-                pixelize,uvfluctuation,distMatrix,metalModel,metalModelInterpolate,metalTemplate,
-                combinedFitParameters,crossCorrelation,verbose));
+                distAdd,distMul,distR0,zeff,sigma8,dzmin,distMatrixOrder,distMatrixDistAdd,
+                distMatrixDistMul,anisotropic,decoupled,nlBroadband,nlCorrection,fitNLCorrection,
+                nlCorrectionAlt,pixelize,uvfluctuation,distMatrix,metalModel,metalModelInterpolate,
+                metalTemplate,combinedFitParameters,crossCorrelation,verbose));
         }
         else if(kspacefft) {
             // Build our fit model from tabulated P(k) on disk and use a 3D FFT.

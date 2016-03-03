@@ -29,20 +29,21 @@ local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &m
     double zref, double rmin, double rmax, double dilmin, double dilmax,
     double relerr, double abserr, int ellMax, int samplesPerDecade,
     std::string const &distAdd, std::string const &distMul, double distR0,
-    double zeff, double sigma8, int distMatrixOrder, std::string const &distMatrixDistAdd,
-    std::string const &distMatrixDistMul, bool anisotropic, bool decoupled,
-    bool nlBroadband, bool nlCorrection, bool fitNLCorrection, bool nlCorrectionAlt,
-    bool pixelize, bool uvfluctuation, bool distMatrix, bool metalModel,
-    bool metalModelInterpolate, bool metalTemplate, bool combinedFitParameters,
-    bool crossCorrelation, bool verbose)
+    double zeff, double sigma8, double dzmin, int distMatrixOrder,
+    std::string const &distMatrixDistAdd, std::string const &distMatrixDistMul,
+    bool anisotropic, bool decoupled, bool nlBroadband, bool nlCorrection,
+    bool fitNLCorrection, bool nlCorrectionAlt, bool pixelize, bool uvfluctuation,
+    bool distMatrix, bool metalModel, bool metalModelInterpolate, bool metalTemplate,
+    bool combinedFitParameters, bool crossCorrelation, bool verbose)
 : AbsCorrelationModel("BAO k-Space Correlation Model"), _dilmin(dilmin), _dilmax(dilmax),
-_zeff(zeff), _distMatrixOrder(distMatrixOrder), _anisotropic(anisotropic),
+_zeff(zeff), _dzmin(dzmin), _distMatrixOrder(distMatrixOrder), _anisotropic(anisotropic),
 _decoupled(decoupled), _nlBroadband(nlBroadband), _nlCorrection(nlCorrection),
 _fitNLCorrection(fitNLCorrection), _nlCorrectionAlt(nlCorrectionAlt), _pixelize(pixelize),
 _uvfluctuation(uvfluctuation), _combinedFitParameters(combinedFitParameters),
 _crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarnings(10)
 {
     _setZRef(zref);
+    _zLast = zref;
     // Linear bias parameters
     _setBetaIndex(defineParameter("beta",1.4,0.1));
     _setBbIndex(defineParameter("(1+beta)*bias",-0.336,0.03));
@@ -244,8 +245,16 @@ bool anyChanged, int index) const {
     double gammaBias = getParameterValue(2);
     double gammaBeta = getParameterValue(3);
 
-    // Apply redshift evolution
+    // Get the effective redshift from the data, if not set separately.
+    if(_zeff == 0) _zeff = z;
+    // Set all redshifts equal to the effective redshift, if using the UV fluctuation model.
     if(_uvfluctuation) z = _zeff;
+    // Set transformation flag, if the redshift criterion is fulfilled.
+    bool zChanged = false;
+    if(std::fabs(z-_zLast) > _dzmin) zChanged = true;
+    _zLast = z;
+    
+    // Apply redshift evolution
     double biasSqz = redshiftEvolution(biasSq,gammaBias,z,_getZRef());
     _betaz = redshiftEvolution(beta,gammaBeta,z,_getZRef());
     if(_crossCorrelation) _beta2z = redshiftEvolution(beta2,gammaBeta,z,_getZRef());
@@ -269,14 +278,15 @@ bool anyChanged, int index) const {
     _snlPar2 = snlPar*snlPar;
 
     // Redo the transforms from (k,mu_k) to (r,mu), if necessary
-    if(anyChanged) {
+    if(anyChanged || zChanged) {
         bool nlChanged = isParameterValueChanged(_nlBase) || isParameterValueChanged(_nlBase+1);
         bool pixChanged = _pixelize ? isParameterValueChanged(_pixBase) : false;
         bool nlcorrChanged = _fitNLCorrection ? isParameterValueChanged(_nlcorrBase) || isParameterValueChanged(_nlcorrBase+1)
             : false;
         bool uvChanged = _uvfluctuation ? isParameterValueChanged(_uvBase) || isParameterValueChanged(_uvBase+1)
-            || isParameterValueChanged(_uvBase+2) || isParameterValueChanged(1) : false;
-        bool otherChanged = isParameterValueChanged(0);
+            || isParameterValueChanged(_uvBase+2) || isParameterValueChanged(1) || isParameterValueChanged(2) : false;
+        bool rsdChanged = isParameterValueChanged(0) || isParameterValueChanged(3) || (_crossCorrelation ? isParameterValueChanged(6)
+            : false);
         int nmu(20);
         double margin(4), vepsMax(1e-1), vepsMin(1e-6);
         bool optimize(false),interpolateK(true),bypassConvergenceTest(false),converged(true);
@@ -289,7 +299,7 @@ bool anyChanged, int index) const {
                 _Xipk->printToStream(std::cout);
             }
         }
-        else if(nlChanged || pixChanged || nlcorrChanged || uvChanged || otherChanged) {
+        else if(nlChanged || pixChanged || nlcorrChanged || uvChanged || rsdChanged || zChanged) {
             // We are already initialized, so just redo the transforms.
             converged &= _Xipk->transform(interpolateK,bypassConvergenceTest);
         }
@@ -307,7 +317,7 @@ bool anyChanged, int index) const {
                 _Xinw->printToStream(std::cout);
             }
         }
-        else if(nlChanged || pixChanged || nlcorrChanged || uvChanged || otherChanged) {
+        else if(nlChanged || pixChanged || nlcorrChanged || uvChanged || rsdChanged || zChanged) {
             // We are already initialized, so just redo the transforms.
             converged &= _Xinw->transform(interpolateK,bypassConvergenceTest);
         }
@@ -373,7 +383,7 @@ bool anyChanged, int index) const {
     // Apply distortion matrix, if any.
     if(_distMat && index>=0) {
         int nbins = _distMatrixOrder;
-        if(anyChanged) {
+        if(anyChanged || zChanged) {
             // Calculate the undistorted correlation function for every bin.
             for(int bin = 0; bin < nbins; ++bin) {
                 double rbin = _getRBin(bin);
