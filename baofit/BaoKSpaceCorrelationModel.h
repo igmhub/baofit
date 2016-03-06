@@ -31,12 +31,12 @@ namespace baofit {
             double zref, double rmin, double rmax, double dilmin, double dilmax,
             double relerr, double abserr, int ellMax, int samplesPerDecade,
             std::string const &distAdd, std::string const &distMul, double distR0,
-            double zeff, double sigma8, int distMatrixOrder, std::string const &distMatrixDistAdd,
-            std::string const &distMatrixDistMul, bool anisotropic = false,
-            bool decoupled = false, bool nlBroadband = false, bool nlCorrection = false,
-            bool fitNLCorrection = false, bool nlCorrectionAlt = false, bool pixelize = false,
-            bool uvfluctuation = false, bool distMatrix = false, bool metalModel = false,
-            bool metalModelInterpolate = false, bool metalTemplate = false,
+            double zeff, double sigma8, double dzmin, int distMatrixOrder,
+            std::string const &distMatrixDistAdd, std::string const &distMatrixDistMul,
+            bool anisotropic = false, bool decoupled = false, bool nlBroadband = false,
+            bool nlCorrection = false, bool fitNLCorrection = false, bool nlCorrectionAlt = false,
+            bool pixelize = false, bool uvfluctuation = false, bool distMatrix = false,
+            bool metalModel = false, bool metalModelInterpolate = false, bool metalTemplate = false,
             bool combinedFitParameters = false, bool crossCorrelation = false,
             bool verbose = false);
 		virtual ~BaoKSpaceCorrelationModel();
@@ -50,12 +50,12 @@ namespace baofit {
         virtual double _evaluateKSpace(double k, double mu_k, double pk, double z) const;
         virtual int _getIndexBase() const;
 	private:
-        double _dilmin, _dilmax, _zcorr0, _zcorr1, _zcorr2, _rmin, _rmax;
+        double _dilmin, _dilmax, _zcorr0, _zcorr1, _zcorr2, _rmin, _rmax, _dzmin;
         AbsCorrelationModelPtr _metalCorr, _nlCorr, _distortAdd, _distortMul, _distMatDistortAdd,
             _distMatDistortMul;
         DistortionMatrixPtr _distMat;
         bool _anisotropic, _decoupled, _nlBroadband, _nlCorrection, _fitNLCorrection, _nlCorrectionAlt,
-            _pixelize, _uvfluctuation, _combinedFitParameters, _crossCorrelation, _verbose;
+            _pixelize, _uvfluctuation, _combinedFitParameters, _crossCorrelation, _verbose, _useZeff;
         int _indexBase, _nlBase, _nlcorrBase, _baoBase, _pixBase, _uvBase, _combinedBase, _maxWarnings,
             _distMatrixOrder;
         mutable int _nWarnings;
@@ -63,7 +63,7 @@ namespace baofit {
         // Evaluates our k-space distortion model D(k,mu_k) using our current parameter values.
         double _evaluateKSpaceDistortion(double k, double mu_k, double pk) const;
         // Parameters initialized in _evaluate that are needed by _evaluateKSpaceDistortion
-        mutable double _betaz, _beta2z, _snlPar2, _snlPerp2, _zeff, _biasz, _bias2z, _growthSq;
+        mutable double _betaz, _beta2z, _snlPar2, _snlPerp2, _zeff, _biasz, _bias2z, _growthSq, _zLast;
 	}; // BaoKSpaceCorrelationModel
 } // baofit
 
