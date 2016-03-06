@@ -145,6 +145,8 @@ _crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarni
     // Define our non-linear correction model.
     _nlCorr.reset(new baofit::NonLinearCorrectionModel(zref,sigma8,nlCorrection,fitNLCorrection,nlCorrectionAlt,this));
     if(fitNLCorrection) _nlcorrBase = _nlCorr->_getIndexBase();
+    _useZeff = false;
+    if(zeff > 0) _useZeff = true;
     
     // Define our r-space metal correlation model, if any.
     if(metalModel || metalModelInterpolate || metalTemplate) {
@@ -246,7 +248,7 @@ bool anyChanged, int index) const {
     double gammaBeta = getParameterValue(3);
 
     // Get the effective redshift from the data, if not set separately.
-    if(_zeff == 0) _zeff = z;
+    if(!_useZeff) _zeff = z;
     // Set all redshifts equal to the effective redshift, if using the UV fluctuation model.
     if(_uvfluctuation) z = _zeff;
     // Set transformation flag, if the redshift criterion is fulfilled.

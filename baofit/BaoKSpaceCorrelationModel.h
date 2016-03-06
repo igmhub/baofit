@@ -55,7 +55,7 @@ namespace baofit {
             _distMatDistortMul;
         DistortionMatrixPtr _distMat;
         bool _anisotropic, _decoupled, _nlBroadband, _nlCorrection, _fitNLCorrection, _nlCorrectionAlt,
-            _pixelize, _uvfluctuation, _combinedFitParameters, _crossCorrelation, _verbose;
+            _pixelize, _uvfluctuation, _combinedFitParameters, _crossCorrelation, _verbose, _useZeff;
         int _indexBase, _nlBase, _nlcorrBase, _baoBase, _pixBase, _uvBase, _combinedBase, _maxWarnings,
             _distMatrixOrder;
         mutable int _nWarnings;
