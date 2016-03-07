@@ -34,12 +34,12 @@ local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &m
     bool anisotropic, bool decoupled, bool nlBroadband, bool nlCorrection,
     bool fitNLCorrection, bool nlCorrectionAlt, bool pixelize, bool uvfluctuation,
     bool distMatrix, bool metalModel, bool metalModelInterpolate, bool metalTemplate,
-    bool combinedFitParameters, bool crossCorrelation, bool verbose)
+    bool combinedBias, bool combinedScale, bool crossCorrelation, bool verbose)
 : AbsCorrelationModel("BAO k-Space Correlation Model"), _dilmin(dilmin), _dilmax(dilmax),
 _zeff(zeff), _dzmin(dzmin), _distMatrixOrder(distMatrixOrder), _anisotropic(anisotropic),
 _decoupled(decoupled), _nlBroadband(nlBroadband), _nlCorrection(nlCorrection),
 _fitNLCorrection(fitNLCorrection), _nlCorrectionAlt(nlCorrectionAlt), _pixelize(pixelize),
-_uvfluctuation(uvfluctuation), _combinedFitParameters(combinedFitParameters),
+_uvfluctuation(uvfluctuation), _combinedBias(combinedBias), _combinedScale(combinedScale),
 _crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarnings(10)
 {
     _setZRef(zref);
@@ -76,13 +76,17 @@ _crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarni
         defineParameter("UV abs resp bias",-0.667,0.06);
         defineParameter("UV mean free path",300,30); // in Mpc/h
     }
-    // Combined parameters
-    if(combinedFitParameters) {
-        _combinedBase = defineParameter("beta*bias",-0.196,0.02);
-        _setBetaBiasIndex(_combinedBase);
-        defineParameter("BAO aperp/apar",1,0.1);
-        // Fix the parameters that are not being used
+    // Combined bias parameters
+    if(combinedBias) {
+        _combBiasBase = defineParameter("beta*bias",-0.196,0.02);
+        _setBetaBiasIndex(_combBiasBase);
+        // Fix the parameter that is not being used
         configureFitParameters("fix[(1+beta)*bias]=0");
+    }
+    // Combined scale parameters
+    if(combinedScale) {
+        _combScaleBase = defineParameter("BAO aperp/apar",1,0.1);
+        // Fix the parameter that is not being used
         configureFitParameters("fix[BAO alpha-perp]=0");
     }
 
@@ -226,8 +230,8 @@ bool anyChanged, int index) const {
     double bb = getParameterValue(1);
     // Calculate bias^2 from beta and bb.
     double bias = bb/(1+beta);
-    if(_combinedFitParameters) {
-        double betabias = getParameterValue(_combinedBase);
+    if(_combinedBias) {
+        double betabias = getParameterValue(_combBiasBase);
         bias = betabias/beta;
     }
     // Get linear bias parameters of other tracer (if we are modeling a cross correlation)
@@ -340,8 +344,8 @@ bool anyChanged, int index) const {
     double scale_parallel = getParameterValue(_baoBase + 2);
     double scale_perp = getParameterValue(_baoBase + 3);
     double gamma_scale = getParameterValue(_baoBase + 4);
-    if(_combinedFitParameters) {
-        double scale_ratio = getParameterValue(_combinedBase+1);
+    if(_combinedScale) {
+        double scale_ratio = getParameterValue(_combScaleBase);
         scale_perp = scale_ratio*scale_parallel;
     }
 

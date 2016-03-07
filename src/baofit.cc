@@ -153,7 +153,8 @@ int main(int argc, char **argv) {
         ("metal-model-name", po::value<std::string>(&metalModelName)->default_value(""),
             "Metal correlation functions will be read from <name>.<ell>.dat with ell=0,2,4.")
         ("metal-template", "Include r-space template for metal line correlations derived from mock data.")
-        ("combined-fit-parameters", "Uses combined fit parameters.")
+        ("combined-bias", "Uses combined beta*bias parameter.")
+        ("combined-scale", "Uses combined aperp/apar parameter.")
         ("cross-correlation", "Uses independent linear bias parameters for both components.")
         ;
     dataOptions.add_options()
@@ -349,7 +350,8 @@ int main(int argc, char **argv) {
         pixelize(vm.count("pixelize")), uvfluctuation(vm.count("uvfluctuation")),
         distMatrix(vm.count("dist-matrix")), metalModel(vm.count("metal-model")),
         metalModelInterpolate(vm.count("metal-model-interpolate")), metalTemplate(vm.count("metal-template")),
-        customGrid(vm.count("custom-grid")), combinedFitParameters(vm.count("combined-fit-parameters"));
+        customGrid(vm.count("custom-grid")), combinedBias(vm.count("combined-bias")),
+        combinedScale(vm.count("combined-scale"));
 
     // Check that we have a recognized data format.
     if(dataFormat != "comoving-cartesian" && dataFormat != "comoving-polar" &&
@@ -416,7 +418,7 @@ int main(int argc, char **argv) {
                 distAdd,distMul,distR0,zeff,sigma8,dzmin,distMatrixOrder,distMatrixDistAdd,
                 distMatrixDistMul,anisotropic,decoupled,nlBroadband,nlCorrection,fitNLCorrection,
                 nlCorrectionAlt,pixelize,uvfluctuation,distMatrix,metalModel,metalModelInterpolate,
-                metalTemplate,combinedFitParameters,crossCorrelation,verbose));
+                metalTemplate,combinedBias,combinedScale,crossCorrelation,verbose));
         }
         else if(kspacefft) {
             // Build our fit model from tabulated P(k) on disk and use a 3D FFT.
@@ -440,7 +442,7 @@ int main(int argc, char **argv) {
             model.reset(new baofit::BaoCorrelationModel(
                 modelrootName,fiducialName,nowigglesName,metalModelName,distAdd,distMul,
                 distR0,zref,anisotropic,decoupled,metalModel,metalModelInterpolate,metalTemplate,
-                crossCorrelation));
+                combinedScale,crossCorrelation));
         }
              
         // Configure our fit model parameters by applying all model-config options in turn,

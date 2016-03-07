@@ -23,7 +23,8 @@ namespace baofit {
             std::string const &distMul, double distR0, double zref,
             bool anisotropic = false, bool decoupled = false,
             bool metalModel = false, bool metalModelInterpolate = false,
-            bool metalTemplate = false, bool crossCorrelation = false);
+            bool metalTemplate = false, bool combinedScale = false,
+            bool crossCorrelation = false);
 		virtual ~BaoCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
@@ -36,8 +37,8 @@ namespace baofit {
         virtual int _getIndexBase() const;
 	private:
         AbsCorrelationModelPtr _metalCorr, _distortAdd, _distortMul;
-        bool _anisotropic, _decoupled;
-        int _indexBase;
+        bool _anisotropic, _decoupled, _combinedScale;
+        int _indexBase, _combScaleBase;
         cosmo::CorrelationFunctionPtr _fid0, _fid2, _fid4, _nw0, _nw2, _nw4;
 	}; // BaoCorrelationModel
 } // baofit
