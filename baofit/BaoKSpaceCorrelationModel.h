@@ -37,7 +37,7 @@ namespace baofit {
             bool nlCorrection = false, bool fitNLCorrection = false, bool nlCorrectionAlt = false,
             bool pixelize = false, bool uvfluctuation = false, bool distMatrix = false,
             bool metalModel = false, bool metalModelInterpolate = false, bool metalTemplate = false,
-            bool combinedFitParameters = false, bool crossCorrelation = false,
+            bool combinedBias = false, bool combinedScale = false, bool crossCorrelation = false,
             bool verbose = false);
 		virtual ~BaoKSpaceCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
@@ -55,9 +55,9 @@ namespace baofit {
             _distMatDistortMul;
         DistortionMatrixPtr _distMat;
         bool _anisotropic, _decoupled, _nlBroadband, _nlCorrection, _fitNLCorrection, _nlCorrectionAlt,
-            _pixelize, _uvfluctuation, _combinedFitParameters, _crossCorrelation, _verbose, _useZeff;
-        int _indexBase, _nlBase, _nlcorrBase, _baoBase, _pixBase, _uvBase, _combinedBase, _maxWarnings,
-            _distMatrixOrder;
+            _pixelize, _uvfluctuation, _combinedBias, _combinedScale, _crossCorrelation, _verbose, _useZeff;
+        int _indexBase, _nlBase, _nlcorrBase, _baoBase, _pixBase, _uvBase, _combBiasBase, _combScaleBase,
+            _maxWarnings, _distMatrixOrder;
         mutable int _nWarnings;
         cosmo::DistortedPowerCorrelationPtr _Xipk, _Xinw;
         // Evaluates our k-space distortion model D(k,mu_k) using our current parameter values.

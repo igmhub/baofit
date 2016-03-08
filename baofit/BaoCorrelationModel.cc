@@ -20,11 +20,12 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
     std::string const &metalModelName, std::string const &distAdd,
     std::string const &distMul, double distR0, double zref,
     bool anisotropic, bool decoupled, bool metalModel, bool metalModelInterpolate,
-    bool metalTemplate, bool crossCorrelation)
-: AbsCorrelationModel("BAO Correlation Model"), _anisotropic(anisotropic), _decoupled(decoupled)
+    bool metalTemplate, bool combinedBias, bool combinedScale, bool crossCorrelation)
+: AbsCorrelationModel("BAO Correlation Model"), _anisotropic(anisotropic), _decoupled(decoupled),
+_combinedScale(combinedScale)
 {
     // Linear bias parameters
-    _indexBase = _defineLinearBiasParameters(zref,crossCorrelation);
+    _indexBase = _defineLinearBiasParameters(zref,crossCorrelation,combinedBias);
     // BAO peak parameters (values can be retrieved efficiently as offsets from _indexBase)
     defineParameter("BAO amplitude",1,0.15);
     defineParameter("BAO alpha-iso",1,0.02);
@@ -38,6 +39,12 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
     defineParameter("Rad quasar lifetime",10.,0.1); // in Myr
     // by default, the radiation parameters are fixed
     configureFitParameters("fix[Rad*]=0");
+    // Combined scale parameters
+    if(combinedScale) {
+        _combScaleBase = defineParameter("BAO aperp/apar",1,0.1);
+        // Fix the parameter that is not being used
+        configureFitParameters("fix[BAO alpha-perp]=0");
+    }
 
     // Load the interpolation data we will use for each multipole of each model.
     std::string root(modelrootName);
@@ -87,6 +94,10 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     double scale_parallel = getParameterValue(_indexBase + 3); //("BAO alpha-parallel");
     double scale_perp = getParameterValue(_indexBase + 4); //("BAO alpha-perp");
     double gamma_scale = getParameterValue(_indexBase + 5); //("gamma-scale");
+    if(_combinedScale) {
+        double scale_ratio = getParameterValue(_combScaleBase);
+        scale_perp = scale_ratio*scale_parallel;
+    }
 
     // Calculate redshift evolution of the scale parameters.
     scale = redshiftEvolution(scale,gamma_scale,z,_getZRef());
@@ -139,8 +150,7 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     if(_distortAdd) {
         double distortion = _distortAdd->_evaluate(r,mu,z,anyChanged,index);
         // The additive distortion is multiplied by ((1+z)/(1+z0))^gamma_bias
-        double gamma_bias = getParameterValue(_indexBase - 1); //("gamma-bias");
-        xi += redshiftEvolution(distortion,gamma_bias,z,_getZRef());
+        xi += redshiftEvolution(distortion,_getGammaBias(),z,_getZRef());
     }
 
     // Lookup radiation parameters, also value by name.

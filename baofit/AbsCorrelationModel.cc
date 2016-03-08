@@ -12,7 +12,8 @@
 namespace local = baofit;
 
 local::AbsCorrelationModel::AbsCorrelationModel(std::string const &name)
-: FitModel(name), _indexBase(-1), _crossCorrelation(false), _dvIndex(-1), _betabiasIndex(-1), _nbins(0)
+: FitModel(name), _indexBase(-1), _crossCorrelation(false), _combinedBias(false), _dvIndex(-1), _betabiasIndex(-1),
+_nbins(0)
 { }
 
 local::AbsCorrelationModel::~AbsCorrelationModel() { }
@@ -82,7 +83,7 @@ void local::AbsCorrelationModel::_setZRef(double zref) {
     _zref = zref;
 }
 
-int local::AbsCorrelationModel::_defineLinearBiasParameters(double zref, bool crossCorrelation) {
+int local::AbsCorrelationModel::_defineLinearBiasParameters(double zref, bool crossCorrelation, bool combinedBias) {
     if(_indexBase >= 0) throw RuntimeError("AbsCorrelationModel: linear bias parameters already defined.");
     _setZRef(zref);
     // Linear bias parameters
@@ -100,7 +101,7 @@ int local::AbsCorrelationModel::_defineLinearBiasParameters(double zref, bool cr
         // Amount to shift each separation's line of sight velocity in km/s
         defineParameter("delta-v",0,10);
         _setDVIndex(_indexBase + DELTA_V);
-        // We use don't use beta2 and (1+beta2)*bias2 here since for galaxies or quasars
+        // We don't use beta2 and (1+beta2)*bias2 here since for galaxies or quasars
         // the combination beta2*bias2 = f = dln(G)/dln(a) is well constrained.
         defineParameter("bias2",3.6,0.1);
         _setBias2Index(_indexBase + BIAS2);
@@ -111,6 +112,14 @@ int local::AbsCorrelationModel::_defineLinearBiasParameters(double zref, bool cr
         // not really necessary since the ctor already does this and you cannot call this method
         // more than once
         _crossCorrelation = false;
+    }
+    if(combinedBias) {
+        _combinedBias = true;
+        _combBiasBase = defineParameter("beta*bias",-0.196,0.02);
+        last = _combBiasBase;
+        _setBetaBiasIndex(_combBiasBase);
+        // Fix the parameter that is not being used
+        configureFitParameters("fix[(1+beta)*bias]=0");
     }
     return last;
 }
@@ -153,6 +162,10 @@ double local::AbsCorrelationModel::_getNormFactor(cosmo::Multipole multipole, do
     double bb = getParameterValue(_indexBase + BB);
     // Calculate bias from beta and bb.
     double bias = bb/(1+beta);
+    if(_combinedBias) {
+        double betabias = getParameterValue(_combBiasBase);
+        bias = betabias/beta;
+    }
     // For cross correlations, the linear and quadratic beta terms are independent and
     // the overall bias could be negative.
     double betaAvg,betaProd,biasSq;
