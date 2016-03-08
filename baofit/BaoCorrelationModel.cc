@@ -20,12 +20,12 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
     std::string const &metalModelName, std::string const &distAdd,
     std::string const &distMul, double distR0, double zref,
     bool anisotropic, bool decoupled, bool metalModel, bool metalModelInterpolate,
-    bool metalTemplate, bool combinedScale, bool crossCorrelation)
+    bool metalTemplate, bool combinedBias, bool combinedScale, bool crossCorrelation)
 : AbsCorrelationModel("BAO Correlation Model"), _anisotropic(anisotropic), _decoupled(decoupled),
 _combinedScale(combinedScale)
 {
     // Linear bias parameters
-    _indexBase = _defineLinearBiasParameters(zref,crossCorrelation);
+    _indexBase = _defineLinearBiasParameters(zref,crossCorrelation,combinedBias);
     // BAO peak parameters (values can be retrieved efficiently as offsets from _indexBase)
     defineParameter("BAO amplitude",1,0.15);
     defineParameter("BAO alpha-iso",1,0.02);

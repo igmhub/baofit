@@ -442,7 +442,7 @@ int main(int argc, char **argv) {
             model.reset(new baofit::BaoCorrelationModel(
                 modelrootName,fiducialName,nowigglesName,metalModelName,distAdd,distMul,
                 distR0,zref,anisotropic,decoupled,metalModel,metalModelInterpolate,metalTemplate,
-                combinedScale,crossCorrelation));
+                combinedBias,combinedScale,crossCorrelation));
         }
              
         // Configure our fit model parameters by applying all model-config options in turn,

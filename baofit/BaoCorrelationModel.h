@@ -23,8 +23,8 @@ namespace baofit {
             std::string const &distMul, double distR0, double zref,
             bool anisotropic = false, bool decoupled = false,
             bool metalModel = false, bool metalModelInterpolate = false,
-            bool metalTemplate = false, bool combinedScale = false,
-            bool crossCorrelation = false);
+            bool metalTemplate = false, bool combinedBias = false,
+            bool combinedScale = false, bool crossCorrelation = false);
 		virtual ~BaoCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;

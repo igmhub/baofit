@@ -56,7 +56,7 @@ namespace baofit {
         // addition to a parameter "delta-v" used by _applyVelocityShift below. Adds a second set
         // of bias and beta parameters if crossCorrelation is true. Returns the index
         // of the last parameter defined.
-        int _defineLinearBiasParameters(double zref, bool crossCorrelation = false);
+        int _defineLinearBiasParameters(double zref, bool crossCorrelation = false, bool combinedBias = false);
         // Returns the reference redshift
         double _getZRef() const;
         // Sets the reference redshift
@@ -105,8 +105,8 @@ namespace baofit {
         double _getZBin(int index) const;
     private:
         int _indexBase, _dvIndex, _betaIndex, _bbIndex, _gammabiasIndex, _gammabetaIndex, _betabiasIndex,
-            _bias2Index, _beta2bias2Index, _nbins;
-        bool _crossCorrelation;
+            _bias2Index, _beta2bias2Index, _nbins, _combBiasBase;
+        bool _crossCorrelation, _combinedBias;
         enum IndexOffset {
             BETA = 0, BB = 1, GAMMA_BIAS = 2, GAMMA_BETA = 3, DELTA_V = 4, BIAS2 = 5, BB2 = 6
         };
