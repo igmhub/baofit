@@ -150,8 +150,7 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     if(_distortAdd) {
         double distortion = _distortAdd->_evaluate(r,mu,z,anyChanged,index);
         // The additive distortion is multiplied by ((1+z)/(1+z0))^gamma_bias
-        double gamma_bias = getParameterValue(_indexBase - 1); //("gamma-bias");
-        xi += redshiftEvolution(distortion,gamma_bias,z,_getZRef());
+        xi += redshiftEvolution(distortion,_getGammaBias(),z,_getZRef());
     }
 
     // Lookup radiation parameters, also value by name.
