@@ -245,7 +245,7 @@ bool anyChanged, int index) const {
     return _getNormFactor(multipole,z)*_xi(r,multipole);
 }
 
-double local::PkCorrelationModel::_evaluateKSpace(double k, double mu_k, double pk, double z) const { }
+double local::PkCorrelationModel::_evaluateKSpace(double k, double mu_k, double pk, double z) const { return 0; }
 
 int local::PkCorrelationModel::_getIndexBase() const { return _indexBase; }
 

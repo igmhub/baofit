@@ -264,7 +264,7 @@ bool anyChanged, int index) const {
     return xi;
 }
 
-double local::BaoKSpaceHybridCorrelationModel::_evaluateKSpace(double k, double mu_k, double pk, double z) const { }
+double local::BaoKSpaceHybridCorrelationModel::_evaluateKSpace(double k, double mu_k, double pk, double z) const { return 0; }
 
 int local::BaoKSpaceHybridCorrelationModel::_getIndexBase() const { return _indexBase; }
 

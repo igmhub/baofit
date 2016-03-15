@@ -182,7 +182,7 @@ bool anyChanged, int index) const {
     throw RuntimeError("XiCorrelationModel: invalid multipole.");
 }
 
-double local::XiCorrelationModel::_evaluateKSpace(double k, double mu_k, double pk, double z) const { }
+double local::XiCorrelationModel::_evaluateKSpace(double k, double mu_k, double pk, double z) const { return 0; }
 
 int local::XiCorrelationModel::_getIndexBase() const { return _indexBase; }
 

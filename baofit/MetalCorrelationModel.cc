@@ -498,7 +498,7 @@ double local::MetalCorrelationModel::_evaluate(double r, double mu, double z, bo
     }
 }
 
-double local::MetalCorrelationModel::_evaluateKSpace(double k, double mu_k, double pk, double z) const { }
+double local::MetalCorrelationModel::_evaluateKSpace(double k, double mu_k, double pk, double z) const { return 0; }
 
 int local::MetalCorrelationModel::_getIndexBase() const { return _indexBase; }
 
