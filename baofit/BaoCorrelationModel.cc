@@ -177,7 +177,7 @@ double local::BaoCorrelationModel::_evaluate(double r, double mu, double z, bool
     return xi;
 }
 
-double local::BaoCorrelationModel::_evaluateKSpace(double k, double mu_k, double pk, double z) const { }
+double local::BaoCorrelationModel::_evaluateKSpace(double k, double mu_k, double pk, double z) const { return 0; }
 
 int local::BaoCorrelationModel::_getIndexBase() const { return _indexBase; }
 

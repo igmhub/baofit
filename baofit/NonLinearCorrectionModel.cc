@@ -85,7 +85,7 @@ double local::NonLinearCorrectionModel::_evaluateKSpace(double k, double mu_k, d
     return nonlinearcorr;
 }
 
-double local::NonLinearCorrectionModel::_evaluate(double r, double mu, double z, bool anyChanged, int index) const { }
+double local::NonLinearCorrectionModel::_evaluate(double r, double mu, double z, bool anyChanged, int index) const { return 0; }
 
 int local::NonLinearCorrectionModel::_getIndexBase() const { return _indexBase; }
 

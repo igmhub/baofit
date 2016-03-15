@@ -230,7 +230,7 @@ bool anyChanged, int index) const {
     return 0;
 }
 
-double local::BroadbandModel::_evaluateKSpace(double k, double mu_k, double pk, double z) const { }
+double local::BroadbandModel::_evaluateKSpace(double k, double mu_k, double pk, double z) const { return 0; }
 
 int local::BroadbandModel::_getIndexBase() const { return _indexBase; }
 

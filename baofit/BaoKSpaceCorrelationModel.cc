@@ -457,7 +457,7 @@ bool anyChanged, int index) const {
     return xi;
 }
 
-double local::BaoKSpaceCorrelationModel::_evaluateKSpace(double k, double mu_k, double pk, double z) const { }
+double local::BaoKSpaceCorrelationModel::_evaluateKSpace(double k, double mu_k, double pk, double z) const { return 0; }
 
 int local::BaoKSpaceCorrelationModel::_getIndexBase() const { return _indexBase; }
 
