@@ -35,10 +35,10 @@ namespace baofit {
             std::string const &distMatrixDistAdd, std::string const &distMatrixDistMul,
             bool anisotropic = false, bool decoupled = false, bool nlBroadband = false,
             bool nlCorrection = false, bool fitNLCorrection = false, bool nlCorrectionAlt = false,
-            bool pixelize = false, bool uvfluctuation = false, bool distMatrix = false,
-            bool metalModel = false, bool metalModelInterpolate = false, bool metalTemplate = false,
-            bool combinedBias = false, bool combinedScale = false, bool crossCorrelation = false,
-            bool verbose = false);
+            bool pixelize = false, bool pixelizeAlt = false, bool uvfluctuation = false,
+            bool distMatrix = false, bool metalModel = false, bool metalModelInterpolate = false,
+            bool metalTemplate = false, bool combinedBias = false, bool combinedScale = false,
+            bool crossCorrelation = false, bool verbose = false);
 		virtual ~BaoKSpaceCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
@@ -55,7 +55,8 @@ namespace baofit {
             _distMatDistortMul;
         DistortionMatrixPtr _distMat;
         bool _anisotropic, _decoupled, _nlBroadband, _nlCorrection, _fitNLCorrection, _nlCorrectionAlt,
-            _pixelize, _uvfluctuation, _combinedBias, _combinedScale, _crossCorrelation, _verbose, _useZeff;
+            _pixelize, _pixelizeAlt, _uvfluctuation, _combinedBias, _combinedScale, _crossCorrelation,
+            _verbose, _useZeff;
         int _indexBase, _nlBase, _nlcorrBase, _baoBase, _pixBase, _uvBase, _combBiasBase, _combScaleBase,
             _maxWarnings, _distMatrixOrder;
         mutable int _nWarnings;
