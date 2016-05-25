@@ -33,16 +33,16 @@ local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &m
     std::string const &distMatrixDistAdd, std::string const &distMatrixDistMul,
     bool anisotropic, bool decoupled, bool nlBroadband, bool nlCorrection,
     bool fitNLCorrection, bool nlCorrectionAlt, bool pixelize, bool pixelizeAlt,
-    bool uvfluctuation, bool distMatrix, bool metalModel, bool metalModelInterpolate,
-    bool metalTemplate, bool combinedBias, bool combinedScale, bool crossCorrelation,
-    bool verbose)
+    bool hcdModel, bool hcdModelAlt, bool uvfluctuation, bool distMatrix, bool metalModel,
+    bool metalModelInterpolate, bool metalTemplate, bool combinedBias, bool combinedScale,
+    bool crossCorrelation, bool verbose)
 : AbsCorrelationModel("BAO k-Space Correlation Model"), _dilmin(dilmin), _dilmax(dilmax),
 _zeff(zeff), _dzmin(dzmin), _distMatrixOrder(distMatrixOrder), _anisotropic(anisotropic),
 _decoupled(decoupled), _nlBroadband(nlBroadband), _nlCorrection(nlCorrection),
 _fitNLCorrection(fitNLCorrection), _nlCorrectionAlt(nlCorrectionAlt), _pixelize(pixelize),
-_pixelizeAlt(pixelizeAlt), _uvfluctuation(uvfluctuation), _combinedBias(combinedBias),
-_combinedScale(combinedScale), _crossCorrelation(crossCorrelation), _verbose(verbose),
-_nWarnings(0), _maxWarnings(10)
+_pixelizeAlt(pixelizeAlt), _hcdModel(hcdModel), _hcdModelAlt(hcdModelAlt),
+_uvfluctuation(uvfluctuation), _combinedBias(combinedBias), _combinedScale(combinedScale),
+_crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarnings(10)
 {
     _setZRef(zref);
     _zLast = zref;
@@ -70,10 +70,16 @@ _nWarnings(0), _maxWarnings(10)
     defineParameter("gamma-scale",0,0.5);
     // Pixelization parameter
     if(pixelize || pixelizeAlt) {
-        _pixBase = defineParameter("pixel scale",2,0.2);
+        _pixBase = defineParameter("pixel scale",2,0.2); // in Mpc/h
         if(pixelizeAlt) {
-            defineParameter("pixel scale2",2,0.2);
+            defineParameter("pixel scale2",2,0.2); // in Mpc/h
         }
+    }
+    // HCD correction parameters
+    if(hcdModel || hcdModelAlt) {
+        if(crossCorrelation || uvfluctuation) throw RuntimeError("BaoKSpaceCorrelationModel: HCD model not compatible");
+        _hcdBase = defineParameter("HCD beta",1,0.1);
+        defineParameter("HCD scale",20,2); // in Mpc/h
     }
     // UV fluctuation parameters
     if(uvfluctuation) {
@@ -192,10 +198,21 @@ local::BaoKSpaceCorrelationModel::~BaoKSpaceCorrelationModel() { }
 
 double local::BaoKSpaceCorrelationModel::_evaluateKSpaceDistortion(double k, double mu_k, double pk) const {
     double mu2(mu_k*mu_k);
+    double kpar = std::fabs(k*mu_k);
     // Calculate linear bias model
     double tracer1 = 1 + _betaz*mu2;
     double tracer2 = _crossCorrelation ? 1 + _beta2z*mu2 : tracer1;
     double linear = tracer1*tracer2;
+    // Calculate HCD correction, if any
+    if(_hcdModel || _hcdModelAlt) {
+        double hcdBeta = getParameterValue(_hcdBase);
+        double hcdScale = getParameterValue(_hcdBase+1);
+        double hcdCutoff;
+        if(_hcdModel) hcdCutoff = std::sin(hcdScale*kpar)/(hcdScale*kpar);
+        else if(_hcdModelAlt) hcdCutoff = std::exp(-(hcdScale*kpar)*(hcdScale*kpar)/2);
+        tracer1 = 1 + (_betaz + hcdBeta*hcdCutoff)*mu2;
+        linear = tracer1*tracer1;
+    }
     // Calculate scale-dependent bias parameters, if any
     if(_uvfluctuation) {
         double UVbias = getParameterValue(_uvBase);
@@ -218,7 +235,6 @@ double local::BaoKSpaceCorrelationModel::_evaluateKSpaceDistortion(double k, dou
     // Calculate pixelization smoothing, if any
     double pixelization(1);
     if(_pixelize || _pixelizeAlt) {
-        double kpar = std::fabs(k*mu_k);
         double pixScale = getParameterValue(_pixBase);
         double pix = std::fabs(std::sin(pixScale*kpar)/(pixScale*kpar));
         pixelization = _crossCorrelation ? pix : pix*pix;
@@ -300,6 +316,8 @@ bool anyChanged, int index) const {
         pixChanged = _pixelizeAlt ? isParameterValueChanged(_pixBase) || isParameterValueChanged(_pixBase+1) : pixChanged;
         bool nlcorrChanged = _fitNLCorrection ? isParameterValueChanged(_nlcorrBase) || isParameterValueChanged(_nlcorrBase+1)
             : false;
+        bool hcdChanged = _hcdModel || _hcdModelAlt ? isParameterValueChanged(_hcdBase) || isParameterValueChanged(_hcdBase+1)
+            : false;
         bool uvChanged = _uvfluctuation ? isParameterValueChanged(_uvBase) || isParameterValueChanged(_uvBase+1)
             || isParameterValueChanged(_uvBase+2) || isParameterValueChanged(1) || isParameterValueChanged(2) : false;
         bool rsdChanged = isParameterValueChanged(0) || isParameterValueChanged(3) || (_crossCorrelation ? isParameterValueChanged(6)
@@ -316,7 +334,7 @@ bool anyChanged, int index) const {
                 _Xipk->printToStream(std::cout);
             }
         }
-        else if(nlChanged || pixChanged || nlcorrChanged || uvChanged || rsdChanged || zChanged) {
+        else if(nlChanged || pixChanged || nlcorrChanged || hcdChanged || uvChanged || rsdChanged || zChanged) {
             // We are already initialized, so just redo the transforms.
             converged &= _Xipk->transform(interpolateK,bypassConvergenceTest);
         }
@@ -334,7 +352,7 @@ bool anyChanged, int index) const {
                 _Xinw->printToStream(std::cout);
             }
         }
-        else if(nlChanged || pixChanged || nlcorrChanged || uvChanged || rsdChanged || zChanged) {
+        else if(nlChanged || pixChanged || nlcorrChanged || hcdChanged || uvChanged || rsdChanged || zChanged) {
             // We are already initialized, so just redo the transforms.
             converged &= _Xinw->transform(interpolateK,bypassConvergenceTest);
         }
@@ -479,6 +497,7 @@ void  local::BaoKSpaceCorrelationModel::printToStream(std::ostream &out, std::st
     out << "Anisotropic non-linear broadening applies to peak " << (!_nlBroadband ? "only." : "and cosmological broadband.") << std::endl;
     out << "Non-linear correction is switched " << (_nlCorrection || _fitNLCorrection || _nlCorrectionAlt ? "on." : "off.") << std::endl;
     out << "Pixelization smoothing is switched " << (_pixelize || _pixelizeAlt ? "on." : "off.") << std::endl;
+    out << "HCD correction is switched " << (_hcdModel || _hcdModelAlt ? "on." : "off.") << std::endl;
     out << "Distortion matrix is switched " << (_distMat ? "on." : "off.") << std::endl;
     out << "Metal correlations are switched " << (_metalCorr ? "on." : "off.") << std::endl;
     out << "UV fluctuations are switched " << (_uvfluctuation ? "on." : "off.") << std::endl;
