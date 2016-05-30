@@ -52,7 +52,7 @@ _crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarni
     _setGammaBiasIndex(defineParameter("gamma-bias",3.8,0.3));
     _setGammaBetaIndex(defineParameter("gamma-beta",0,0.1));
     if(crossCorrelation) {
-        // Amount to shift each separation's line of sight velocity in km/s
+        // Amount to shift each separation's line of sight velocity in km/s.
         _setDVIndex(defineParameter("delta-v",0,10));
         // We use don't use beta2 and (1+beta2)*bias2 here since for galaxies or quasars
         // the combination beta2*bias2 = f = dln(G)/dln(a) is well constrained.
@@ -77,14 +77,14 @@ _crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarni
     }
     // HCD correction parameters
     if(hcdModel || hcdModelAlt) {
-        if(crossCorrelation || uvfluctuation) throw RuntimeError("BaoKSpaceCorrelationModel: HCD model not compatible");
+        if(crossCorrelation) throw RuntimeError("BaoKSpaceCorrelationModel: HCD model not compatible");
         _hcdBase = defineParameter("HCD beta",1,0.1);
         defineParameter("HCD rel bias",0.1,0.01);
         defineParameter("HCD scale",20,2); // in Mpc/h
     }
     // UV fluctuation parameters
     if(uvfluctuation) {
-        _uvBase = defineParameter("UV bias",0.13,0.01);
+        _uvBase = defineParameter("UV rel bias",-1,0.1);
         defineParameter("UV abs resp bias",-0.667,0.06);
         defineParameter("UV mean free path",300,30); // in Mpc/h
     }
@@ -92,13 +92,13 @@ _crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarni
     if(combinedBias) {
         _combBiasBase = defineParameter("beta*bias",-0.196,0.02);
         _setBetaBiasIndex(_combBiasBase);
-        // Fix the parameter that is not being used
+        // Fix the parameter that is not being used.
         configureFitParameters("fix[(1+beta)*bias]=0");
     }
     // Combined scale parameters
     if(combinedScale) {
         _combScaleBase = defineParameter("BAO aperp/apar",1,0.1);
-        // Fix the parameter that is not being used
+        // Fix the parameter that is not being used.
         configureFitParameters("fix[BAO alpha-perp]=0");
     }
 
@@ -121,17 +121,17 @@ _crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarni
     // Internally, we use the peak = (fid - nw) and smooth = nw components to evaluate our model.
     cosmo::TabulatedPowerCPtr Ppk = Pfid->createDelta(Pnw);
 
-    // Use the k limits of our tabulated P(k) for k-interpolation of our transforms
+    // Use the k limits of our tabulated P(k) for k-interpolation of our transforms.
     double klo = Ppk->getKMin(), khi = Ppk->getKMax();
     int nk = std::ceil(std::log10(khi/klo)*samplesPerDecade);
 
-    // Create smart pointers to our power spectra Ppk(k) and Pnw(fid)
+    // Create smart pointers to our power spectra Ppk(k) and Pnw(fid).
     likely::GenericFunctionPtr PpkPtr =
         likely::createFunctionPtr<const cosmo::TabulatedPower>(Ppk);
     likely::GenericFunctionPtr PnwPtr =
         likely::createFunctionPtr<const cosmo::TabulatedPower>(Pnw);
 
-    // Create a smart pointer to our k-space distortion model D(k,mu_k)
+    // Create a smart pointer to our k-space distortion model D(k,mu_k).
     cosmo::KMuPkFunctionCPtr distortionModelPtr(new cosmo::KMuPkFunction(boost::bind(
         &BaoKSpaceCorrelationModel::_evaluateKSpaceDistortion,this,_1,_2,_3)));
 
@@ -200,42 +200,42 @@ local::BaoKSpaceCorrelationModel::~BaoKSpaceCorrelationModel() { }
 double local::BaoKSpaceCorrelationModel::_evaluateKSpaceDistortion(double k, double mu_k, double pk) const {
     double mu2(mu_k*mu_k);
     double kpar = std::fabs(k*mu_k);
-    // Calculate linear bias model
+    // Calculate linear bias model.
     double tracer1 = 1 + _betaz*mu2;
     double tracer2 = _crossCorrelation ? 1 + _beta2z*mu2 : tracer1;
     double linear = tracer1*tracer2;
-    // Calculate HCD correction, if any
+    // Calculate UV fluctuation correction, if any.
+    double uvFunc = 1;
+    if(_uvfluctuation) {
+        double uvRelBias = getParameterValue(_uvBase);
+        double uvBiasAbsorberResponse = getParameterValue(_uvBase+1);
+        double uvMeanFreePath = getParameterValue(_uvBase+2);
+        double s(uvMeanFreePath*k);
+        double Ws = std::atan(s)/s;
+        uvFunc = 1 + uvRelBias*Ws/(1+uvBiasAbsorberResponse*Ws);
+        tracer1 = uvFunc + _betaz*mu2;
+        tracer2 = _crossCorrelation ? 1 + _beta2z*mu2 : tracer1;
+        linear = tracer1*tracer2;
+    }
+    // Calculate HCD correction, if any.
     if(_hcdModel || _hcdModelAlt) {
         double hcdBeta = getParameterValue(_hcdBase);
         double hcdRelBias = getParameterValue(_hcdBase+1);
         double hcdScale = getParameterValue(_hcdBase+2);
-        double hcdCutoff = 1;
-        if(_hcdModel) hcdCutoff = std::sin(hcdScale*kpar)/(hcdScale*kpar);
-        else if(_hcdModelAlt) hcdCutoff = std::exp(-(hcdScale*kpar)*(hcdScale*kpar)/2);
-        tracer1 = (1 + _betaz*mu2);
-        tracer2 = hcdRelBias*(1 + hcdBeta*mu2)*hcdCutoff;
+        double hcdFunc = 1;
+        if(_hcdModel) hcdFunc = std::sin(hcdScale*kpar)/(hcdScale*kpar);
+        else if(_hcdModelAlt) hcdFunc = std::exp(-(hcdScale*kpar)*(hcdScale*kpar)/2);
+        tracer1 = uvFunc + _betaz*mu2;
+        tracer2 = hcdRelBias*(1 + hcdBeta*mu2)*hcdFunc;
         linear = tracer1*tracer1 + 2*tracer1*tracer2 + tracer2*tracer2;
     }
-    // Calculate scale-dependent bias parameters, if any
-    if(_uvfluctuation) {
-        double UVbias = getParameterValue(_uvBase);
-        double UVbiasAbsorberResponse = getParameterValue(_uvBase+1);
-        double UVmeanFreePath = getParameterValue(_uvBase+2);
-        double s(UVmeanFreePath*k);
-        double Ws = std::atan(s)/s;
-        double biask = _biasz + UVbias*Ws/(1+UVbiasAbsorberResponse*Ws);
-        double betak = _betaz*_biasz/biask;
-        tracer1 = biask*(1 + betak*mu2);
-        tracer2 = _crossCorrelation ? _bias2z*(1 + _beta2z*mu2) : tracer1;
-        linear = _growthSq*tracer1*tracer2;
-    }
-    // Calculate non-linear broadening
+    // Calculate non-linear broadening.
     double snl2 = _snlPar2*mu2 + _snlPerp2*(1-mu2);
     double nonlinear = std::exp(-0.5*snl2*k*k);
-    // Calculate non-linear correction, if any
+    // Calculate non-linear correction, if any.
     double nonlinearcorr = _nlCorr->_evaluateKSpace(k,mu_k,pk,_zeff);
     if(_crossCorrelation) nonlinearcorr = std::sqrt(nonlinearcorr);
-    // Calculate pixelization smoothing, if any
+    // Calculate pixelization smoothing, if any.
     double pixelization(1);
     if(_pixelize || _pixelizeAlt) {
         double pixScale = getParameterValue(_pixBase);
@@ -282,29 +282,15 @@ bool anyChanged, int index) const {
 
     // Get the effective redshift from the data, if not set separately.
     if(!_useZeff) _zeff = z;
-    // Set all redshifts equal to the effective redshift, if using the UV fluctuation model.
-    if(_uvfluctuation) z = _zeff;
     // Set transformation flag, if the redshift criterion is fulfilled.
     bool zChanged = false;
     if(std::fabs(z-_zLast) > _dzmin) zChanged = true;
     _zLast = z;
     
-    // Apply redshift evolution
+    // Apply redshift evolution.
     double biasSqz = redshiftEvolution(biasSq,gammaBias,z,_getZRef());
     _betaz = redshiftEvolution(beta,gammaBeta,z,_getZRef());
     if(_crossCorrelation) _beta2z = redshiftEvolution(beta2,gammaBeta,z,_getZRef());
-    
-    if(_uvfluctuation) {
-        _growthSq = redshiftEvolution(1,-2,z,_getZRef());
-        if(_crossCorrelation) {
-    	    _bias2z = bias2;
-    	    _biasz = biasSqz/(_bias2z*_growthSq);
-	    }
-	    else {
-		    _biasz = std::sqrt(biasSqz/_growthSq);
-	    }
-	    biasSqz = 1.;
-    }
 
     // Lookup non-linear broadening parameters.
     double snlPerp = getParameterValue(_nlBase);
@@ -312,7 +298,7 @@ bool anyChanged, int index) const {
     _snlPerp2 = snlPerp*snlPerp;
     _snlPar2 = snlPar*snlPar;
 
-    // Redo the transforms from (k,mu_k) to (r,mu), if necessary
+    // Redo the transforms from (k,mu_k) to (r,mu), if necessary.
     if(anyChanged || zChanged) {
         bool nlChanged = isParameterValueChanged(_nlBase) || isParameterValueChanged(_nlBase+1);
         bool pixChanged = _pixelize ? isParameterValueChanged(_pixBase) : false;
@@ -322,7 +308,7 @@ bool anyChanged, int index) const {
         bool hcdChanged = _hcdModel || _hcdModelAlt ? isParameterValueChanged(_hcdBase) || isParameterValueChanged(_hcdBase+1)
             || isParameterValueChanged(_hcdBase+2) : false;
         bool uvChanged = _uvfluctuation ? isParameterValueChanged(_uvBase) || isParameterValueChanged(_uvBase+1)
-            || isParameterValueChanged(_uvBase+2) || isParameterValueChanged(1) || isParameterValueChanged(2) : false;
+            || isParameterValueChanged(_uvBase+2) : false;
         bool rsdChanged = isParameterValueChanged(0) || isParameterValueChanged(3) || (_crossCorrelation ? isParameterValueChanged(6)
             : false);
         int nmu(20);
@@ -397,7 +383,7 @@ bool anyChanged, int index) const {
         muBAO = mu;
     }
 
-    // Check dilation limits
+    // Check dilation limits.
     if(scalez < _dilmin) {
         std::cout << "current dilation = " << scalez << ", min dilation limit = " << _dilmin << std::endl;
         throw RuntimeError("BaoKSpaceCorrelationModel: hit min dilation limit.");
@@ -432,10 +418,6 @@ bool anyChanged, int index) const {
                     continue;
                 }
                 biasSqz = redshiftEvolution(biasSq,gammaBias,zbin,_getZRef());
-                if(_uvfluctuation) {
-                    zbin = _zeff;
-                    biasSqz = 1.;
-                }
                 // Transform (rbin,mubin) to (rBAO,muBAO) using the scale parameters.
                 if(_anisotropic) {
                     double apar = redshiftEvolution(scale_parallel,gamma_scale,zbin,_getZRef());
@@ -464,7 +446,7 @@ bool anyChanged, int index) const {
                 if(_distMatDistortMul) xiu *= 1 + _distMatDistortMul->_evaluate(rbin,mubin,zbin,anyChanged,bin);
                 if(_distMatDistortAdd) {
                     double distortion = _distMatDistortAdd->_evaluate(rbin,mubin,zbin,anyChanged,bin);
-                    // The additive distortion is multiplied by ((1+z)/(1+z0))^gammaBias
+                    // The additive distortion is multiplied by ((1+z)/(1+z0))^gammaBias.
                     xiu += redshiftEvolution(distortion,gammaBias,zbin,_getZRef());
                 }
                 // Save the (undistorted) correlation function.
@@ -501,7 +483,7 @@ void  local::BaoKSpaceCorrelationModel::printToStream(std::ostream &out, std::st
     out << "Non-linear correction is switched " << (_nlCorrection || _fitNLCorrection || _nlCorrectionAlt ? "on." : "off.") << std::endl;
     out << "Pixelization smoothing is switched " << (_pixelize || _pixelizeAlt ? "on." : "off.") << std::endl;
     out << "HCD correction is switched " << (_hcdModel || _hcdModelAlt ? "on." : "off.") << std::endl;
+    out << "UV fluctuations are switched " << (_uvfluctuation ? "on." : "off.") << std::endl;
     out << "Distortion matrix is switched " << (_distMat ? "on." : "off.") << std::endl;
     out << "Metal correlations are switched " << (_metalCorr ? "on." : "off.") << std::endl;
-    out << "UV fluctuations are switched " << (_uvfluctuation ? "on." : "off.") << std::endl;
 }
