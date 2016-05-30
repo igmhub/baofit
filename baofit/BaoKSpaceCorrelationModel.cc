@@ -239,11 +239,11 @@ double local::BaoKSpaceCorrelationModel::_evaluateKSpaceDistortion(double k, dou
     double pixelization(1);
     if(_pixelize || _pixelizeAlt) {
         double pixScale = getParameterValue(_pixBase);
-        double pix = std::fabs(std::sin(pixScale*kpar)/(pixScale*kpar));
+        double pix = std::sin(pixScale*kpar)/(pixScale*kpar);
         pixelization = _crossCorrelation ? pix : pix*pix;
         if(_pixelizeAlt) {
             double pixScale2 = getParameterValue(_pixBase+1);
-            double pix2 = std::fabs(std::sin(pixScale2*kpar)/(pixScale2*kpar));
+            double pix2 = std::sin(pixScale2*kpar)/(pixScale2*kpar);
             pixelization = pix*pix2;
         }
     }
