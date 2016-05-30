@@ -79,6 +79,7 @@ _crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarni
     if(hcdModel || hcdModelAlt) {
         if(crossCorrelation || uvfluctuation) throw RuntimeError("BaoKSpaceCorrelationModel: HCD model not compatible");
         _hcdBase = defineParameter("HCD beta",1,0.1);
+        defineParameter("HCD rel bias",0.1,0.01);
         defineParameter("HCD scale",20,2); // in Mpc/h
     }
     // UV fluctuation parameters
@@ -206,12 +207,14 @@ double local::BaoKSpaceCorrelationModel::_evaluateKSpaceDistortion(double k, dou
     // Calculate HCD correction, if any
     if(_hcdModel || _hcdModelAlt) {
         double hcdBeta = getParameterValue(_hcdBase);
-        double hcdScale = getParameterValue(_hcdBase+1);
-        double hcdCutoff;
+        double hcdRelBias = getParameterValue(_hcdBase+1);
+        double hcdScale = getParameterValue(_hcdBase+2);
+        double hcdCutoff = 1;
         if(_hcdModel) hcdCutoff = std::sin(hcdScale*kpar)/(hcdScale*kpar);
         else if(_hcdModelAlt) hcdCutoff = std::exp(-(hcdScale*kpar)*(hcdScale*kpar)/2);
-        tracer1 = 1 + (_betaz + hcdBeta*hcdCutoff)*mu2;
-        linear = tracer1*tracer1;
+        tracer1 = (1 + _betaz*mu2);
+        tracer2 = hcdRelBias*(1 + hcdBeta*mu2)*hcdCutoff;
+        linear = tracer1*tracer1 + 2*tracer1*tracer2 + tracer2*tracer2;
     }
     // Calculate scale-dependent bias parameters, if any
     if(_uvfluctuation) {
@@ -317,7 +320,7 @@ bool anyChanged, int index) const {
         bool nlcorrChanged = _fitNLCorrection ? isParameterValueChanged(_nlcorrBase) || isParameterValueChanged(_nlcorrBase+1)
             : false;
         bool hcdChanged = _hcdModel || _hcdModelAlt ? isParameterValueChanged(_hcdBase) || isParameterValueChanged(_hcdBase+1)
-            : false;
+            || isParameterValueChanged(_hcdBase+2) : false;
         bool uvChanged = _uvfluctuation ? isParameterValueChanged(_uvBase) || isParameterValueChanged(_uvBase+1)
             || isParameterValueChanged(_uvBase+2) || isParameterValueChanged(1) || isParameterValueChanged(2) : false;
         bool rsdChanged = isParameterValueChanged(0) || isParameterValueChanged(3) || (_crossCorrelation ? isParameterValueChanged(6)
