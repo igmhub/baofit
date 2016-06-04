@@ -77,7 +77,6 @@ _crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarni
     }
     // HCD correction parameters
     if(hcdModel || hcdModelAlt) {
-        if(crossCorrelation) throw RuntimeError("BaoKSpaceCorrelationModel: HCD model not compatible");
         _hcdBase = defineParameter("HCD beta",1,0.1);
         defineParameter("HCD rel bias",0.1,0.01);
         defineParameter("HCD scale",20,2); // in Mpc/h
@@ -205,14 +204,13 @@ double local::BaoKSpaceCorrelationModel::_evaluateKSpaceDistortion(double k, dou
     double tracer2 = _crossCorrelation ? 1 + _beta2z*mu2 : tracer1;
     double linear = tracer1*tracer2;
     // Calculate UV fluctuation correction, if any.
-    double uvFunc = 1;
     if(_uvfluctuation) {
         double uvRelBias = getParameterValue(_uvBase);
         double uvBiasAbsorberResponse = getParameterValue(_uvBase+1);
         double uvMeanFreePath = getParameterValue(_uvBase+2);
         double s(uvMeanFreePath*k);
         double Ws = std::atan(s)/s;
-        uvFunc = 1 + uvRelBias*Ws/(1+uvBiasAbsorberResponse*Ws);
+        double uvFunc = 1 + uvRelBias*Ws/(1+uvBiasAbsorberResponse*Ws);
         tracer1 = uvFunc + _betaz*mu2;
         tracer2 = _crossCorrelation ? 1 + _beta2z*mu2 : tracer1;
         linear = tracer1*tracer2;
@@ -225,9 +223,9 @@ double local::BaoKSpaceCorrelationModel::_evaluateKSpaceDistortion(double k, dou
         double hcdFunc = 1;
         if(_hcdModel) hcdFunc = std::sin(hcdScale*kpar)/(hcdScale*kpar);
         else if(_hcdModelAlt) hcdFunc = std::exp(-(hcdScale*kpar)*(hcdScale*kpar)/2);
-        tracer1 = uvFunc + _betaz*mu2;
-        tracer2 = hcdRelBias*(1 + hcdBeta*mu2)*hcdFunc;
-        linear = tracer1*tracer1 + 2*tracer1*tracer2 + tracer2*tracer2;
+        double tracerHcd = hcdRelBias*(1 + hcdBeta*mu2)*hcdFunc;
+        linear = _crossCorrelation ? tracer1*tracer2 + tracer2*tracerHcd
+            : tracer1*tracer1 + 2*tracer1*tracerHcd + tracerHcd*tracerHcd;
     }
     // Calculate non-linear broadening.
     double snl2 = _snlPar2*mu2 + _snlPerp2*(1-mu2);
