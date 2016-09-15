@@ -1,0 +1,8 @@
+# Do not include autotools shell scripts in github language statistics.
+# See https://github.com/github/linguist#overrides for details.
+config.guess linguist-vendored
+config.sub linguist-vendored
+depcomp linguist-vendored
+install-sh linguist-vendored
+ltmain.sh linguist-vendored
+missing linguist-vendored
