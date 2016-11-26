@@ -307,8 +307,8 @@ bool anyChanged, int index) const {
             || isParameterValueChanged(_hcdBase+2) : false;
         bool uvChanged = _uvfluctuation ? isParameterValueChanged(_uvBase) || isParameterValueChanged(_uvBase+1)
             || isParameterValueChanged(_uvBase+2) : false;
-        bool rsdChanged = isParameterValueChanged(0) || isParameterValueChanged(3) || (_crossCorrelation ? isParameterValueChanged(6)
-            : false);
+        bool rsdChanged = isParameterValueChanged(0) || isParameterValueChanged(3) ||
+            (_crossCorrelation ? isParameterValueChanged(5) : false) || (_crossCorrelation ? isParameterValueChanged(6) : false);
         int nmu(20);
         double margin(4), vepsMax(1e-1), vepsMin(1e-6);
         bool optimize(false),interpolateK(true),bypassConvergenceTest(false),converged(true);
