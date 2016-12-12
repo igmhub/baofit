@@ -137,11 +137,13 @@ int main(int argc, char **argv) {
         ("nl-correction-alt", "k-space alternative non-linear correction applied in the flux power spectrum model.")
         ("distortion-alt", "Uses alternative model for the continuum fitting broadband distortion.")
         ("no-distortion", "No modeling of the continuum fitting broadband distortion.")
-        ("pixelize", "Include pixelization smoothing.")
-        ("pixelize-alt", "Include alternative pixelization smoothing.")
+        ("bin-smooth", "Include smoothing due to correlation binning.")
+        ("bin-smooth-alt", "Include alternative smoothing due to correlation binning.")
         ("hcd-model", "Include k-space model of HCD absorption.")
         ("hcd-model-alt", "Include alternative k-space model of HCD absorption.")
         ("uvfluctuation", "Include k-space model of UV fluctuations.")
+        ("smooth-gauss", "Include line-of-sight smoothing (Gaussian).")
+        ("smooth-lorentz", "Include line-of-sight smoothing (Lorentzian).")
         ("dist-matrix", "Uses distortion matrix to model continuum fitting broadband distortion.")
         ("dist-matrix-name", po::value<std::string>(&distMatrixName)->default_value(""),
             "Distortion matrix will be read from the specified file. If not specified, the data name will be used by default.")
@@ -350,9 +352,10 @@ int main(int argc, char **argv) {
         nlBroadband(vm.count("nl-broadband")), nlCorrection(vm.count("nl-correction")),
         fitNLCorrection(vm.count("fit-nl-correction")), nlCorrectionAlt(vm.count("nl-correction-alt")),
         distortionAlt(vm.count("distortion-alt")), noDistortion(vm.count("no-distortion")),
-        pixelize(vm.count("pixelize")), pixelizeAlt(vm.count("pixelize-alt")),
+        binSmooth(vm.count("bin-smooth")), binSmoothAlt(vm.count("bin-smooth-alt")),
         hcdModel(vm.count("hcd-model")), hcdModelAlt(vm.count("hcd-model-alt")),
-        uvfluctuation(vm.count("uvfluctuation")), distMatrix(vm.count("dist-matrix")),
+        uvfluctuation(vm.count("uvfluctuation")), smoothGauss(vm.count("smooth-gauss")),
+        smoothLorentz(vm.count("smooth-lorentz")), distMatrix(vm.count("dist-matrix")),
         metalModel(vm.count("metal-model")), metalModelInterpolate(vm.count("metal-model-interpolate")),
         metalTemplate(vm.count("metal-template")), customGrid(vm.count("custom-grid")),
         combinedBias(vm.count("combined-bias")), combinedScale(vm.count("combined-scale"));
@@ -421,9 +424,9 @@ int main(int argc, char **argv) {
                 zref,rmin,rmax,dilmin,dilmax,relerr,abserr,ellMax,samplesPerDecade,
                 distAdd,distMul,distR0,zeff,sigma8,dzmin,distMatrixOrder,distMatrixDistAdd,
                 distMatrixDistMul,anisotropic,decoupled,nlBroadband,nlCorrection,fitNLCorrection,
-                nlCorrectionAlt,pixelize,pixelizeAlt,hcdModel,hcdModelAlt,uvfluctuation,distMatrix,
-                metalModel,metalModelInterpolate,metalTemplate,combinedBias,combinedScale,
-                crossCorrelation,verbose));
+                nlCorrectionAlt,binSmooth,binSmoothAlt,hcdModel,hcdModelAlt,uvfluctuation,
+                smoothGauss,smoothLorentz,distMatrix,metalModel,metalModelInterpolate,
+                metalTemplate,combinedBias,combinedScale,crossCorrelation,verbose));
         }
         else if(kspacefft) {
             // Build our fit model from tabulated P(k) on disk and use a 3D FFT.
