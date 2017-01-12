@@ -40,7 +40,10 @@ namespace baofit {
 	        _corrSi2aSi2b4, _corrSi2aSi2c0, _corrSi2aSi2c2, _corrSi2aSi2c4, _corrSi2bSi2b0, _corrSi2bSi2b2,
 	        _corrSi2bSi2b4, _corrSi2bSi2c0, _corrSi2bSi2c2, _corrSi2bSi2c4, _corrSi2cSi2c0, _corrSi2cSi2c2,
 	        _corrSi2cSi2c4, _corrSi3Si2a0, _corrSi3Si2a2, _corrSi3Si2a4, _corrSi3Si2b0, _corrSi3Si2b2,
-	        _corrSi3Si2b4, _corrSi3Si2c0, _corrSi3Si2c2, _corrSi3Si2c4, _corrSi3Si30, _corrSi3Si32, _corrSi3Si34;
+	        _corrSi3Si2b4, _corrSi3Si2c0, _corrSi3Si2c2, _corrSi3Si2c4, _corrSi3Si30, _corrSi3Si32, _corrSi3Si34,
+	        _corrLyaCIVa0, _corrLyaCIVa2, _corrLyaCIVa4, _corrSi2aCIVa0, _corrSi2aCIVa2, _corrSi2aCIVa4,
+	        _corrSi2bCIVa0, _corrSi2bCIVa2, _corrSi2bCIVa4, _corrSi2cCIVa0, _corrSi2cCIVa2, _corrSi2cCIVa4,
+	        _corrSi3CIVa0, _corrSi3CIVa2, _corrSi3CIVa4, _corrCIVaCIVa0, _corrCIVaCIVa2, _corrCIVaCIVa4;
 	    int _indexBase, _lastLines;
 	    double _rperpMin, _rparMin, _rperpMax, _rparMax;
 	    bool _metalModel, _metalModelInterpolate, _metalTemplate, _crossCorrelation;
