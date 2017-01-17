@@ -157,7 +157,8 @@ int main(int argc, char **argv) {
         ("metal-model-interpolate", "Include r-space model of metal line correlations that uses bicubic interpolation.")
         ("metal-model-name", po::value<std::string>(&metalModelName)->default_value(""),
             "Metal correlation functions will be read from <name>.<ell>.dat with ell=0,2,4.")
-        ("metal-template", "Include r-space template for metal line correlations derived from mock data.")
+        ("metal-civ", "Include CIV correlations in r-space metal model.")
+        ("toy-metal", "Include r-space toy model for metal line correlations derived from mock data.")
         ("combined-bias", "Uses combined beta*bias parameter.")
         ("combined-scale", "Uses combined aperp/apar parameter.")
         ("cross-correlation", "Uses independent linear bias parameters for both components.")
@@ -357,8 +358,9 @@ int main(int argc, char **argv) {
         uvfluctuation(vm.count("uvfluctuation")), smoothGauss(vm.count("smooth-gauss")),
         smoothLorentz(vm.count("smooth-lorentz")), distMatrix(vm.count("dist-matrix")),
         metalModel(vm.count("metal-model")), metalModelInterpolate(vm.count("metal-model-interpolate")),
-        metalTemplate(vm.count("metal-template")), customGrid(vm.count("custom-grid")),
-        combinedBias(vm.count("combined-bias")), combinedScale(vm.count("combined-scale"));
+        metalCIV(vm.count("metal-civ")), toyMetal(vm.count("toy-metal")),
+        customGrid(vm.count("custom-grid")), combinedBias(vm.count("combined-bias")),
+        combinedScale(vm.count("combined-scale"));
 
     // Check that we have a recognized data format.
     if(dataFormat != "comoving-cartesian" && dataFormat != "comoving-polar" &&
@@ -426,7 +428,7 @@ int main(int argc, char **argv) {
                 distMatrixDistMul,anisotropic,decoupled,nlBroadband,nlCorrection,fitNLCorrection,
                 nlCorrectionAlt,binSmooth,binSmoothAlt,hcdModel,hcdModelAlt,uvfluctuation,
                 smoothGauss,smoothLorentz,distMatrix,metalModel,metalModelInterpolate,
-                metalTemplate,combinedBias,combinedScale,crossCorrelation,verbose));
+                metalCIV,toyMetal,combinedBias,combinedScale,crossCorrelation,verbose));
         }
         else if(kspacefft) {
             // Build our fit model from tabulated P(k) on disk and use a 3D FFT.
@@ -449,8 +451,8 @@ int main(int argc, char **argv) {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
             model.reset(new baofit::BaoCorrelationModel(
                 modelrootName,fiducialName,nowigglesName,metalModelName,distAdd,distMul,
-                distR0,zref,anisotropic,decoupled,metalModel,metalModelInterpolate,metalTemplate,
-                combinedBias,combinedScale,crossCorrelation));
+                distR0,zref,anisotropic,decoupled,metalModel,metalModelInterpolate,metalCIV,
+                toyMetal,combinedBias,combinedScale,crossCorrelation));
         }
              
         // Configure our fit model parameters by applying all model-config options in turn,
