@@ -34,7 +34,8 @@ namespace baofit {
 	    virtual int _getIndexBase() const;
 	private:
 	    void _initialize(std::vector<double> &vector, std::string const &filename);
-	    std::vector<std::vector<double> > _metaltemplates;
+	    void _initializeGrid(std::vector<double> &vector, std::string const &filename);
+	    std::vector<std::vector<double> > _metaltemplates, _zgrid;
 	    std::vector<likely::BiCubicInterpolatorPtr> _metalintertemplates;
 	    std::vector<int> _paramindex1, _paramindex2;
 	    int _indexBase, _lastLines, _nmet, _ncomb;

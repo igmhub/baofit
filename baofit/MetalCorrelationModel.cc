@@ -53,6 +53,9 @@ _metalCIV(metalCIV), _toyMetal(toyMetal), _crossCorrelation(crossCorrelation), _
         }
         // Load the data we will use for each multipole of each metal model.
         boost::format fileName("%s%s%s.%d.dat");
+        boost::format gridName("%s%s%s.grid");
+        std::vector<double> metaldata, griddata;
+        _lastLines = -1;
         if(metalModel && !crossCorrelation) {
             _nmet = 5;
             _ncomb = 14;
@@ -60,8 +63,6 @@ _metalCIV(metalCIV), _toyMetal(toyMetal), _crossCorrelation(crossCorrelation), _
             std::string metallist2 [14] = {"_Si2a","_Si2b","_Si2c","_Si3","_Si2a","_Si2b","_Si2c","_Si2b","_Si2c","_Si2c","_Si2a","_Si2b","_Si2c","_Si3"};
             int metalindex1 [14] = {0,0,0,0,1,1,1,2,2,3,4,4,4,4};
             int metalindex2 [14] = {1,2,3,4,1,2,3,2,3,3,1,2,3,4};
-            std::vector<double> metaldata;
-            _lastLines = -1;
             for(int i = 0; i < _ncomb; ++i) {
                 _initialize(metaldata,boost::str(fileName % metalModelName % metallist1[i] % metallist2[i] % 0));
                 _metaltemplates.push_back(metaldata);
@@ -71,6 +72,8 @@ _metalCIV(metalCIV), _toyMetal(toyMetal), _crossCorrelation(crossCorrelation), _
                 _metaltemplates.push_back(metaldata);
                 _paramindex1.push_back(metalindex1[i]);
                 _paramindex2.push_back(metalindex2[i]);
+                _initializeGrid(griddata,boost::str(gridName % metalModelName % metallist1[i] % metallist2[i]));
+                _zgrid.push_back(griddata);
             }
             
             if(metalCIV) {
@@ -82,15 +85,17 @@ _metalCIV(metalCIV), _toyMetal(toyMetal), _crossCorrelation(crossCorrelation), _
                 int civindex1 [6] = {0,1,2,3,4,5};
                 int civindex2 [6] = {5,5,5,5,5,5};
                 for(int i = 0; i < nciv; ++i) {
-                _initialize(metaldata,boost::str(fileName % metalModelName % civlist1[i] % civlist2[i] % 0));
-                _metaltemplates.push_back(metaldata);
-                _initialize(metaldata,boost::str(fileName % metalModelName % civlist1[i] % civlist2[i] % 2));
-                _metaltemplates.push_back(metaldata);
-                _initialize(metaldata,boost::str(fileName % metalModelName % civlist1[i] % civlist2[i] % 4));
-                _metaltemplates.push_back(metaldata);
-                _paramindex1.push_back(civindex1[i]);
-                _paramindex2.push_back(civindex2[i]);
-            }
+                    _initialize(metaldata,boost::str(fileName % metalModelName % civlist1[i] % civlist2[i] % 0));
+                    _metaltemplates.push_back(metaldata);
+                    _initialize(metaldata,boost::str(fileName % metalModelName % civlist1[i] % civlist2[i] % 2));
+                    _metaltemplates.push_back(metaldata);
+                    _initialize(metaldata,boost::str(fileName % metalModelName % civlist1[i] % civlist2[i] % 4));
+                    _metaltemplates.push_back(metaldata);
+                    _paramindex1.push_back(civindex1[i]);
+                    _paramindex2.push_back(civindex2[i]);
+                    _initializeGrid(griddata,boost::str(gridName % metalModelName % civlist1[i] % civlist2[i]));
+                    _zgrid.push_back(griddata);
+                }
             }
         }
         else if(metalModelInterpolate && crossCorrelation) {
@@ -107,6 +112,8 @@ _metalCIV(metalCIV), _toyMetal(toyMetal), _crossCorrelation(crossCorrelation), _
                     _metalintertemplates.push_back(likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % qsometallist1[i] % qsometallist2[i] % 4)));
                     _paramindex1.push_back(qsometalindex1[i]);
                     _paramindex2.push_back(qsometalindex2[i]);
+                    _initializeGrid(griddata,boost::str(gridName % metalModelName % qsometallist1[i] % qsometallist2[i]));
+                    _zgrid.push_back(griddata);
                 }
             }
             catch(likely::RuntimeError const &e) {
@@ -132,6 +139,8 @@ _metalCIV(metalCIV), _toyMetal(toyMetal), _crossCorrelation(crossCorrelation), _
                         _metalintertemplates.push_back(likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % qsocivlist1[i] % qsocivlist2[i] % 4)));
                         _paramindex1.push_back(qsocivindex1[i]);
                         _paramindex2.push_back(qsocivindex2[i]);
+                        _initializeGrid(griddata,boost::str(gridName % metalModelName % qsocivlist1[i] % qsocivlist2[i]));
+                        _zgrid.push_back(griddata);
                     }
                 }
                 catch(likely::RuntimeError const &e) {
@@ -186,6 +195,41 @@ void local::MetalCorrelationModel::_initialize(std::vector<double> &vector, std:
     _lastLines = lines;
 }
 
+void local::MetalCorrelationModel::_initializeGrid(std::vector<double> &vector, std::string const &filename) {
+    // General stuff needed for reading the file.
+    std::string line;
+    int lines(0), index;
+    double rpar, rperp, z;
+    vector.resize(0);
+    
+    // Import boost spirit parser symbols.
+    using qi::double_;
+    using qi::int_;
+    using qi::_1;
+    using phoenix::ref;
+    using phoenix::push_back;
+    
+    // Loop over lines in the coordinate grid file.
+    std::ifstream gridIn(filename.c_str());
+    if(!gridIn.good()) throw RuntimeError("MetalCorrelationModel: Unable to open " + filename);
+    while(std::getline(gridIn,line)) {
+        lines++;
+        bool ok = qi::phrase_parse(line.begin(),line.end(),
+            (
+                int_[ref(index) = _1] >> double_[ref(rpar) = _1] >> double_[ref(rperp) = _1] >> double_[ref(z) = _1]
+            ),
+            ascii::space);
+        if(!ok) {
+            throw RuntimeError("MetalCorrelationModel: error reading line " +
+                boost::lexical_cast<std::string>(lines) + " of " + filename);
+        }
+        vector.push_back(z);
+    }
+    gridIn.close();
+    if(_lastLines>=0 && _lastLines != lines) throw RuntimeError("MetalCorrelationModel: deviating number of lines in " + filename);
+    _lastLines = lines;
+}
+
 local::MetalCorrelationModel::~MetalCorrelationModel() { }
 
 double local::MetalCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged, int index) const {
@@ -212,9 +256,9 @@ double local::MetalCorrelationModel::_evaluate(double r, double mu, double z, bo
             biasSq = biasparams[_paramindex1[i]]*biasparams[_paramindex2[i]];
             betaAvg = 0.5*(betaparams[_paramindex1[i]]+betaparams[_paramindex2[i]]);
             betaProd = betaparams[_paramindex1[i]]*betaparams[_paramindex2[i]];
-            biasSq = redshiftEvolution(biasSq,gammaBias,z,zref);
-            betaAvg = redshiftEvolution(betaAvg,gammaBeta,z,zref);
-            betaProd = redshiftEvolution(betaProd,2*gammaBeta,z,zref);
+            biasSq = redshiftEvolution(biasSq,gammaBias,_zgrid[i][index],zref);
+            betaAvg = redshiftEvolution(betaAvg,gammaBeta,_zgrid[i][index],zref);
+            betaProd = redshiftEvolution(betaProd,2*gammaBeta,_zgrid[i][index],zref);
             updateNormFactors(norm0,norm2,norm4,biasSq,betaAvg,betaProd);
             xi += norm0*_metaltemplates[3*i][index] + norm2*_metaltemplates[3*i+1][index] + norm4*_metaltemplates[3*i+2][index];
         }
@@ -247,9 +291,9 @@ double local::MetalCorrelationModel::_evaluate(double r, double mu, double z, bo
             biasSq = biasparams[_paramindex1[i]]*biasparams[_paramindex2[i]];
             betaAvg = 0.5*(betaparams[_paramindex1[i]]+betaparams[_paramindex2[i]]);
             betaProd = betaparams[_paramindex1[i]]*betaparams[_paramindex2[i]];
-            biasSq = redshiftEvolution(biasSq,gammaBias,z,zref);
-            betaAvg = redshiftEvolution(betaAvg,gammaBeta,z,zref);
-            betaProd = redshiftEvolution(betaProd,2*gammaBeta,z,zref);
+            biasSq = redshiftEvolution(biasSq,gammaBias,_zgrid[i][index],zref);
+            betaAvg = redshiftEvolution(betaAvg,gammaBeta,_zgrid[i][index],zref);
+            betaProd = redshiftEvolution(betaProd,2*gammaBeta,_zgrid[i][index],zref);
             updateNormFactors(norm0,norm2,norm4,biasSq,betaAvg,betaProd);
             xi += norm0*(*_metalintertemplates[3*i])(rperp,rpar) + norm2*(*_metalintertemplates[3*i+1])(rperp,rpar) + norm4*(*_metalintertemplates[3*i+2])(rperp,rpar);
         }
