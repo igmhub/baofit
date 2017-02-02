@@ -20,7 +20,7 @@ local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName
     std::string const &metalModelName, std::string const &distAdd,
     std::string const &distMul, double distR0, double zref,
     bool anisotropic, bool decoupled, bool metalModel, bool metalModelInterpolate,
-    bool metalTemplate, bool combinedBias, bool combinedScale, bool crossCorrelation)
+    bool metalCIV, bool toyMetal, bool combinedBias, bool combinedScale, bool crossCorrelation)
 : AbsCorrelationModel("BAO Correlation Model"), _anisotropic(anisotropic), _decoupled(decoupled),
 _combinedScale(combinedScale)
 {
@@ -69,9 +69,9 @@ _combinedScale(combinedScale)
         throw RuntimeError("BaoCorrelationModel: error while reading model interpolation data.");
     }
     // Define our r-space metal correlation model, if any.
-    if(metalModel || metalModelInterpolate || metalTemplate) {
+    if(metalModel || metalModelInterpolate || toyMetal) {
         _metalCorr.reset(new baofit::MetalCorrelationModel(metalModelName,metalModel,metalModelInterpolate,
-            metalTemplate,crossCorrelation,this));
+            metalCIV,toyMetal,crossCorrelation,this));
     }
     // Define our broadband distortion models, if any.
     if(distAdd.length() > 0) {

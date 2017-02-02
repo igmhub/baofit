@@ -38,8 +38,9 @@ namespace baofit {
             bool binSmooth = false, bool binSmoothAlt = false, bool hcdModel = false,
             bool hcdModelAlt = false, bool uvfluctuation = false, bool smoothGauss = false,
             bool smoothLorentz = false, bool distMatrix = false, bool metalModel = false,
-            bool metalModelInterpolate = false, bool metalTemplate = false, bool combinedBias = false,
-            bool combinedScale = false, bool crossCorrelation = false, bool verbose = false);
+            bool metalModelInterpolate = false, bool metalCIV = false, bool toyMetal = false,
+            bool combinedBias = false, bool combinedScale = false, bool crossCorrelation = false,
+            bool verbose = false);
 		virtual ~BaoKSpaceCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;

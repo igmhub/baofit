@@ -25,19 +25,19 @@ namespace phoenix = boost::phoenix;
 namespace local = baofit;
 
 local::MetalCorrelationModel::MetalCorrelationModel(std::string const &metalModelName, bool metalModel,
-    bool metalModelInterpolate, bool metalTemplate, bool crossCorrelation, AbsCorrelationModel *base)
+    bool metalModelInterpolate, bool metalCIV, bool toyMetal, bool crossCorrelation, AbsCorrelationModel *base)
 : AbsCorrelationModel("Metal Correlation Model"), _metalModel(metalModel), _metalModelInterpolate(metalModelInterpolate),
-_metalTemplate(metalTemplate), _crossCorrelation(crossCorrelation), _base(base ? *base:*this)
+_metalCIV(metalCIV), _toyMetal(toyMetal), _crossCorrelation(crossCorrelation), _base(base ? *base:*this)
 {
-    if((metalModel && metalModelInterpolate) || (metalModel && metalTemplate) || (metalModelInterpolate && metalTemplate)) {
+    if((metalModel && metalModelInterpolate) || (metalModel && toyMetal) || (metalModelInterpolate && toyMetal)) {
         throw RuntimeError("MetalCorrelationModel: illegal option specification.");
     }
-    if((metalModel && crossCorrelation) || (metalTemplate && crossCorrelation)) {
+    if((metalModel && crossCorrelation) || (metalModelInterpolate && !crossCorrelation) || (toyMetal && crossCorrelation)) {
         throw RuntimeError("MetalCorrelationModel: illegal option for cross-correlation.");
     }
     // Initialize metal correlation model.
     if(metalModel || metalModelInterpolate) {
-        // Define parameters for metal lines Si II 1190.42 Å ("Si2a"), 1193.29 Å ("Si2b"), 1260.42 Å ("Si2c"), and Si III 1206.50 Å ("Si3").
+        // Define parameters for metal lines SiII 1190.42 Å ("Si2a"), 1193.29 Å ("Si2b"), 1260.42 Å ("Si2c"), and SiIII 1206.50 Å ("Si3").
         _indexBase = _base.defineParameter("beta Si2a",1,0.1);
         _base.defineParameter("bias Si2a",-0.01,0.001);
         _base.defineParameter("beta Si2b",1,0.1);
@@ -46,132 +46,111 @@ _metalTemplate(metalTemplate), _crossCorrelation(crossCorrelation), _base(base ?
         _base.defineParameter("bias Si2c",-0.01,0.001);
         _base.defineParameter("beta Si3",1,0.1);
         _base.defineParameter("bias Si3",-0.01,0.001);
+        // Define parameters for metal line CIV 1548.20 Å, if any.
+        if(metalCIV) {
+            _base.defineParameter("beta CIV",1,0.1);
+            _base.defineParameter("bias CIV",-0.01,0.001);
+        }
         // Load the data we will use for each multipole of each metal model.
         boost::format fileName("%s%s%s.%d.dat");
-        if(metalModel) {
-            _lastLines = -1;
-            _initialize(_corrLyaSi2a0,boost::str(fileName % metalModelName % "_Lya" % "_Si2a" % 0));
-            _initialize(_corrLyaSi2a2,boost::str(fileName % metalModelName % "_Lya" % "_Si2a" % 2));
-            _initialize(_corrLyaSi2a4,boost::str(fileName % metalModelName % "_Lya" % "_Si2a" % 4));
-            _initialize(_corrLyaSi2b0,boost::str(fileName % metalModelName % "_Lya" % "_Si2b" % 0));
-            _initialize(_corrLyaSi2b2,boost::str(fileName % metalModelName % "_Lya" % "_Si2b" % 2));
-            _initialize(_corrLyaSi2b4,boost::str(fileName % metalModelName % "_Lya" % "_Si2b" % 4));
-            _initialize(_corrLyaSi2c0,boost::str(fileName % metalModelName % "_Lya" % "_Si2c" % 0));
-            _initialize(_corrLyaSi2c2,boost::str(fileName % metalModelName % "_Lya" % "_Si2c" % 2));
-            _initialize(_corrLyaSi2c4,boost::str(fileName % metalModelName % "_Lya" % "_Si2c" % 4));
-            _initialize(_corrLyaSi30,boost::str(fileName % metalModelName % "_Lya" % "_Si3" % 0));
-            _initialize(_corrLyaSi32,boost::str(fileName % metalModelName % "_Lya" % "_Si3" % 2));
-            _initialize(_corrLyaSi34,boost::str(fileName % metalModelName % "_Lya" % "_Si3" % 4));
-            _initialize(_corrSi2aSi2a0,boost::str(fileName % metalModelName % "_Si2a" % "_Si2a" % 0));
-            _initialize(_corrSi2aSi2a2,boost::str(fileName % metalModelName % "_Si2a" % "_Si2a" % 2));
-            _initialize(_corrSi2aSi2a4,boost::str(fileName % metalModelName % "_Si2a" % "_Si2a" % 4));
-            _initialize(_corrSi2aSi2b0,boost::str(fileName % metalModelName % "_Si2a" % "_Si2b" % 0));
-            _initialize(_corrSi2aSi2b2,boost::str(fileName % metalModelName % "_Si2a" % "_Si2b" % 2));
-            _initialize(_corrSi2aSi2b4,boost::str(fileName % metalModelName % "_Si2a" % "_Si2b" % 4));
-            _initialize(_corrSi2aSi2c0,boost::str(fileName % metalModelName % "_Si2a" % "_Si2c" % 0));
-            _initialize(_corrSi2aSi2c2,boost::str(fileName % metalModelName % "_Si2a" % "_Si2c" % 2));
-            _initialize(_corrSi2aSi2c4,boost::str(fileName % metalModelName % "_Si2a" % "_Si2c" % 4));
-            _initialize(_corrSi2bSi2b0,boost::str(fileName % metalModelName % "_Si2b" % "_Si2b" % 0));
-            _initialize(_corrSi2bSi2b2,boost::str(fileName % metalModelName % "_Si2b" % "_Si2b" % 2));
-            _initialize(_corrSi2bSi2b4,boost::str(fileName % metalModelName % "_Si2b" % "_Si2b" % 4));
-            _initialize(_corrSi2bSi2c0,boost::str(fileName % metalModelName % "_Si2b" % "_Si2c" % 0));
-            _initialize(_corrSi2bSi2c2,boost::str(fileName % metalModelName % "_Si2b" % "_Si2c" % 2));
-            _initialize(_corrSi2bSi2c4,boost::str(fileName % metalModelName % "_Si2b" % "_Si2c" % 4));
-            _initialize(_corrSi2cSi2c0,boost::str(fileName % metalModelName % "_Si2c" % "_Si2c" % 0));
-            _initialize(_corrSi2cSi2c2,boost::str(fileName % metalModelName % "_Si2c" % "_Si2c" % 2));
-            _initialize(_corrSi2cSi2c4,boost::str(fileName % metalModelName % "_Si2c" % "_Si2c" % 4));
-            _initialize(_corrSi3Si2a0,boost::str(fileName % metalModelName % "_Si3" % "_Si2a" % 0));
-            _initialize(_corrSi3Si2a2,boost::str(fileName % metalModelName % "_Si3" % "_Si2a" % 2));
-            _initialize(_corrSi3Si2a4,boost::str(fileName % metalModelName % "_Si3" % "_Si2a" % 4));
-            _initialize(_corrSi3Si2b0,boost::str(fileName % metalModelName % "_Si3" % "_Si2b" % 0));
-            _initialize(_corrSi3Si2b2,boost::str(fileName % metalModelName % "_Si3" % "_Si2b" % 2));
-            _initialize(_corrSi3Si2b4,boost::str(fileName % metalModelName % "_Si3" % "_Si2b" % 4));
-            _initialize(_corrSi3Si2c0,boost::str(fileName % metalModelName % "_Si3" % "_Si2c" % 0));
-            _initialize(_corrSi3Si2c2,boost::str(fileName % metalModelName % "_Si3" % "_Si2c" % 2));
-            _initialize(_corrSi3Si2c4,boost::str(fileName % metalModelName % "_Si3" % "_Si2c" % 4));
-            _initialize(_corrSi3Si30,boost::str(fileName % metalModelName % "_Si3" % "_Si3" % 0));
-            _initialize(_corrSi3Si32,boost::str(fileName % metalModelName % "_Si3" % "_Si3" % 2));
-            _initialize(_corrSi3Si34,boost::str(fileName % metalModelName % "_Si3" % "_Si3" % 4));
-        }
-        else if(metalModelInterpolate && !crossCorrelation) {
-            try {
-                _LyaSi2a0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Lya" % "_Si2a" % 0));
-                _LyaSi2a2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Lya" % "_Si2a" % 2));
-                _LyaSi2a4 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Lya" % "_Si2a" % 4));
-                _LyaSi2b0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Lya" % "_Si2b" % 0));
-                _LyaSi2b2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Lya" % "_Si2b" % 2));
-                _LyaSi2b4 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Lya" % "_Si2b" % 4));
-                _LyaSi2c0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Lya" % "_Si2c" % 0));
-                _LyaSi2c2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Lya" % "_Si2c" % 2));
-                _LyaSi2c4 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Lya" % "_Si2c" % 4));
-                _LyaSi30 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Lya" % "_Si3" % 0));
-                _LyaSi32 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Lya" % "_Si3" % 2));
-                _LyaSi34 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Lya" % "_Si3" % 4));
-                _Si2aSi2a0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2a" % "_Si2a" % 0));
-                _Si2aSi2a2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2a" % "_Si2a" % 2));
-                _Si2aSi2a4 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2a" % "_Si2a" % 4));
-                _Si2aSi2b0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2a" % "_Si2b" % 0));
-                _Si2aSi2b2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2a" % "_Si2b" % 2));
-                _Si2aSi2b4 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2a" % "_Si2b" % 4));
-                _Si2aSi2c0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2a" % "_Si2c" % 0));
-                _Si2aSi2c2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2a" % "_Si2c" % 2));
-                _Si2aSi2c4 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2a" % "_Si2c" % 4));
-                _Si2bSi2b0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2b" % "_Si2b" % 0));
-                _Si2bSi2b2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2b" % "_Si2b" % 2));
-                _Si2bSi2b4 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2b" % "_Si2b" % 4));
-                _Si2bSi2c0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2b" % "_Si2c" % 0));
-                _Si2bSi2c2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2b" % "_Si2c" % 2));
-                _Si2bSi2c4 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2b" % "_Si2c" % 4));
-                _Si2cSi2c0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2c" % "_Si2c" % 0));
-                _Si2cSi2c2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2c" % "_Si2c" % 2));
-                _Si2cSi2c4 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si2c" % "_Si2c" % 4));
-                _Si3Si2a0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si3" % "_Si2a" % 0));
-                _Si3Si2a2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si3" % "_Si2a" % 2));
-                _Si3Si2a4 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si3" % "_Si2a" % 4));
-                _Si3Si2b0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si3" % "_Si2b" % 0));
-                _Si3Si2b2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si3" % "_Si2b" % 2));
-                _Si3Si2b4 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si3" % "_Si2b" % 4));
-                _Si3Si2c0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si3" % "_Si2c" % 0));
-                _Si3Si2c2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si3" % "_Si2c" % 2));
-                _Si3Si2c4 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si3" % "_Si2c" % 4));
-                _Si3Si30 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si3" % "_Si3" % 0));
-                _Si3Si32 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si3" % "_Si3" % 2));
-                _Si3Si34 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_Si3" % "_Si3" % 4));
+        boost::format gridName("%s%s%s.grid");
+        std::vector<double> metaldata, griddata;
+        _lastLines = -1;
+        if(metalModel && !crossCorrelation) {
+            _nmet = 5;
+            _ncomb = 14;
+            std::string metallist1 [14] = {"_Lya","_Lya","_Lya","_Lya","_Si2a","_Si2a","_Si2a","_Si2b","_Si2b","_Si2c","_Si3","_Si3","_Si3","_Si3"};
+            std::string metallist2 [14] = {"_Si2a","_Si2b","_Si2c","_Si3","_Si2a","_Si2b","_Si2c","_Si2b","_Si2c","_Si2c","_Si2a","_Si2b","_Si2c","_Si3"};
+            int metalindex1 [14] = {0,0,0,0,1,1,1,2,2,3,4,4,4,4};
+            int metalindex2 [14] = {1,2,3,4,1,2,3,2,3,3,1,2,3,4};
+            for(int i = 0; i < _ncomb; ++i) {
+                _initialize(metaldata,boost::str(fileName % metalModelName % metallist1[i] % metallist2[i] % 0));
+                _metaltemplates.push_back(metaldata);
+                _initialize(metaldata,boost::str(fileName % metalModelName % metallist1[i] % metallist2[i] % 2));
+                _metaltemplates.push_back(metaldata);
+                _initialize(metaldata,boost::str(fileName % metalModelName % metallist1[i] % metallist2[i] % 4));
+                _metaltemplates.push_back(metaldata);
+                _paramindex1.push_back(metalindex1[i]);
+                _paramindex2.push_back(metalindex2[i]);
+                _initializeGrid(griddata,boost::str(gridName % metalModelName % metallist1[i] % metallist2[i]));
+                _zgrid.push_back(griddata);
             }
-            catch(likely::RuntimeError const &e) {
-                throw RuntimeError("MetalCorrelationModel: error while reading metal model interpolation data.");
+            
+            if(metalCIV) {
+                int nciv(6);
+                _nmet += 1;
+                _ncomb += nciv;
+                std::string civlist1 [6] = {"_Lya","_Si2a","_Si2b","_Si2c","_Si3","_CIVa"};
+                std::string civlist2 [6] = {"_CIVa","_CIVa","_CIVa","_CIVa","_CIVa","_CIVa"};
+                int civindex1 [6] = {0,1,2,3,4,5};
+                int civindex2 [6] = {5,5,5,5,5,5};
+                for(int i = 0; i < nciv; ++i) {
+                    _initialize(metaldata,boost::str(fileName % metalModelName % civlist1[i] % civlist2[i] % 0));
+                    _metaltemplates.push_back(metaldata);
+                    _initialize(metaldata,boost::str(fileName % metalModelName % civlist1[i] % civlist2[i] % 2));
+                    _metaltemplates.push_back(metaldata);
+                    _initialize(metaldata,boost::str(fileName % metalModelName % civlist1[i] % civlist2[i] % 4));
+                    _metaltemplates.push_back(metaldata);
+                    _paramindex1.push_back(civindex1[i]);
+                    _paramindex2.push_back(civindex2[i]);
+                    _initializeGrid(griddata,boost::str(gridName % metalModelName % civlist1[i] % civlist2[i]));
+                    _zgrid.push_back(griddata);
+                }
             }
-            _rperpMin = _LyaSi2a0->getX0();
-            _rparMin = _LyaSi2a0->getY0();
-            _rperpMax = _rperpMin + (_LyaSi2a0->getNX()-1)*_LyaSi2a0->getXSpacing();
-            _rparMax = _rparMin + (_LyaSi2a0->getNY()-1)*_LyaSi2a0->getYSpacing();
         }
         else if(metalModelInterpolate && crossCorrelation) {
+            _nmet = 5;
+            _ncomb = 4;
+            std::string qsometallist1 [4] = {"_QSO","_QSO","_QSO","_QSO"};
+            std::string qsometallist2 [4] = {"_Si2a","_Si2b","_Si2c","_Si3"};
+            int qsometalindex1 [4] = {0,0,0,0};
+            int qsometalindex2 [4] = {1,2,3,4};
             try {
-                _QSOSi2a0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_QSO" % "_Si2a" % 0));
-                _QSOSi2a2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_QSO" % "_Si2a" % 2));
-                _QSOSi2a4 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_QSO" % "_Si2a" % 4));
-                _QSOSi2b0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_QSO" % "_Si2b" % 0));
-                _QSOSi2b2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_QSO" % "_Si2b" % 2));
-                _QSOSi2b4 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_QSO" % "_Si2b" % 4));
-                _QSOSi2c0 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_QSO" % "_Si2c" % 0));
-                _QSOSi2c2 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_QSO" % "_Si2c" % 2));
-                _QSOSi2c4 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_QSO" % "_Si2c" % 4));
-                _QSOSi30 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_QSO" % "_Si3" % 0));
-                _QSOSi32 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_QSO" % "_Si3" % 2));
-                _QSOSi34 = likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % "_QSO" % "_Si3" % 4));
+                for(int i = 0; i < _ncomb; ++i) {
+                    _metalintertemplates.push_back(likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % qsometallist1[i] % qsometallist2[i] % 0)));
+                    _metalintertemplates.push_back(likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % qsometallist1[i] % qsometallist2[i] % 2)));
+                    _metalintertemplates.push_back(likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % qsometallist1[i] % qsometallist2[i] % 4)));
+                    _paramindex1.push_back(qsometalindex1[i]);
+                    _paramindex2.push_back(qsometalindex2[i]);
+                    _initializeGrid(griddata,boost::str(gridName % metalModelName % qsometallist1[i] % qsometallist2[i]));
+                    _zgrid.push_back(griddata);
+                }
             }
             catch(likely::RuntimeError const &e) {
                 throw RuntimeError("MetalCorrelationModel: error while reading metal model interpolation data.");
             }
-            _rperpMin = _QSOSi2a0->getX0();
-            _rparMin = _QSOSi2a0->getY0();
-            _rperpMax = _rperpMin + (_QSOSi2a0->getNX()-1)*_QSOSi2a0->getXSpacing();
-            _rparMax = _rparMin + (_QSOSi2a0->getNY()-1)*_QSOSi2a0->getYSpacing();
+            _rperpMin = _metalintertemplates[0]->getX0();
+            _rparMin = _metalintertemplates[0]->getY0();
+            _rperpMax = _rperpMin + (_metalintertemplates[0]->getNX()-1)*_metalintertemplates[0]->getXSpacing();
+            _rparMax = _rparMin + (_metalintertemplates[0]->getNY()-1)*_metalintertemplates[0]->getYSpacing();
+            
+            if(metalCIV) {
+                int nciv(1);
+                _nmet += 1;
+                _ncomb += nciv;
+                std::string qsocivlist1 [1] = {"_QSO"};
+                std::string qsocivlist2 [1] = {"_CIVa"};
+                int qsocivindex1 [1] = {0};
+                int qsocivindex2 [1] = {5};
+                try {
+                    for(int i = 0; i < nciv; ++i) {
+                        _metalintertemplates.push_back(likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % qsocivlist1[i] % qsocivlist2[i] % 0)));
+                        _metalintertemplates.push_back(likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % qsocivlist1[i] % qsocivlist2[i] % 2)));
+                        _metalintertemplates.push_back(likely::createBiCubicInterpolator(boost::str(fileName % metalModelName % qsocivlist1[i] % qsocivlist2[i] % 4)));
+                        _paramindex1.push_back(qsocivindex1[i]);
+                        _paramindex2.push_back(qsocivindex2[i]);
+                        _initializeGrid(griddata,boost::str(gridName % metalModelName % qsocivlist1[i] % qsocivlist2[i]));
+                        _zgrid.push_back(griddata);
+                    }
+                }
+                catch(likely::RuntimeError const &e) {
+                    throw RuntimeError("MetalCorrelationModel: error while reading metal model interpolation data.");
+                }
+            }
         }
     }
-    // Initialize metal correlation template.
-    else if(metalTemplate) {
+    // Initialize toy metal correlation model.
+    else if(toyMetal) {
         // Define parameters
         _indexBase = _base.defineParameter("metal ampl0",1,0.1);
         _base.defineParameter("metal ampl1",1,0.1);
@@ -216,243 +195,116 @@ void local::MetalCorrelationModel::_initialize(std::vector<double> &vector, std:
     _lastLines = lines;
 }
 
+void local::MetalCorrelationModel::_initializeGrid(std::vector<double> &vector, std::string const &filename) {
+    // General stuff needed for reading the file.
+    std::string line;
+    int lines(0), index;
+    double rpar, rperp, z;
+    vector.resize(0);
+    
+    // Import boost spirit parser symbols.
+    using qi::double_;
+    using qi::int_;
+    using qi::_1;
+    using phoenix::ref;
+    using phoenix::push_back;
+    
+    // Loop over lines in the coordinate grid file.
+    std::ifstream gridIn(filename.c_str());
+    if(!gridIn.good()) throw RuntimeError("MetalCorrelationModel: Unable to open " + filename);
+    while(std::getline(gridIn,line)) {
+        lines++;
+        bool ok = qi::phrase_parse(line.begin(),line.end(),
+            (
+                int_[ref(index) = _1] >> double_[ref(rpar) = _1] >> double_[ref(rperp) = _1] >> double_[ref(z) = _1]
+            ),
+            ascii::space);
+        if(!ok) {
+            throw RuntimeError("MetalCorrelationModel: error reading line " +
+                boost::lexical_cast<std::string>(lines) + " of " + filename);
+        }
+        vector.push_back(z);
+    }
+    gridIn.close();
+    if(_lastLines>=0 && _lastLines != lines) throw RuntimeError("MetalCorrelationModel: deviating number of lines in " + filename);
+    _lastLines = lines;
+}
+
 local::MetalCorrelationModel::~MetalCorrelationModel() { }
 
 double local::MetalCorrelationModel::_evaluate(double r, double mu, double z, bool anyChanged, int index) const {
     double xi(0);
     // Metal correlation model.
-    if((_metalModel || _metalModelInterpolate) && !_crossCorrelation) {
+    if(_metalModel && !_crossCorrelation) {
+        if(index<0) throw RuntimeError("MetalCorrelationModel::_evaluate: invalid index.");
         double biasSq, betaAvg, betaProd, norm0(0), norm2(0), norm4(0);
         double zref = _base._getZRef();
-        double beta = _base._getBeta();
-        double bias = _base._getBias();
         double gammaBias = _base._getGammaBias();
         double gammaBeta = _base._getGammaBeta();
-        double beta2a = _base.getParameterValue(_indexBase);
-        double bias2a = _base.getParameterValue(_indexBase+1);
-        double beta2b = _base.getParameterValue(_indexBase+2);
-        double bias2b = _base.getParameterValue(_indexBase+3);
-        double beta2c = _base.getParameterValue(_indexBase+4);
-        double bias2c = _base.getParameterValue(_indexBase+5);
-        double beta3 = _base.getParameterValue(_indexBase+6);
-        double bias3 = _base.getParameterValue(_indexBase+7);
-        if(_metalModel && index<0) throw RuntimeError("MetalCorrelationModel::_evaluate: invalid index.");
-        double rperp = r*std::sqrt(1-mu*mu);
-        double rpar = std::fabs(r*mu);
-        if(_metalModelInterpolate) {
-            if(rperp<_rperpMin) rperp = _rperpMin;
-            if(rperp>_rperpMax) rperp = _rperpMax;
-            if(rpar<_rparMin) rpar = _rparMin;
-            if(rpar>_rparMax) rpar = _rparMax;
+        std::vector<double> betaparams, biasparams;
+        for(int i = 0; i < _nmet; ++i) {
+            if(i==0) {
+                betaparams.push_back(_base._getBeta());
+                biasparams.push_back(_base._getBias());
+            }
+            else {
+                betaparams.push_back(_base.getParameterValue(_indexBase+2*(i-1)));
+                biasparams.push_back(_base.getParameterValue(_indexBase+2*(i-1)+1));
+            }
         }
-        // Lya-Si2a correlation
-        biasSq = bias*bias2a;
-        betaAvg = (beta+beta2a)/2;
-        betaProd = beta*beta2a;
-        biasSq = redshiftEvolution(biasSq,gammaBias,z,zref);
-        betaAvg = redshiftEvolution(betaAvg,gammaBeta,z,zref);
-        betaProd = redshiftEvolution(betaProd,2*gammaBeta,z,zref);
-        updateNormFactors(norm0,norm2,norm4,biasSq,betaAvg,betaProd);
-        if(_metalModel) xi += norm0*_corrLyaSi2a0[index] + norm2*_corrLyaSi2a2[index] + norm4*_corrLyaSi2a4[index];
-        else if(_metalModelInterpolate) xi += norm0*(*_LyaSi2a0)(rperp,rpar) + norm2*(*_LyaSi2a2)(rperp,rpar) + norm4*(*_LyaSi2a4)(rperp,rpar);
-        // Lya-Si2b correlation
-        biasSq = bias*bias2b;
-        betaAvg = (beta+beta2b)/2;
-        betaProd = beta*beta2b;
-        biasSq = redshiftEvolution(biasSq,gammaBias,z,zref);
-        betaAvg = redshiftEvolution(betaAvg,gammaBeta,z,zref);
-        betaProd = redshiftEvolution(betaProd,2*gammaBeta,z,zref);
-        updateNormFactors(norm0,norm2,norm4,biasSq,betaAvg,betaProd);
-        if(_metalModel) xi += norm0*_corrLyaSi2b0[index] + norm2*_corrLyaSi2b2[index] + norm4*_corrLyaSi2b4[index];
-        else if(_metalModelInterpolate) xi += norm0*(*_LyaSi2b0)(rperp,rpar) + norm2*(*_LyaSi2b2)(rperp,rpar) + norm4*(*_LyaSi2b4)(rperp,rpar);
-        // Lya-Si2c correlation
-        biasSq = bias*bias2c;
-        betaAvg = (beta+beta2c)/2;
-        betaProd = beta*beta2c;
-        biasSq = redshiftEvolution(biasSq,gammaBias,z,zref);
-        betaAvg = redshiftEvolution(betaAvg,gammaBeta,z,zref);
-        betaProd = redshiftEvolution(betaProd,2*gammaBeta,z,zref);
-        updateNormFactors(norm0,norm2,norm4,biasSq,betaAvg,betaProd);
-        if(_metalModel) xi += norm0*_corrLyaSi2c0[index] + norm2*_corrLyaSi2c2[index] + norm4*_corrLyaSi2c4[index];
-        else if(_metalModelInterpolate) xi += norm0*(*_LyaSi2c0)(rperp,rpar) + norm2*(*_LyaSi2c2)(rperp,rpar) + norm4*(*_LyaSi2c4)(rperp,rpar);
-        // Lya-Si3 correlation
-        biasSq = bias*bias3;
-        betaAvg = (beta+beta3)/2;
-        betaProd = beta*beta3;
-        biasSq = redshiftEvolution(biasSq,gammaBias,z,zref);
-        betaAvg = redshiftEvolution(betaAvg,gammaBeta,z,zref);
-        betaProd = redshiftEvolution(betaProd,2*gammaBeta,z,zref);
-        updateNormFactors(norm0,norm2,norm4,biasSq,betaAvg,betaProd);
-        if(_metalModel) xi += norm0*_corrLyaSi30[index] + norm2*_corrLyaSi32[index] + norm4*_corrLyaSi34[index];
-        else if(_metalModelInterpolate) xi += norm0*(*_LyaSi30)(rperp,rpar) + norm2*(*_LyaSi32)(rperp,rpar) + norm4*(*_LyaSi34)(rperp,rpar);
-        // Si2a-Si2a correlation
-        biasSq = bias2a*bias2a;
-        betaAvg = beta2a;
-        betaProd = beta2a*beta2a;
-        biasSq = redshiftEvolution(biasSq,gammaBias,z,zref);
-        betaAvg = redshiftEvolution(betaAvg,gammaBeta,z,zref);
-        betaProd = redshiftEvolution(betaProd,2*gammaBeta,z,zref);
-        updateNormFactors(norm0,norm2,norm4,biasSq,betaAvg,betaProd);
-        if(_metalModel) xi += norm0*_corrSi2aSi2a0[index] + norm2*_corrSi2aSi2a2[index] + norm4*_corrSi2aSi2a4[index];
-        else if(_metalModelInterpolate) xi += norm0*(*_Si2aSi2a0)(rperp,rpar) + norm2*(*_Si2aSi2a2)(rperp,rpar) + norm4*(*_Si2aSi2a4)(rperp,rpar);
-        // Si2a-Si2b correlation
-        biasSq = bias2a*bias2b;
-        betaAvg = (beta2a+beta2b)/2;
-        betaProd = beta2a*beta2b;
-        biasSq = redshiftEvolution(biasSq,gammaBias,z,zref);
-        betaAvg = redshiftEvolution(betaAvg,gammaBeta,z,zref);
-        betaProd = redshiftEvolution(betaProd,2*gammaBeta,z,zref);
-        updateNormFactors(norm0,norm2,norm4,biasSq,betaAvg,betaProd);
-        if(_metalModel) xi += norm0*_corrSi2aSi2b0[index] + norm2*_corrSi2aSi2b2[index] + norm4*_corrSi2aSi2b4[index];
-        else if(_metalModelInterpolate) xi += norm0*(*_Si2aSi2b0)(rperp,rpar) + norm2*(*_Si2aSi2b2)(rperp,rpar) + norm4*(*_Si2aSi2b4)(rperp,rpar);
-        // Si2a-Si2c correlation
-        biasSq = bias2a*bias2c;
-        betaAvg = (beta2a+beta2c)/2;
-        betaProd = beta2a*beta2c;
-        biasSq = redshiftEvolution(biasSq,gammaBias,z,zref);
-        betaAvg = redshiftEvolution(betaAvg,gammaBeta,z,zref);
-        betaProd = redshiftEvolution(betaProd,2*gammaBeta,z,zref);
-        updateNormFactors(norm0,norm2,norm4,biasSq,betaAvg,betaProd);
-        if(_metalModel) xi += norm0*_corrSi2aSi2c0[index] + norm2*_corrSi2aSi2c2[index] + norm4*_corrSi2aSi2c4[index];
-        else if(_metalModelInterpolate) xi += norm0*(*_Si2aSi2c0)(rperp,rpar) + norm2*(*_Si2aSi2c2)(rperp,rpar) + norm4*(*_Si2aSi2c4)(rperp,rpar);
-        // Si2b-Si2b correlation
-        biasSq = bias2b*bias2b;
-        betaAvg = beta2b;
-        betaProd = beta2b*beta2b;
-        biasSq = redshiftEvolution(biasSq,gammaBias,z,zref);
-        betaAvg = redshiftEvolution(betaAvg,gammaBeta,z,zref);
-        betaProd = redshiftEvolution(betaProd,2*gammaBeta,z,zref);
-        updateNormFactors(norm0,norm2,norm4,biasSq,betaAvg,betaProd);
-        if(_metalModel) xi += norm0*_corrSi2bSi2b0[index] + norm2*_corrSi2bSi2b2[index] + norm4*_corrSi2bSi2b4[index];
-        else if(_metalModelInterpolate) xi += norm0*(*_Si2bSi2b0)(rperp,rpar) + norm2*(*_Si2bSi2b2)(rperp,rpar) + norm4*(*_Si2bSi2b4)(rperp,rpar);
-        // Si2b-Si2c correlation
-        biasSq = bias2b*bias2c;
-        betaAvg = (beta2b+beta2c)/2;
-        betaProd = beta2b*beta2c;
-        biasSq = redshiftEvolution(biasSq,gammaBias,z,zref);
-        betaAvg = redshiftEvolution(betaAvg,gammaBeta,z,zref);
-        betaProd = redshiftEvolution(betaProd,2*gammaBeta,z,zref);
-        updateNormFactors(norm0,norm2,norm4,biasSq,betaAvg,betaProd);
-        if(_metalModel) xi += norm0*_corrSi2bSi2c0[index] + norm2*_corrSi2bSi2c2[index] + norm4*_corrSi2bSi2c4[index];
-        else if(_metalModelInterpolate) xi += norm0*(*_Si2bSi2c0)(rperp,rpar) + norm2*(*_Si2bSi2c2)(rperp,rpar) + norm4*(*_Si2bSi2c4)(rperp,rpar);
-        // Si2c-Si2c correlation
-        biasSq = bias2c*bias2c;
-        betaAvg = beta2c;
-        betaProd = beta2c*beta2c;
-        biasSq = redshiftEvolution(biasSq,gammaBias,z,zref);
-        betaAvg = redshiftEvolution(betaAvg,gammaBeta,z,zref);
-        betaProd = redshiftEvolution(betaProd,2*gammaBeta,z,zref);
-        updateNormFactors(norm0,norm2,norm4,biasSq,betaAvg,betaProd);
-        if(_metalModel) xi += norm0*_corrSi2cSi2c0[index] + norm2*_corrSi2cSi2c2[index] + norm4*_corrSi2cSi2c4[index];
-        else if(_metalModelInterpolate) xi += norm0*(*_Si2cSi2c0)(rperp,rpar) + norm2*(*_Si2cSi2c2)(rperp,rpar) + norm4*(*_Si2cSi2c4)(rperp,rpar);
-        // Si3-Si2a correlation
-        biasSq = bias3*bias2a;
-        betaAvg = (beta3+beta2a)/2;
-        betaProd = beta3*beta2a;
-        biasSq = redshiftEvolution(biasSq,gammaBias,z,zref);
-        betaAvg = redshiftEvolution(betaAvg,gammaBeta,z,zref);
-        betaProd = redshiftEvolution(betaProd,2*gammaBeta,z,zref);
-        updateNormFactors(norm0,norm2,norm4,biasSq,betaAvg,betaProd);
-        if(_metalModel) xi += norm0*_corrSi3Si2a0[index] + norm2*_corrSi3Si2a2[index] + norm4*_corrSi3Si2a4[index];
-        else if(_metalModelInterpolate) xi += norm0*(*_Si3Si2a0)(rperp,rpar) + norm2*(*_Si3Si2a2)(rperp,rpar) + norm4*(*_Si3Si2a4)(rperp,rpar);
-        // Si3-Si2b correlation
-        biasSq = bias3*bias2b;
-        betaAvg = (beta3+beta2b)/2;
-        betaProd = beta3*beta2b;
-        biasSq = redshiftEvolution(biasSq,gammaBias,z,zref);
-        betaAvg = redshiftEvolution(betaAvg,gammaBeta,z,zref);
-        betaProd = redshiftEvolution(betaProd,2*gammaBeta,z,zref);
-        updateNormFactors(norm0,norm2,norm4,biasSq,betaAvg,betaProd);
-        if(_metalModel) xi += norm0*_corrSi3Si2b0[index] + norm2*_corrSi3Si2b2[index] + norm4*_corrSi3Si2b4[index];
-        else if(_metalModelInterpolate) xi += norm0*(*_Si3Si2b0)(rperp,rpar) + norm2*(*_Si3Si2b2)(rperp,rpar) + norm4*(*_Si3Si2b4)(rperp,rpar);
-        // Si3-Si2c correlation
-        biasSq = bias3*bias2c;
-        betaAvg = (beta3+beta2c)/2;
-        betaProd = beta3*beta2c;
-        biasSq = redshiftEvolution(biasSq,gammaBias,z,zref);
-        betaAvg = redshiftEvolution(betaAvg,gammaBeta,z,zref);
-        betaProd = redshiftEvolution(betaProd,2*gammaBeta,z,zref);
-        updateNormFactors(norm0,norm2,norm4,biasSq,betaAvg,betaProd);
-        if(_metalModel) xi += norm0*_corrSi3Si2c0[index] + norm2*_corrSi3Si2c2[index] + norm4*_corrSi3Si2c4[index];
-        else if(_metalModelInterpolate) xi += norm0*(*_Si3Si2c0)(rperp,rpar) + norm2*(*_Si3Si2c2)(rperp,rpar) + norm4*(*_Si3Si2c4)(rperp,rpar);
-        // Si3-Si3 correlation
-        biasSq = bias3*bias3;
-        betaAvg = beta3;
-        betaProd = beta3*beta3;
-        biasSq = redshiftEvolution(biasSq,gammaBias,z,zref);
-        betaAvg = redshiftEvolution(betaAvg,gammaBeta,z,zref);
-        betaProd = redshiftEvolution(betaProd,2*gammaBeta,z,zref);
-        updateNormFactors(norm0,norm2,norm4,biasSq,betaAvg,betaProd);
-        if(_metalModel) xi += norm0*_corrSi3Si30[index] + norm2*_corrSi3Si32[index] + norm4*_corrSi3Si34[index];
-        else if(_metalModelInterpolate) xi += norm0*(*_Si3Si30)(rperp,rpar) + norm2*(*_Si3Si32)(rperp,rpar) + norm4*(*_Si3Si34)(rperp,rpar);
+        for(int i = 0; i < _ncomb; ++i) {
+            biasSq = biasparams[_paramindex1[i]]*biasparams[_paramindex2[i]];
+            betaAvg = 0.5*(betaparams[_paramindex1[i]]+betaparams[_paramindex2[i]]);
+            betaProd = betaparams[_paramindex1[i]]*betaparams[_paramindex2[i]];
+            biasSq = redshiftEvolution(biasSq,gammaBias,_zgrid[i][index],zref);
+            betaAvg = redshiftEvolution(betaAvg,gammaBeta,_zgrid[i][index],zref);
+            betaProd = redshiftEvolution(betaProd,2*gammaBeta,_zgrid[i][index],zref);
+            updateNormFactors(norm0,norm2,norm4,biasSq,betaAvg,betaProd);
+            xi += norm0*_metaltemplates[3*i][index] + norm2*_metaltemplates[3*i+1][index] + norm4*_metaltemplates[3*i+2][index];
+        }
         return xi;
     }
     // Metal correlation model (cross-correlation).
     if(_metalModelInterpolate && _crossCorrelation) {
-        double biasSq, betaAvg, betaProd, norm0(0), norm2(0), norm4(0);
-        double zref = _base._getZRef();
-        double betaQ = _base._getBeta2();
-        double biasQ = _base._getBias2();
-        double gammaBias = _base._getGammaBias();
-        double gammaBeta = _base._getGammaBeta();
-        double beta2a = _base.getParameterValue(_indexBase);
-        double bias2a = _base.getParameterValue(_indexBase+1);
-        double beta2b = _base.getParameterValue(_indexBase+2);
-        double bias2b = _base.getParameterValue(_indexBase+3);
-        double beta2c = _base.getParameterValue(_indexBase+4);
-        double bias2c = _base.getParameterValue(_indexBase+5);
-        double beta3 = _base.getParameterValue(_indexBase+6);
-        double bias3 = _base.getParameterValue(_indexBase+7);
         double rperp = r*std::sqrt(1-mu*mu);
         double rpar = r*mu;
         if(rperp<_rperpMin) rperp = _rperpMin;
         if(rperp>_rperpMax) rperp = _rperpMax;
         if(rpar<_rparMin) rpar = _rparMin;
         if(rpar>_rparMax) rpar = _rparMax;
-        // QSO-Si2a correlation
-        biasSq = biasQ*bias2a;
-        betaAvg = (betaQ+beta2a)/2;
-        betaProd = betaQ*beta2a;
-        biasSq = redshiftEvolution(biasSq,gammaBias,z,zref);
-        betaAvg = redshiftEvolution(betaAvg,gammaBeta,z,zref);
-        betaProd = redshiftEvolution(betaProd,2*gammaBeta,z,zref);
-        updateNormFactors(norm0,norm2,norm4,biasSq,betaAvg,betaProd);
-        xi += norm0*(*_QSOSi2a0)(rperp,rpar) + norm2*(*_QSOSi2a2)(rperp,rpar) + norm4*(*_QSOSi2a4)(rperp,rpar);
-        // QSO-Si2b correlation
-        biasSq = biasQ*bias2b;
-        betaAvg = (betaQ+beta2b)/2;
-        betaProd = betaQ*beta2b;
-        biasSq = redshiftEvolution(biasSq,gammaBias,z,zref);
-        betaAvg = redshiftEvolution(betaAvg,gammaBeta,z,zref);
-        betaProd = redshiftEvolution(betaProd,2*gammaBeta,z,zref);
-        updateNormFactors(norm0,norm2,norm4,biasSq,betaAvg,betaProd);
-        xi += norm0*(*_QSOSi2b0)(rperp,rpar) + norm2*(*_QSOSi2b2)(rperp,rpar) + norm4*(*_QSOSi2b4)(rperp,rpar);
-        // QSO-Si2c correlation
-        biasSq = biasQ*bias2c;
-        betaAvg = (betaQ+beta2c)/2;
-        betaProd = betaQ*beta2c;
-        biasSq = redshiftEvolution(biasSq,gammaBias,z,zref);
-        betaAvg = redshiftEvolution(betaAvg,gammaBeta,z,zref);
-        betaProd = redshiftEvolution(betaProd,2*gammaBeta,z,zref);
-        updateNormFactors(norm0,norm2,norm4,biasSq,betaAvg,betaProd);
-        xi += norm0*(*_QSOSi2c0)(rperp,rpar) + norm2*(*_QSOSi2c2)(rperp,rpar) + norm4*(*_QSOSi2c4)(rperp,rpar);
-        // QSO-Si3 correlation
-        biasSq = biasQ*bias3;
-        betaAvg = (betaQ+beta3)/2;
-        betaProd = betaQ*beta3;
-        biasSq = redshiftEvolution(biasSq,gammaBias,z,zref);
-        betaAvg = redshiftEvolution(betaAvg,gammaBeta,z,zref);
-        betaProd = redshiftEvolution(betaProd,2*gammaBeta,z,zref);
-        updateNormFactors(norm0,norm2,norm4,biasSq,betaAvg,betaProd);
-        xi += norm0*(*_QSOSi30)(rperp,rpar) + norm2*(*_QSOSi32)(rperp,rpar) + norm4*(*_QSOSi34)(rperp,rpar);
+        double biasSq, betaAvg, betaProd, norm0(0), norm2(0), norm4(0);
+        double zref = _base._getZRef();
+        double gammaBias = _base._getGammaBias();
+        double gammaBeta = _base._getGammaBeta();
+        std::vector<double> betaparams, biasparams;
+        for(int i = 0; i < _nmet; ++i) {
+            if(i==0) {
+                betaparams.push_back(_base._getBeta2());
+                biasparams.push_back(_base._getBias2());
+            }
+            else {
+                betaparams.push_back(_base.getParameterValue(_indexBase+2*(i-1)));
+                biasparams.push_back(_base.getParameterValue(_indexBase+2*(i-1)+1));
+            }
+        }
+        for(int i = 0; i < _ncomb; ++i) {
+            biasSq = biasparams[_paramindex1[i]]*biasparams[_paramindex2[i]];
+            betaAvg = 0.5*(betaparams[_paramindex1[i]]+betaparams[_paramindex2[i]]);
+            betaProd = betaparams[_paramindex1[i]]*betaparams[_paramindex2[i]];
+            biasSq = redshiftEvolution(biasSq,gammaBias,_zgrid[i][index],zref);
+            betaAvg = redshiftEvolution(betaAvg,gammaBeta,_zgrid[i][index],zref);
+            betaProd = redshiftEvolution(betaProd,2*gammaBeta,_zgrid[i][index],zref);
+            updateNormFactors(norm0,norm2,norm4,biasSq,betaAvg,betaProd);
+            xi += norm0*(*_metalintertemplates[3*i])(rperp,rpar) + norm2*(*_metalintertemplates[3*i+1])(rperp,rpar) + norm4*(*_metalintertemplates[3*i+2])(rperp,rpar);
+        }
         return xi;
     }
-    // Metal correlation template.
-    else if(_metalTemplate) {
+    // Toy metal correlation model.
+    else if(_toyMetal) {
         double exppar, expperp, corr0(0), corr1(0), corr2(0), corr3(0);
         double rperp = r*std::sqrt(1-mu*mu);
         double rpar = std::fabs(r*mu);
-        // Template 0
+        // Corr 0
         double rpar0 = 59.533;
         double sigpar0 = _base.getParameterValue(_indexBase+4);
         double rperp0 = 2.0;
@@ -461,7 +313,7 @@ double local::MetalCorrelationModel::_evaluate(double r, double mu, double z, bo
         exppar = (rpar-rpar0)/sigpar0;
         expperp = (rperp-rperp0)/sigperp0;
         if(std::fabs(exppar)<5 && std::fabs(expperp)<10) corr0 = 1e-4*ampl0*std::exp(-exppar*exppar-expperp);
-        // Template 1
+        // Corr 1
         double rpar1 = 111.344;
         double sigpar1 = 4.88626;
         double rperp1 = 2.0;
@@ -470,7 +322,7 @@ double local::MetalCorrelationModel::_evaluate(double r, double mu, double z, bo
         exppar = (rpar-rpar1)/sigpar1;
         expperp = (rperp-rperp1)/sigperp1;
         if(std::fabs(exppar)<5 && std::fabs(expperp)<10) corr1 = 1e-4*ampl1*std::exp(-exppar*exppar-expperp);
-        // Template 2
+        // Corr 2
         double rpar2 = 134.998;
         double sigpar2 = 5.489;
         double rperp2 = 2.0;
@@ -479,7 +331,7 @@ double local::MetalCorrelationModel::_evaluate(double r, double mu, double z, bo
         exppar = (rpar-rpar2)/sigpar2;
         expperp = (rperp-rperp2)/sigperp2;
         if(std::fabs(exppar)<5 && std::fabs(expperp)<10) corr2 = 1e-4*ampl2*std::exp(-exppar*exppar-expperp);
-        // Template 3
+        // Corr 3
         double rpar3 = 174.525;
         double sigpar3 = 8.48942;
         double rperp3 = 2.0;

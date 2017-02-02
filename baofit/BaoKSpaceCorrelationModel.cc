@@ -35,8 +35,8 @@ local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &m
     bool fitNLCorrection, bool nlCorrectionAlt, bool binSmooth, bool binSmoothAlt,
     bool hcdModel, bool hcdModelAlt, bool uvfluctuation, bool smoothGauss,
     bool smoothLorentz, bool distMatrix, bool metalModel, bool metalModelInterpolate,
-    bool metalTemplate, bool combinedBias, bool combinedScale, bool crossCorrelation,
-    bool verbose)
+    bool metalCIV, bool toyMetal, bool combinedBias, bool combinedScale,
+    bool crossCorrelation, bool verbose)
 : AbsCorrelationModel("BAO k-Space Correlation Model"), _dilmin(dilmin), _dilmax(dilmax),
 _zeff(zeff), _dzmin(dzmin), _distMatrixOrder(distMatrixOrder), _anisotropic(anisotropic),
 _decoupled(decoupled), _nlBroadband(nlBroadband), _nlCorrection(nlCorrection),
@@ -172,9 +172,9 @@ _verbose(verbose), _nWarnings(0), _maxWarnings(10)
     if(zeff > 0) _useZeff = true;
     
     // Define our r-space metal correlation model, if any.
-    if(metalModel || metalModelInterpolate || metalTemplate) {
+    if(metalModel || metalModelInterpolate || toyMetal) {
         _metalCorr.reset(new baofit::MetalCorrelationModel(metalModelName,metalModel,metalModelInterpolate,
-            metalTemplate,crossCorrelation,this));
+            metalCIV,toyMetal,crossCorrelation,this));
     }
     
     // Define our distortion matrix, if any.
