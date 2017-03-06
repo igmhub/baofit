@@ -142,6 +142,7 @@ int main(int argc, char **argv) {
         ("hcd-model", "Include k-space model of HCD absorption.")
         ("hcd-model-alt", "Include alternative k-space model of HCD absorption.")
         ("uvfluctuation", "Include k-space model of UV fluctuations.")
+        ("radiation-model", "Include r-space model of quasar radiation effects.")
         ("smooth-gauss", "Include line-of-sight smoothing (Gaussian).")
         ("smooth-lorentz", "Include line-of-sight smoothing (Lorentzian).")
         ("dist-matrix", "Uses distortion matrix to model continuum fitting broadband distortion.")
@@ -355,12 +356,12 @@ int main(int argc, char **argv) {
         distortionAlt(vm.count("distortion-alt")), noDistortion(vm.count("no-distortion")),
         binSmooth(vm.count("bin-smooth")), binSmoothAlt(vm.count("bin-smooth-alt")),
         hcdModel(vm.count("hcd-model")), hcdModelAlt(vm.count("hcd-model-alt")),
-        uvfluctuation(vm.count("uvfluctuation")), smoothGauss(vm.count("smooth-gauss")),
-        smoothLorentz(vm.count("smooth-lorentz")), distMatrix(vm.count("dist-matrix")),
-        metalModel(vm.count("metal-model")), metalModelInterpolate(vm.count("metal-model-interpolate")),
-        metalCIV(vm.count("metal-civ")), toyMetal(vm.count("toy-metal")),
-        customGrid(vm.count("custom-grid")), combinedBias(vm.count("combined-bias")),
-        combinedScale(vm.count("combined-scale"));
+        uvfluctuation(vm.count("uvfluctuation")), radiationModel(vm.count("radiation-model")),
+        smoothGauss(vm.count("smooth-gauss")), smoothLorentz(vm.count("smooth-lorentz")),
+        distMatrix(vm.count("dist-matrix")), metalModel(vm.count("metal-model")),
+        metalModelInterpolate(vm.count("metal-model-interpolate")), metalCIV(vm.count("metal-civ")),
+        toyMetal(vm.count("toy-metal")), customGrid(vm.count("custom-grid")),
+        combinedBias(vm.count("combined-bias")), combinedScale(vm.count("combined-scale"));
 
     // Check that we have a recognized data format.
     if(dataFormat != "comoving-cartesian" && dataFormat != "comoving-polar" &&
@@ -427,7 +428,7 @@ int main(int argc, char **argv) {
                 distAdd,distMul,distR0,zeff,sigma8,dzmin,distMatrixOrder,distMatrixDistAdd,
                 distMatrixDistMul,anisotropic,decoupled,nlBroadband,nlCorrection,fitNLCorrection,
                 nlCorrectionAlt,binSmooth,binSmoothAlt,hcdModel,hcdModelAlt,uvfluctuation,
-                smoothGauss,smoothLorentz,distMatrix,metalModel,metalModelInterpolate,
+                radiationModel,smoothGauss,smoothLorentz,distMatrix,metalModel,metalModelInterpolate,
                 metalCIV,toyMetal,combinedBias,combinedScale,crossCorrelation,verbose));
         }
         else if(kspacefft) {
