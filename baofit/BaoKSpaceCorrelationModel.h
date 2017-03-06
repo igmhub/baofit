@@ -36,11 +36,11 @@ namespace baofit {
             bool anisotropic = false, bool decoupled = false, bool nlBroadband = false,
             bool nlCorrection = false, bool fitNLCorrection = false, bool nlCorrectionAlt = false,
             bool binSmooth = false, bool binSmoothAlt = false, bool hcdModel = false,
-            bool hcdModelAlt = false, bool uvfluctuation = false, bool smoothGauss = false,
-            bool smoothLorentz = false, bool distMatrix = false, bool metalModel = false,
-            bool metalModelInterpolate = false, bool metalCIV = false, bool toyMetal = false,
-            bool combinedBias = false, bool combinedScale = false, bool crossCorrelation = false,
-            bool verbose = false);
+            bool hcdModelAlt = false, bool uvfluctuation = false, bool radiationModel = false,
+            bool smoothGauss = false, bool smoothLorentz = false, bool distMatrix = false,
+            bool metalModel = false, bool metalModelInterpolate = false, bool metalCIV = false,
+            bool toyMetal = false, bool combinedBias = false, bool combinedScale = false,
+            bool crossCorrelation = false, bool verbose = false);
 		virtual ~BaoKSpaceCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;
@@ -57,10 +57,11 @@ namespace baofit {
             _distMatDistortMul;
         DistortionMatrixPtr _distMat;
         bool _anisotropic, _decoupled, _nlBroadband, _nlCorrection, _fitNLCorrection, _nlCorrectionAlt,
-            _binSmooth, _binSmoothAlt, _hcdModel, _hcdModelAlt, _uvfluctuation, _smoothGauss,
-            _smoothLorentz, _combinedBias, _combinedScale, _crossCorrelation, _verbose, _useZeff;
-        int _indexBase, _nlBase, _nlcorrBase, _baoBase, _bsBase, _hcdBase, _uvBase, _smgausBase,
-            _smlorBase, _combBiasBase, _combScaleBase, _maxWarnings, _distMatrixOrder;
+            _binSmooth, _binSmoothAlt, _hcdModel, _hcdModelAlt, _uvfluctuation, _radiationModel,
+            _smoothGauss, _smoothLorentz, _combinedBias, _combinedScale, _crossCorrelation, _verbose,
+            _useZeff;
+        int _indexBase, _nlBase, _nlcorrBase, _baoBase, _bsBase, _hcdBase, _uvBase, _radBase,
+            _smgausBase, _smlorBase, _combBiasBase, _combScaleBase, _maxWarnings, _distMatrixOrder;
         mutable int _nWarnings;
         cosmo::DistortedPowerCorrelationPtr _Xipk, _Xinw;
         // Evaluates our k-space distortion model D(k,mu_k) using our current parameter values.

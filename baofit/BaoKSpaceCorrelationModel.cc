@@ -33,18 +33,18 @@ local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &m
     std::string const &distMatrixDistAdd, std::string const &distMatrixDistMul,
     bool anisotropic, bool decoupled, bool nlBroadband, bool nlCorrection,
     bool fitNLCorrection, bool nlCorrectionAlt, bool binSmooth, bool binSmoothAlt,
-    bool hcdModel, bool hcdModelAlt, bool uvfluctuation, bool smoothGauss,
-    bool smoothLorentz, bool distMatrix, bool metalModel, bool metalModelInterpolate,
-    bool metalCIV, bool toyMetal, bool combinedBias, bool combinedScale,
-    bool crossCorrelation, bool verbose)
+    bool hcdModel, bool hcdModelAlt, bool uvfluctuation, bool radiationModel,
+    bool smoothGauss, bool smoothLorentz, bool distMatrix, bool metalModel,
+    bool metalModelInterpolate, bool metalCIV, bool toyMetal, bool combinedBias,
+    bool combinedScale, bool crossCorrelation, bool verbose)
 : AbsCorrelationModel("BAO k-Space Correlation Model"), _dilmin(dilmin), _dilmax(dilmax),
 _zeff(zeff), _dzmin(dzmin), _distMatrixOrder(distMatrixOrder), _anisotropic(anisotropic),
 _decoupled(decoupled), _nlBroadband(nlBroadband), _nlCorrection(nlCorrection),
 _fitNLCorrection(fitNLCorrection), _nlCorrectionAlt(nlCorrectionAlt), _binSmooth(binSmooth),
 _binSmoothAlt(binSmoothAlt), _hcdModel(hcdModel), _hcdModelAlt(hcdModelAlt),
-_uvfluctuation(uvfluctuation), _smoothGauss(smoothGauss), _smoothLorentz(smoothLorentz),
-_combinedBias(combinedBias), _combinedScale(combinedScale), _crossCorrelation(crossCorrelation),
-_verbose(verbose), _nWarnings(0), _maxWarnings(10)
+_uvfluctuation(uvfluctuation), _radiationModel(radiationModel), _smoothGauss(smoothGauss),
+_smoothLorentz(smoothLorentz), _combinedBias(combinedBias), _combinedScale(combinedScale),
+_crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarnings(10)
 {
     _setZRef(zref);
     _zLast = zref;
@@ -86,6 +86,13 @@ _verbose(verbose), _nWarnings(0), _maxWarnings(10)
         _uvBase = defineParameter("UV rel bias",-1,0.1);
         defineParameter("UV abs resp bias",-0.667,0.06);
         defineParameter("UV mean free path",300,30); // in Mpc/h
+    }
+    // Quasar radiation parameters
+    if(radiationModel) {
+        _radBase = defineParameter("Rad strength",0,0.1);
+        defineParameter("Rad anisotropy",0,0.1);
+        defineParameter("Rad mean free path",200,10); // in Mpc/h
+        defineParameter("Rad quasar lifetime",10,0.1); // in Myr
     }
     // Gaussian smoothing scale parameter
     if(smoothGauss) {
@@ -429,6 +436,23 @@ bool anyChanged, int index) const {
     // Add r-space metal correlations, if any.
     if(_metalCorr) xi += _metalCorr->_evaluate(r,mu,z,anyChanged,index);
     
+    // Add quasar radiation effects (for cross-correlations only), if any.
+    if(_radiationModel && r>0) {
+        double rad_strength = getParameterValue(_radBase);
+        double rad_aniso = getParameterValue(_radBase + 1);
+        double rad_mean_free = getParameterValue(_radBase + 2);
+        double rad_lifetime = getParameterValue(_radBase + 3);
+        // isotropic radiation.
+        double rad = rad_strength/(r*r);
+        // anisotropy.
+        if(rad_aniso>0) rad *= (1 - rad_aniso*(1-mu*mu));
+        // attenuation.
+        if(rad_mean_free>0) rad *= std::exp(-r/rad_mean_free);
+        // time effects.
+        if(rad_lifetime>0) rad *= std::exp(-(r*(1-mu)/(1+z))/rad_lifetime);
+        xi += rad;
+    }
+    
     // Apply distortion matrix, if any.
     if(_distMat && index>=0) {
         int nbins = _distMatrixOrder;
@@ -467,6 +491,22 @@ bool anyChanged, int index) const {
                 double xiu = biasSqz*(ampl*peak + smooth);
                 // Add r-space metal correlations, if any.
                 if(_metalCorr) xiu += _metalCorr->_evaluate(rbin,mubin,zbin,anyChanged,bin);
+                // Add quasar radiation effects (for cross-correlations only), if any.
+                if(_radiationModel && rbin>0) {
+                    double rad_strength = getParameterValue(_radBase);
+                    double rad_aniso = getParameterValue(_radBase + 1);
+                    double rad_mean_free = getParameterValue(_radBase + 2);
+                    double rad_lifetime = getParameterValue(_radBase + 3);
+                    // isotropic radiation.
+                    double rad = rad_strength/(rbin*rbin);
+                    // anisotropy.
+                    if(rad_aniso>0) rad *= (1 - rad_aniso*(1-mubin*mubin));
+                    // attenuation.
+                    if(rad_mean_free>0) rad *= std::exp(-rbin/rad_mean_free);
+                    // time effects.
+                    if(rad_lifetime>0) rad *= std::exp(-(rbin*(1-mubin)/(1+zbin))/rad_lifetime);
+                    xiu += rad;
+                }
                 // Add r-space broadband distortions, if any.
                 if(_distMatDistortMul) xiu *= 1 + _distMatDistortMul->_evaluate(rbin,mubin,zbin,anyChanged,bin);
                 if(_distMatDistortAdd) {
@@ -509,6 +549,7 @@ void  local::BaoKSpaceCorrelationModel::printToStream(std::ostream &out, std::st
     out << "Binning smoothing is switched " << (_binSmooth || _binSmoothAlt ? "on." : "off.") << std::endl;
     out << "HCD correction is switched " << (_hcdModel || _hcdModelAlt ? "on." : "off.") << std::endl;
     out << "UV fluctuations are switched " << (_uvfluctuation ? "on." : "off.") << std::endl;
+    out << "Quasar radiation effects are switched " << (_radiationModel ? "on." : "off.") << std::endl;
     out << "Gaussian smoothing is switched " << (_smoothGauss ? "on." : "off.") << std::endl;
     out << "Lorentzian smoothing is switched " << (_smoothLorentz ? "on." : "off.") << std::endl;
     out << "Distortion matrix is switched " << (_distMat ? "on." : "off.") << std::endl;
