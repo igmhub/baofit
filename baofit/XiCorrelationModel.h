@@ -20,7 +20,7 @@ namespace baofit {
         // should either be "linear" or "cspline". Creates independent parameters for each multipole
         // if requested, or else relative normalizations are fixed by Kaiser theory.
 		XiCorrelationModel(std::string const &points, std::string const &method, bool independentMultipoles,
-            double zref,  bool crossCorrelation = false);
+            double zref, double OmegaMatter, bool crossCorrelation = false);
 		virtual ~XiCorrelationModel();
         // Prints a multi-line description of this object to the specified output stream.
         virtual void printToStream(std::ostream &out, std::string const &formatSpec = "%12.6f") const;

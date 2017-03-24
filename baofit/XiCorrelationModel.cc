@@ -22,7 +22,7 @@
 namespace local = baofit;
 
 local::XiCorrelationModel::XiCorrelationModel(std::string const &points, std::string const &method,
-bool independentMultipoles, double zref, bool crossCorrelation)
+bool independentMultipoles, double zref, double OmegaMatter, bool crossCorrelation)
 : AbsCorrelationModel("Xi Correlation Model"), _method(method), _independentMultipoles(independentMultipoles)
 {
     // Parse string of comma-separated points
@@ -32,6 +32,9 @@ bool independentMultipoles, double zref, bool crossCorrelation)
     catch(likely::RuntimeError const &e) {
         throw RuntimeError("XiCorrelationModel: badly formatted points list.");
     }
+    
+    // Set matter density parameter
+    _setOmegaMatter(OmegaMatter);
 
     // Linear bias parameters
     _indexBase = 1 + _defineLinearBiasParameters(zref,crossCorrelation);

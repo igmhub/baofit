@@ -13,7 +13,7 @@ namespace local = baofit;
 
 local::AbsCorrelationModel::AbsCorrelationModel(std::string const &name)
 : FitModel(name), _indexBase(-1), _crossCorrelation(false), _combinedBias(false), _dvIndex(-1), _betabiasIndex(-1),
-_nbins(0)
+_nbins(0), _OmegaMatter(0.27)
 { }
 
 local::AbsCorrelationModel::~AbsCorrelationModel() { }
@@ -83,6 +83,11 @@ void local::AbsCorrelationModel::_setZRef(double zref) {
     _zref = zref;
 }
 
+void local::AbsCorrelationModel::_setOmegaMatter(double OmegaMatter) {
+    if(OmegaMatter < 0) throw RuntimeError("AbsCorrelationModel: expected OmegaMatter >= 0.");
+    _OmegaMatter = OmegaMatter;
+}
+
 int local::AbsCorrelationModel::_defineLinearBiasParameters(double zref, bool crossCorrelation, bool combinedBias) {
     if(_indexBase >= 0) throw RuntimeError("AbsCorrelationModel: linear bias parameters already defined.");
     _setZRef(zref);
@@ -141,9 +146,9 @@ void local::AbsCorrelationModel::_updateInternalParameters() {
 void local::AbsCorrelationModel::_applyVelocityShift(double &r, double &mu, double z) {
     // Lookup value of delta_v
     double dv = getParameterValue(_dvIndex);
-    // Convert dv in km/s to dpi in Mpc/h using a flat matter+lambda cosmology with OmegaLambda = 0.73
+    // Convert dv in km/s to dpi in Mpc/h using a flat matter+lambda cosmology
     double zp1 = 1+z;
-    double dpi = (dv/100.)*(1+z)/std::sqrt(0.73+0.27*zp1*zp1*zp1);
+    double dpi = (dv/100.)*(1+z)/std::sqrt(1-_OmegaMatter+_OmegaMatter*zp1*zp1*zp1);
     // Calculate the effect of changing pi by dpi in the separation
     double rnew = std::sqrt(r*r + 2*r*mu*dpi + dpi*dpi);
     double munew = (r*mu+dpi)/rnew;

@@ -17,7 +17,7 @@
 namespace local = baofit;
 
 local::PkCorrelationModel::PkCorrelationModel(std::string const &modelrootName, std::string const &nowigglesName,
-double klo, double khi, int nk, int splineOrder, bool independentMultipoles, double zref,
+double klo, double khi, int nk, int splineOrder, bool independentMultipoles, double zref, double OmegaMatter,
 bool crossCorrelation)
 : AbsCorrelationModel("P(ell,k) Correlation Model"), _klo(klo), _nk(nk), _splineOrder(splineOrder),
 _independentMultipoles(independentMultipoles)
@@ -26,6 +26,7 @@ _independentMultipoles(independentMultipoles)
     if(klo >= khi) throw RuntimeError("PkCorrelationModel: expected khi > klo.");
     if(nk - splineOrder < 2) throw RuntimeError("PkCorrelationModel: expected nk - splineOrder >= 2.");
     if(zref < 0) throw RuntimeError("PkCorrelationModel: expected zref >= 0.");
+    if(OmegaMatter < 0) throw RuntimeError("PkCorrelationModel: expected OmegaMatter >= 0.");
     if(splineOrder != 0 && splineOrder != 1 && splineOrder != 3) {
         throw RuntimeError("PkCorrelationModel: only splineOrder = 0,1,3 are implemented so far.");
     }
@@ -40,6 +41,8 @@ _independentMultipoles(independentMultipoles)
     _sinInt.resize(nk);
     _sin.resize(nk);
     _cos.resize(nk);
+    // Set matter density parameter
+    _setOmegaMatter(OmegaMatter);
     // Linear bias parameters
     _indexBase = 1 + _defineLinearBiasParameters(zref,crossCorrelation);
     // B-spline coefficients for each multipole.
