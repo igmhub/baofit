@@ -414,17 +414,18 @@ int main(int argc, char **argv) {
         
         if(nSpline > 0) {
             model.reset(new baofit::PkCorrelationModel(modelrootName,nowigglesName,
-                kloSpline,khiSpline,nSpline,splineOrder,!constrainedMultipoles,zref,crossCorrelation));
+                kloSpline,khiSpline,nSpline,splineOrder,!constrainedMultipoles,zref,OmegaMatter,
+                crossCorrelation));
         }
         else if(xiPoints.length() > 0) {
             model.reset(new baofit::XiCorrelationModel(xiPoints,xiMethod,!constrainedMultipoles,
-                zref,crossCorrelation));
+                zref,OmegaMatter,crossCorrelation));
         }
         else if(kspace) {
             // Build our fit model from tabulated P(k) on disk.
             model.reset(new baofit::BaoKSpaceCorrelationModel(
                 modelrootName,fiducialName,nowigglesName,distMatrixName,metalModelName,
-                zref,rmin,rmax,dilmin,dilmax,relerr,abserr,ellMax,samplesPerDecade,
+                zref,OmegaMatter,rmin,rmax,dilmin,dilmax,relerr,abserr,ellMax,samplesPerDecade,
                 distAdd,distMul,distR0,zeff,sigma8,dzmin,distMatrixOrder,distMatrixDistAdd,
                 distMatrixDistMul,anisotropic,decoupled,nlBroadband,nlCorrection,fitNLCorrection,
                 nlCorrectionAlt,binSmooth,binSmoothAlt,hcdModel,hcdModelAlt,uvfluctuation,
@@ -434,7 +435,7 @@ int main(int argc, char **argv) {
         else if(kspacefft) {
             // Build our fit model from tabulated P(k) on disk and use a 3D FFT.
             model.reset(new baofit::BaoKSpaceFftCorrelationModel(
-                modelrootName,fiducialName,nowigglesName,zref,
+                modelrootName,fiducialName,nowigglesName,zref,OmegaMatter,
                 gridspacing,ngridx,ngridy,ngridz,distAdd,distMul,distR0,
                 zcorr0,zcorr1,zcorr2,sigma8,anisotropic,decoupled,nlBroadband,nlCorrection,
                 fitNLCorrection,nlCorrectionAlt,distortionAlt,noDistortion,crossCorrelation,verbose));
@@ -442,7 +443,7 @@ int main(int argc, char **argv) {
         else if(kspacehybrid) {
             // Build our fit model from tabulated P(k) on disk and use a hybrid transformation.
             model.reset(new baofit::BaoKSpaceHybridCorrelationModel(
-                modelrootName,fiducialName,nowigglesName,zref,
+                modelrootName,fiducialName,nowigglesName,zref,OmegaMatter,
                 kxmax,ngridx,gridspacing,ngridy,gridscaling,rmax,dilmax,abserrHybrid,relerrHybrid,
                 distAdd,distMul,distR0,zcorr0,zcorr1,zcorr2,sigma8,anisotropic,decoupled,
                 nlBroadband,nlCorrection,fitNLCorrection,nlCorrectionAlt,distortionAlt,noDistortion,
@@ -452,8 +453,8 @@ int main(int argc, char **argv) {
             // Build our fit model from tabulated ell=0,2,4 correlation functions on disk.
             model.reset(new baofit::BaoCorrelationModel(
                 modelrootName,fiducialName,nowigglesName,metalModelName,distAdd,distMul,
-                distR0,zref,anisotropic,decoupled,metalModel,metalModelInterpolate,metalCIV,
-                toyMetal,combinedBias,combinedScale,crossCorrelation));
+                distR0,zref,OmegaMatter,anisotropic,decoupled,metalModel,metalModelInterpolate,
+                metalCIV,toyMetal,combinedBias,combinedScale,crossCorrelation));
         }
              
         // Configure our fit model parameters by applying all model-config options in turn,

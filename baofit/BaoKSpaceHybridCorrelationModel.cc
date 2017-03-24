@@ -21,12 +21,12 @@
 namespace local = baofit;
 
 local::BaoKSpaceHybridCorrelationModel::BaoKSpaceHybridCorrelationModel(std::string const &modelrootName,
-    std::string const &fiducialName, std::string const &nowigglesName, double zref, double kxmax, int nx,
-    double spacing, int ny, int gridscaling, double rmax, double dilmax, double epsAbs, double epsRel,
-    std::string const &distAdd, std::string const &distMul, double distR0, double zcorr0, double zcorr1,
-    double zcorr2, double sigma8, bool anisotropic, bool decoupled,  bool nlBroadband, bool nlCorrection,
-    bool fitNLCorrection, bool nlCorrectionAlt, bool distortionAlt, bool noDistortion, bool crossCorrelation,
-    bool verbose)
+    std::string const &fiducialName, std::string const &nowigglesName, double zref, double OmegaMatter,
+    double kxmax, int nx, double spacing, int ny, int gridscaling, double rmax, double dilmax, double epsAbs,
+    double epsRel, std::string const &distAdd, std::string const &distMul, double distR0, double zcorr0,
+    double zcorr1, double zcorr2, double sigma8, bool anisotropic, bool decoupled,  bool nlBroadband,
+    bool nlCorrection, bool fitNLCorrection, bool nlCorrectionAlt, bool distortionAlt, bool noDistortion,
+    bool crossCorrelation, bool verbose)
 : AbsCorrelationModel("BAO k-Space Hybrid Correlation Model"), _dilmax(dilmax),
 _zcorr0(zcorr0), _zcorr1(zcorr1), _zcorr2(zcorr2), _anisotropic(anisotropic), _decoupled(decoupled),
 _nlBroadband(nlBroadband), _nlCorrection(nlCorrection), _fitNLCorrection(fitNLCorrection),
@@ -34,6 +34,7 @@ _nlCorrectionAlt(nlCorrectionAlt), _distortionAlt(distortionAlt), _noDistortion(
 _crossCorrelation(crossCorrelation), _verbose(verbose)
 {
     _setZRef(zref);
+    _setOmegaMatter(OmegaMatter);
     // Linear bias parameters
     _setBetaIndex(defineParameter("beta",1.4,0.1));
     _setBbIndex(defineParameter("(1+beta)*bias",-0.336,0.03));

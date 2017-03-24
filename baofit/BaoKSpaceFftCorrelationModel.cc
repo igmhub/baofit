@@ -22,7 +22,7 @@ namespace local = baofit;
 
 local::BaoKSpaceFftCorrelationModel::BaoKSpaceFftCorrelationModel(std::string const &modelrootName,
     std::string const &fiducialName, std::string const &nowigglesName, double zref,
-    double spacing, int nx, int ny, int nz, std::string const &distAdd,
+    double OmegaMatter, double spacing, int nx, int ny, int nz, std::string const &distAdd,
     std::string const &distMul, double distR0, double zcorr0, double zcorr1, double zcorr2,
     double sigma8, bool anisotropic, bool decoupled,  bool nlBroadband, bool nlCorrection,
     bool fitNLCorrection, bool nlCorrectionAlt, bool distortionAlt, bool noDistortion, bool crossCorrelation,
@@ -34,6 +34,7 @@ _nlCorrectionAlt(nlCorrectionAlt), _distortionAlt(distortionAlt), _noDistortion(
 _crossCorrelation(crossCorrelation), _verbose(verbose)
 {
     _setZRef(zref);
+    _setOmegaMatter(OmegaMatter);
     // Linear bias parameters
     defineParameter("beta",1.4,0.1);
     defineParameter("(1+beta)*bias",-0.336,0.03);

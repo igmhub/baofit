@@ -57,10 +57,12 @@ namespace baofit {
         // of bias and beta parameters if crossCorrelation is true. Returns the index
         // of the last parameter defined.
         int _defineLinearBiasParameters(double zref, bool crossCorrelation = false, bool combinedBias = false);
-        // Returns the reference redshift
+        // Returns the reference redshift.
         double _getZRef() const;
-        // Sets the reference redshift
+        // Sets the reference redshift.
         void _setZRef(double zref);
+        // Sets the matter density parameter.
+        void _setOmegaMatter(double OmegaMatter);
         // Sets the index of the Lya beta parameter to use.
         void _setBetaIndex(int betaIndex);
         // Sets the index of the Lya bias*(1+beta) parameter to use.
@@ -110,7 +112,7 @@ namespace baofit {
         enum IndexOffset {
             BETA = 0, BB = 1, GAMMA_BIAS = 2, GAMMA_BETA = 3, DELTA_V = 4, BIAS2 = 5, BB2 = 6
         };
-        double _zref, _beta, _bias, _gammaBias, _gammaBeta, _bias2, _beta2;
+        double _zref, _OmegaMatter, _beta, _bias, _gammaBias, _gammaBeta, _bias2, _beta2;
         std::vector<double> _rbin, _mubin, _zbin;
         mutable std::vector<double> _rbinShift, _mubinShift, _zbinShift;
 	}; // AbsCorrelationModel

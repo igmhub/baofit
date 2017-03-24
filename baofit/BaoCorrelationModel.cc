@@ -18,12 +18,13 @@ namespace local = baofit;
 local::BaoCorrelationModel::BaoCorrelationModel(std::string const &modelrootName,
     std::string const &fiducialName, std::string const &nowigglesName,
     std::string const &metalModelName, std::string const &distAdd,
-    std::string const &distMul, double distR0, double zref,
+    std::string const &distMul, double distR0, double zref, double OmegaMatter,
     bool anisotropic, bool decoupled, bool metalModel, bool metalModelInterpolate,
     bool metalCIV, bool toyMetal, bool combinedBias, bool combinedScale, bool crossCorrelation)
 : AbsCorrelationModel("BAO Correlation Model"), _anisotropic(anisotropic), _decoupled(decoupled),
 _combinedScale(combinedScale)
 {
+    _setOmegaMatter(OmegaMatter);
     // Linear bias parameters
     _indexBase = _defineLinearBiasParameters(zref,crossCorrelation,combinedBias);
     // BAO peak parameters (values can be retrieved efficiently as offsets from _indexBase)

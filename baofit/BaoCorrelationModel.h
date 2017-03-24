@@ -21,7 +21,7 @@ namespace baofit {
 		    std::string const &fiducialName, std::string const &nowigglesName,
             std::string const &metalModelName, std::string const &distAdd,
             std::string const &distMul, double distR0, double zref,
-            bool anisotropic = false, bool decoupled = false,
+            double OmegaMatter, bool anisotropic = false, bool decoupled = false,
             bool metalModel = false, bool metalModelInterpolate = false,
             bool metalCIV = false, bool toyMetal = false, bool combinedBias = false,
             bool combinedScale = false, bool crossCorrelation = false);

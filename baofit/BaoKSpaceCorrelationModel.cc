@@ -26,8 +26,8 @@ namespace local = baofit;
 local::BaoKSpaceCorrelationModel::BaoKSpaceCorrelationModel(std::string const &modelrootName,
     std::string const &fiducialName, std::string const &nowigglesName,
     std::string const &distMatrixName, std::string const &metalModelName,
-    double zref, double rmin, double rmax, double dilmin, double dilmax,
-    double relerr, double abserr, int ellMax, int samplesPerDecade,
+    double zref, double OmegaMatter, double rmin, double rmax, double dilmin,
+    double dilmax, double relerr, double abserr, int ellMax, int samplesPerDecade,
     std::string const &distAdd, std::string const &distMul, double distR0,
     double zeff, double sigma8, double dzmin, int distMatrixOrder,
     std::string const &distMatrixDistAdd, std::string const &distMatrixDistMul,
@@ -47,6 +47,7 @@ _smoothLorentz(smoothLorentz), _combinedBias(combinedBias), _combinedScale(combi
 _crossCorrelation(crossCorrelation), _verbose(verbose), _nWarnings(0), _maxWarnings(10)
 {
     _setZRef(zref);
+    _setOmegaMatter(OmegaMatter);
     _zLast = zref;
     // Linear bias parameters
     _setBetaIndex(defineParameter("beta",1.4,0.1));
